@@ -1,12 +1,12 @@
 # netwp
 
-**netwp** = *Internet / Rede Well Played* — the network, well played.
+**netwp** = *Internet / Rede Well Played*.
 
-A terminal network manager written in Go — active local-network device
-discovery (ARP), monitoring, bandwidth testing and interface inspection.
+A terminal network manager written in Go: active local-network device
+discovery (ARP), monitoring, bandwidth testing, and interface inspection.
 Windows-first, portable to Linux.
 
-*Gerenciador de rede via terminal em Go — descoberta ativa de dispositivos,
+*Gerenciador de rede via terminal em Go: descoberta ativa de dispositivos,
 monitoramento, teste de banda e inspeção de interface. Windows primeiro,
 portável para Linux.*
 
