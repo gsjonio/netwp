@@ -48,9 +48,10 @@ required**. / O scanner Windows usa a API `SendARP`: **não exige admin nem Npca
 
 ## Notes / Notas
 
-- OUI vendor table is a small starter set; load the full IEEE registry for
-  real coverage. / *Tabela OUI é um conjunto inicial pequeno; carregue o
-  registro IEEE completo para cobertura real.*
+- Vendor names come from the full IEEE MA-L registry, gzipped and embedded in
+  the binary (`internal/adapter/oui/data`). Refresh it with the command in
+  `oui.go`. / *Fabricantes vêm do registro IEEE MA-L completo, comprimido e
+  embutido no binário. Atualize com o comando em `oui.go`.*
 - Active scanning may be flagged as intrusive on managed/corporate networks.
   Only scan networks you own or are authorized to. / *Varredura ativa pode ser
   vista como intrusiva em redes gerenciadas. Escaneie apenas redes suas ou
