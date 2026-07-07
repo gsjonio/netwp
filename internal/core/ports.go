@@ -23,3 +23,9 @@ type HostResolver interface {
 type VendorLookup interface {
 	Vendor(mac net.HardwareAddr) string
 }
+
+// Prober reports which of a small set of well-known TCP ports a host accepts
+// connections on — the "detailed scan" used to refine device classification.
+type Prober interface {
+	OpenPorts(ctx context.Context, ip net.IP) []int
+}

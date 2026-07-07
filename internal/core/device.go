@@ -11,5 +11,6 @@ type Device struct {
 	MAC      net.HardwareAddr // Layer-2 address (from ARP)
 	Hostname string           // Reverse-DNS name, empty if unresolved
 	Vendor   string           // Manufacturer, resolved from the MAC's OUI prefix
+	Class    DeviceClass      // Best-effort guess at what kind of device this is
 	Online   bool             // Answered the active probe during this scan
 }

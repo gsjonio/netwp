@@ -14,13 +14,18 @@ import (
 	"github.com/gsjonio/netwp/internal/core"
 )
 
-const logLimit = 8 // recent-activity lines kept on screen
+const (
+	logLimit    = 8                      // recent-activity lines kept on screen
+	spinnerRate = 120 * time.Millisecond // spinner frame cadence
+)
 
 var (
 	styOnline  = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
 	styOffline = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	styHead    = lipgloss.NewStyle().Bold(true)
 	styTitle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("39"))
+
+	spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 )
 
 // RunMonitor starts the live monitoring UI and blocks until the user quits.
@@ -34,6 +39,7 @@ func RunMonitor(discovery *core.Discovery, tracker *core.Tracker, network core.N
 		interval:   interval,
 		scanBudget: scanBudget,
 		scanning:   true,
+		scanStart:  time.Now(),
 	}
 	_, err := tea.NewProgram(m, tea.WithAltScreen()).Run()
 	return err
@@ -46,10 +52,12 @@ type monitorModel struct {
 	interval   time.Duration
 	scanBudget time.Duration
 
-	log      []string
-	lastScan time.Time
-	scanning bool
-	err      error
+	log       []string
+	lastScan  time.Time
+	scanning  bool
+	scanStart time.Time
+	frame     int
+	err       error
 }
 
 type scanDoneMsg struct {
@@ -60,7 +68,13 @@ type scanDoneMsg struct {
 
 type rescanMsg struct{}
 
-func (m monitorModel) Init() tea.Cmd { return m.scanNow }
+type spinnerMsg struct{}
+
+func spinnerTick() tea.Cmd {
+	return tea.Tick(spinnerRate, func(time.Time) tea.Msg { return spinnerMsg{} })
+}
+
+func (m monitorModel) Init() tea.Cmd { return tea.Batch(m.scanNow, spinnerTick()) }
 
 // scanNow runs one discovery pass off the UI goroutine (it is a tea.Cmd).
 func (m monitorModel) scanNow() tea.Msg {
@@ -79,9 +93,14 @@ func (m monitorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "r":
 			if !m.scanning {
 				m.scanning = true
+				m.scanStart = time.Now()
 				return m, m.scanNow
 			}
 		}
+
+	case spinnerMsg:
+		m.frame++
+		return m, spinnerTick()
 
 	case scanDoneMsg:
 		m.scanning = false
@@ -100,6 +119,7 @@ func (m monitorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case rescanMsg:
 		if !m.scanning {
 			m.scanning = true
+			m.scanStart = time.Now()
 			return m, m.scanNow
 		}
 	}
@@ -126,14 +146,17 @@ func (m monitorModel) View() string {
 		b.WriteString(strings.Join(m.log, "\n") + "\n\n")
 	}
 
-	state := "idle"
+	var state string
 	if m.scanning {
-		state = "scanning…"
+		spin := styTitle.Render(spinnerFrames[m.frame%len(spinnerFrames)])
+		state = fmt.Sprintf("%s scanning… %.1fs", spin, time.Since(m.scanStart).Seconds())
+	} else {
+		state = styOffline.Render(fmt.Sprintf("idle · next in %s", time.Until(m.lastScan.Add(m.interval)).Round(time.Second)))
 	}
 	if m.err != nil {
 		b.WriteString(styOffline.Render("error: "+m.err.Error()) + "\n")
 	}
-	b.WriteString(styOffline.Render(fmt.Sprintf("[%s]  every %s   ·   r rescan   ·   q quit", state, m.interval)))
+	b.WriteString(state + styOffline.Render("   ·   r rescan   ·   q quit"))
 	return b.String()
 }
 
@@ -150,16 +173,23 @@ func renderMonitorTable(devices []core.TrackedDevice, ref time.Time) string {
 			}
 			return lipgloss.NewStyle().Padding(0, 1)
 		}).
-		Headers("", "IP", "MAC", "HOSTNAME", "VENDOR", "LAST SEEN")
+		Headers("", "IP", "CLASS", "MAC", "HOSTNAME", "VENDOR", "LAST SEEN")
 
 	for _, d := range devices {
 		dot := styOffline.Render("○")
 		if d.Online {
 			dot = styOnline.Render("●")
 		}
-		t.Row(dot, d.IP.String(), macText(d.MAC), orDash(d.Hostname), orDash(d.Vendor), lastSeen(d, ref))
+		t.Row(dot, d.IP.String(), className(d.Class), macText(d.MAC), orDash(d.Hostname), orDash(d.Vendor), lastSeen(d, ref))
 	}
 	return t.String()
+}
+
+func className(c core.DeviceClass) string {
+	if c == core.ClassUnknown {
+		return "—"
+	}
+	return c.String()
 }
 
 func formatEvent(e core.Event) string {

@@ -9,8 +9,9 @@ import (
 //
 // Value object — no behaviour beyond deriving the set of scannable hosts.
 type Network struct {
-	Self net.IP     // Our address on this network
-	CIDR *net.IPNet // The subnet (address + mask)
+	Self    net.IP     // Our address on this network
+	CIDR    *net.IPNet // The subnet (address + mask)
+	Gateway net.IP     // Default gateway (the router), nil if undetermined
 }
 
 // Hosts returns every usable IPv4 host address in the subnet, excluding the

@@ -10,7 +10,7 @@ Windows-first, portable to Linux.
 
 ## Status
 
-- [x] Device discovery core (ARP scan, hostname, vendor by OUI)
+- [x] Device discovery core (ARP scan, hostname, vendor by OUI, device-class guess)
 - [x] Continuous monitoring (join/leave), live TUI
 - [ ] Bandwidth test
 - [ ] Interface IP inspect/configure

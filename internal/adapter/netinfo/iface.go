@@ -31,7 +31,7 @@ func LocalNetwork() (core.Network, error) {
 			if !ok || ipnet.IP.To4() == nil {
 				continue
 			}
-			return core.Network{Self: ipnet.IP.To4(), CIDR: ipnet}, nil
+			return core.Network{Self: ipnet.IP.To4(), CIDR: ipnet, Gateway: DefaultGateway()}, nil
 		}
 	}
 	return core.Network{}, errors.New("no active IPv4 interface found")

@@ -10,7 +10,7 @@ planejados. Windows primeiro, portável para Linux.
 
 ## Status
 
-- [x] Núcleo de descoberta (ARP scan, hostname, fabricante por OUI)
+- [x] Núcleo de descoberta (ARP scan, hostname, fabricante por OUI, palpite de classe)
 - [x] Monitoramento contínuo (entrada/saída), TUI ao vivo
 - [ ] Teste de banda
 - [ ] Inspeção/configuração de IP da interface

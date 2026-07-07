@@ -46,7 +46,7 @@ func RenderDevices(w io.Writer, devices []core.Device) {
 
 	header := []cell{
 		{"STATUS", colorBold}, {"IP", colorBold}, {"MAC", colorBold},
-		{"HOSTNAME", colorBold}, {"VENDOR", colorBold},
+		{"CLASS", colorBold}, {"HOSTNAME", colorBold}, {"VENDOR", colorBold},
 	}
 	rows := make([][]cell, 0, len(devices))
 	for _, d := range devices {
@@ -54,6 +54,7 @@ func RenderDevices(w io.Writer, devices []core.Device) {
 			statusCell(d.Online),
 			{d.IP.String(), ""},
 			macCell(d.MAC),
+			classCell(d.Class),
 			textCell(d.Hostname),
 			textCell(d.Vendor),
 		})
@@ -110,4 +111,11 @@ func textCell(s string) cell {
 		return cell{"—", colorDim}
 	}
 	return cell{s, ""}
+}
+
+func classCell(c core.DeviceClass) cell {
+	if c == core.ClassUnknown {
+		return cell{"—", colorDim}
+	}
+	return cell{c.String(), ""}
 }
