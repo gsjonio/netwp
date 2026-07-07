@@ -9,7 +9,7 @@ Windows-first, portable to Linux.
 ## Status
 
 - [x] Device discovery core (ARP scan, hostname, vendor by OUI)
-- [ ] Continuous monitoring (join/leave)
+- [x] Continuous monitoring (join/leave), live TUI
 - [ ] Bandwidth test
 - [ ] Interface IP inspect/configure
 - [ ] Linux adapter (AF_PACKET raw ARP)
@@ -33,7 +33,8 @@ Requires Go 1.22+.
 
 ```powershell
 go build -o netwp.exe ./cmd/netwp
-.\netwp.exe
+.\netwp.exe            # one-shot scan (default)
+.\netwp.exe monitor   # live TUI: devices joining/leaving in real time (q to quit)
 go test ./...
 ```
 

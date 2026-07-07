@@ -9,7 +9,7 @@ planejados. Windows primeiro, portável para Linux.
 ## Status
 
 - [x] Núcleo de descoberta (ARP scan, hostname, fabricante por OUI)
-- [ ] Monitoramento contínuo (entrada/saída)
+- [x] Monitoramento contínuo (entrada/saída), TUI ao vivo
 - [ ] Teste de banda
 - [ ] Inspeção/configuração de IP da interface
 - [ ] Adapter Linux (ARP cru via AF_PACKET)
@@ -33,7 +33,8 @@ Requer Go 1.22+.
 
 ```powershell
 go build -o netwp.exe ./cmd/netwp
-.\netwp.exe
+.\netwp.exe            # varredura única (padrão)
+.\netwp.exe monitor   # TUI ao vivo: dispositivos entrando/saindo em tempo real (q sai)
 go test ./...
 ```
 

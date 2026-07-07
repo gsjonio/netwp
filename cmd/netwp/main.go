@@ -1,5 +1,5 @@
 // Command netwp is a terminal network manager. This entry point is the
-// composition root: it wires concrete adapters into the core use case.
+// composition root: it wires concrete adapters into the core use cases.
 package main
 
 import (
@@ -15,30 +15,62 @@ import (
 	"github.com/gsjonio/netwp/internal/tui"
 )
 
+const (
+	scanTimeout  = 20 * time.Second // one-shot scan budget
+	monitorEvery = 10 * time.Second // interval between monitor scans
+	offlineAfter = 30 * time.Second // grace before a missing device is offline
+)
+
 func main() {
-	if err := run(); err != nil {
+	command := ""
+	if len(os.Args) > 1 {
+		command = os.Args[1]
+	}
+
+	var err error
+	switch command {
+	case "", "scan":
+		err = runScan()
+	case "monitor":
+		err = runMonitor()
+	default:
+		err = fmt.Errorf("unknown command %q (use: scan | monitor)", command)
+	}
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "netwp:", err)
 		os.Exit(1)
 	}
 }
 
-func run() error {
+// buildDiscovery assembles the discovery use case from its platform adapters.
+func buildDiscovery() *core.Discovery {
+	return core.NewDiscovery(arpscan.New(), netinfo.DNSResolver{}, oui.New())
+}
+
+func runScan() error {
 	network, err := netinfo.LocalNetwork()
 	if err != nil {
 		return err
 	}
 	fmt.Printf("Scanning %s from %s ...\n\n", network.CIDR, network.Self)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), scanTimeout)
 	defer cancel()
 
-	discovery := core.NewDiscovery(arpscan.New(), netinfo.DNSResolver{}, oui.New())
-	devices, err := discovery.Run(ctx, network)
+	devices, err := buildDiscovery().Run(ctx, network)
 	if err != nil {
 		return err
 	}
-
 	tui.RenderDevices(os.Stdout, devices)
 	fmt.Printf("\n%d device(s) found.\n", len(devices))
 	return nil
+}
+
+func runMonitor() error {
+	network, err := netinfo.LocalNetwork()
+	if err != nil {
+		return err
+	}
+	tracker := core.NewTracker(offlineAfter)
+	return tui.RunMonitor(buildDiscovery(), tracker, network, monitorEvery)
 }
