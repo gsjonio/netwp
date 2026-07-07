@@ -24,23 +24,27 @@ var (
 )
 
 // RunMonitor starts the live monitoring UI and blocks until the user quits.
-func RunMonitor(discovery *core.Discovery, tracker *core.Tracker, network core.Network, interval time.Duration) error {
+// interval is the gap between scans; scanBudget bounds how long each scan may
+// run (kept separate: a scan can legitimately take longer than the interval).
+func RunMonitor(discovery *core.Discovery, tracker *core.Tracker, network core.Network, interval, scanBudget time.Duration) error {
 	m := monitorModel{
-		discovery: discovery,
-		tracker:   tracker,
-		network:   network,
-		interval:  interval,
-		scanning:  true,
+		discovery:  discovery,
+		tracker:    tracker,
+		network:    network,
+		interval:   interval,
+		scanBudget: scanBudget,
+		scanning:   true,
 	}
 	_, err := tea.NewProgram(m, tea.WithAltScreen()).Run()
 	return err
 }
 
 type monitorModel struct {
-	discovery *core.Discovery
-	tracker   *core.Tracker
-	network   core.Network
-	interval  time.Duration
+	discovery  *core.Discovery
+	tracker    *core.Tracker
+	network    core.Network
+	interval   time.Duration
+	scanBudget time.Duration
 
 	log      []string
 	lastScan time.Time
@@ -60,7 +64,7 @@ func (m monitorModel) Init() tea.Cmd { return m.scanNow }
 
 // scanNow runs one discovery pass off the UI goroutine (it is a tea.Cmd).
 func (m monitorModel) scanNow() tea.Msg {
-	ctx, cancel := context.WithTimeout(context.Background(), m.interval)
+	ctx, cancel := context.WithTimeout(context.Background(), m.scanBudget)
 	defer cancel()
 	devices, err := m.discovery.Run(ctx, m.network)
 	return scanDoneMsg{devices: devices, at: time.Now(), err: err}

@@ -29,7 +29,10 @@ type Scanner struct {
 	Workers int // Bounded concurrency; <=0 uses a default.
 }
 
-func New() *Scanner { return &Scanner{Workers: 64} }
+// ponytail: 256 workers lets a /24 fire almost every probe at once (~2s instead
+// of ~8s), since each SendARP is an independent blocking syscall. That is ~256
+// briefly-blocked OS threads — fine here; lower it for very large ranges.
+func New() *Scanner { return &Scanner{Workers: 256} }
 
 // Scan implements core.Scanner.
 func (s *Scanner) Scan(ctx context.Context, target core.Network) ([]core.Device, error) {
@@ -77,7 +80,9 @@ func (s *Scanner) Scan(ctx context.Context, target core.Network) ([]core.Device,
 	for d := range results {
 		devices = append(devices, d)
 	}
-	return devices, ctx.Err()
+	// Best-effort: a hit deadline means "stop waiting", not "failed". Return
+	// whatever answered instead of discarding a partial scan.
+	return devices, nil
 }
 
 // resolveARP asks the stack for ip's MAC. Returns false if the host is silent.

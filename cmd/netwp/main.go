@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	scanTimeout  = 20 * time.Second // one-shot scan budget
-	monitorEvery = 10 * time.Second // interval between monitor scans
-	offlineAfter = 30 * time.Second // grace before a missing device is offline
+	scanTimeout       = 20 * time.Second // one-shot scan budget
+	monitorEvery      = 10 * time.Second // interval between monitor scans
+	monitorScanBudget = 30 * time.Second // max time a single monitor scan may run
+	offlineAfter      = 30 * time.Second // grace before a missing device is offline
 )
 
 func main() {
@@ -72,5 +73,5 @@ func runMonitor() error {
 		return err
 	}
 	tracker := core.NewTracker(offlineAfter)
-	return tui.RunMonitor(buildDiscovery(), tracker, network, monitorEvery)
+	return tui.RunMonitor(buildDiscovery(), tracker, network, monitorEvery, monitorScanBudget)
 }
