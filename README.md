@@ -1,5 +1,7 @@
 # netwp
 
+**netwp** = *Internet / Rede Well Played* — the network, well played.
+
 A terminal network manager written in Go — active local-network device
 discovery (ARP), monitoring, bandwidth testing and interface inspection.
 Windows-first, portable to Linux.

@@ -1,5 +1,7 @@
 # netwp — English
 
+**netwp** stands for *Internet / Rede Well Played* — "the network, well played".
+
 A terminal network manager written in Go. Active local-network device discovery
 (ARP), with monitoring, bandwidth testing and interface inspection planned.
 Windows-first, portable to Linux.

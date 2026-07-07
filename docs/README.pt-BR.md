@@ -1,5 +1,7 @@
 # netwp — Português
 
+**netwp** = *Internet / Rede Well Played* — "a rede, bem jogada".
+
 Gerenciador de rede via terminal escrito em Go. Descoberta ativa de dispositivos
 na rede local (ARP), com monitoramento, teste de banda e inspeção de interface
 planejados. Windows primeiro, portável para Linux.
