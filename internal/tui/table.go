@@ -1,0 +1,113 @@
+// Package tui renders discovery results as a legible terminal table.
+//
+// ponytail: manual rune-width padding + a few ANSI codes give aligned, coloured
+// output with zero dependencies. text/tabwriter can't do this: it counts the
+// bytes of ANSI colour codes toward column width, which breaks alignment. When
+// the interactive monitor (fase 2) lands, move to charmbracelet/lipgloss +
+// bubbletea for live-updating, styled tables.
+package tui
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"net"
+	"sort"
+	"strings"
+	"unicode/utf8"
+
+	"github.com/gsjonio/netwp/internal/core"
+)
+
+const (
+	colorReset = "\x1b[0m"
+	colorGreen = "\x1b[32m"
+	colorDim   = "\x1b[90m"
+	colorBold  = "\x1b[1m"
+)
+
+const columnGap = "  "
+
+// cell is one table cell: its plain text plus an optional ANSI colour. Width is
+// always measured on text, so colour never affects alignment.
+//
+// ponytail: assumes one terminal column per rune. Fine for IPs, MACs and ASCII
+// hostnames; wide CJK/emoji would need a display-width lib.
+type cell struct {
+	text  string
+	color string // "" means no colour
+}
+
+// RenderDevices writes a table of devices sorted by IP address to w.
+func RenderDevices(w io.Writer, devices []core.Device) {
+	sort.Slice(devices, func(i, j int) bool {
+		return bytes.Compare(devices[i].IP.To4(), devices[j].IP.To4()) < 0
+	})
+
+	header := []cell{
+		{"STATUS", colorBold}, {"IP", colorBold}, {"MAC", colorBold},
+		{"HOSTNAME", colorBold}, {"VENDOR", colorBold},
+	}
+	rows := make([][]cell, 0, len(devices))
+	for _, d := range devices {
+		rows = append(rows, []cell{
+			statusCell(d.Online),
+			{d.IP.String(), ""},
+			macCell(d.MAC),
+			textCell(d.Hostname),
+			textCell(d.Vendor),
+		})
+	}
+
+	widths := columnWidths(header, rows)
+	writeRow(w, header, widths)
+	for _, row := range rows {
+		writeRow(w, row, widths)
+	}
+}
+
+// columnWidths returns the max rune width of each column across header and rows.
+func columnWidths(header []cell, rows [][]cell) []int {
+	widths := make([]int, len(header))
+	for _, row := range append([][]cell{header}, rows...) {
+		for i, c := range row {
+			if n := utf8.RuneCountInString(c.text); n > widths[i] {
+				widths[i] = n
+			}
+		}
+	}
+	return widths
+}
+
+func writeRow(w io.Writer, cells []cell, widths []int) {
+	parts := make([]string, len(cells))
+	for i, c := range cells {
+		padded := c.text + strings.Repeat(" ", widths[i]-utf8.RuneCountInString(c.text))
+		if c.color != "" {
+			padded = c.color + padded + colorReset
+		}
+		parts[i] = padded
+	}
+	fmt.Fprintln(w, strings.Join(parts, columnGap))
+}
+
+func statusCell(online bool) cell {
+	if online {
+		return cell{"● online", colorGreen}
+	}
+	return cell{"○ offline", colorDim}
+}
+
+func macCell(m net.HardwareAddr) cell {
+	if len(m) == 0 {
+		return cell{"—", colorDim}
+	}
+	return cell{m.String(), ""}
+}
+
+func textCell(s string) cell {
+	if s == "" {
+		return cell{"—", colorDim}
+	}
+	return cell{s, ""}
+}

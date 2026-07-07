@@ -1,0 +1,8 @@
+# Binaries
+netwp
+netwp.exe
+*.exe
+
+# Test / coverage
+*.out
+coverage.*
