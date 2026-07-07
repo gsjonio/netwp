@@ -43,6 +43,18 @@ go test ./...
 The Windows scanner uses the `SendARP` API: **no admin rights and no Npcap
 required**.
 
+### Install as `netwp`
+
+`go install` drops the binary in `$(go env GOPATH)\bin`. With that folder on
+your PATH you can call it as `netwp` from any terminal (Windows resolves the
+`.exe` automatically):
+
+```powershell
+go install ./cmd/netwp
+netwp            # scan
+netwp monitor    # live monitor
+```
+
 ## Notes
 
 - Vendor names come from the full IEEE MA-L registry, gzipped and embedded in

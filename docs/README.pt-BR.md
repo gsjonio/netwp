@@ -42,6 +42,18 @@ go test ./...
 
 O scanner Windows usa a API `SendARP`: **não exige admin nem Npcap**.
 
+### Instalar como `netwp`
+
+O `go install` coloca o binário em `$(go env GOPATH)\bin`. Com essa pasta no
+PATH, você chama como `netwp` de qualquer terminal (o Windows resolve o `.exe`
+sozinho):
+
+```powershell
+go install ./cmd/netwp
+netwp            # varredura
+netwp monitor    # monitor ao vivo
+```
+
 ## Notas
 
 - Os fabricantes vêm do registro IEEE MA-L completo, comprimido e embutido no
