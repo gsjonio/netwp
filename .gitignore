@@ -1,6 +1,6 @@
-# Binaries
-netwp
-netwp.exe
+# Binaries (anchored to repo root so cmd/netwp/ is not ignored)
+/netwp
+/netwp.exe
 *.exe
 
 # Test / coverage
