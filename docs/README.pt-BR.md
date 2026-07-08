@@ -81,6 +81,9 @@ netwp iface      # config de IP da interface
 - Os apelidos ficam em JSON em `<pasta-de-config-do-usuário>/netwp/aliases.json`,
   chaveados por MAC, então o apelido persiste mesmo quando o DHCP troca o IP do
   aparelho. O arquivo é texto puro e pode ser editado à mão.
+- `alias set <ip>` resolve o MAC pelo cache do último scan (`lastscan.json`) e
+  só escaneia de novo se der miss, então apelidar logo após um scan é instantâneo.
+  Passe um MAC no lugar do IP para não tocar a rede.
 - O teste de banda usa o endpoint público `speed.cloudflare.com`: sem chave
   de API, sem servidor próprio.
 - `iface static`/`iface dhcp` chamam o `netsh` e exigem terminal

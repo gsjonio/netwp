@@ -83,6 +83,9 @@ netwp iface      # interface IP config
 - Device aliases are stored as JSON in `<user-config-dir>/netwp/aliases.json`,
   keyed by MAC so a nickname sticks even when DHCP hands the device a new IP.
   The file is plain text and safe to edit by hand.
+- `alias set <ip>` resolves the MAC from the last scan's cache
+  (`lastscan.json`) and only re-scans on a miss, so aliasing right after a
+  scan is instant. Pass a MAC instead of an IP to skip the network entirely.
 - The bandwidth test uses Cloudflare's public `speed.cloudflare.com`
   endpoint: no API key, no self-hosted server.
 - `iface static`/`iface dhcp` shell out to `netsh` and need an elevated
