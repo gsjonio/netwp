@@ -245,10 +245,15 @@ func (m dashModel) renderWifi() string {
 		return s
 	}
 	sig := fmt.Sprintf("%d%% (%d dBm)", w.SignalPercent, w.SignalDBM())
+	best := w.RecommendChannel()
+	channelHint := styOffline.Render("clear")
+	if best != w.Channel {
+		channelHint = styHead.Render(fmt.Sprintf("try ch %d", best))
+	}
 	lines := []string{
 		styAlias.Render(w.SSID),
 		"signal   " + signalStyle(w.SignalPercent).Render(sig),
-		fmt.Sprintf("channel  %d  %s", w.Channel, w.Band),
+		fmt.Sprintf("channel  %d  %s  %s", w.Channel, w.Band, channelHint),
 		fmt.Sprintf("rate     %d/%d Mbps", w.RxRateMbps, w.TxRateMbps),
 		fmt.Sprintf("nearby   %d APs · %d on ch %d", len(w.Nearby), w.SameChannelCount(), w.Channel),
 	}

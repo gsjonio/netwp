@@ -65,3 +65,27 @@ func TestSameChannelCount(t *testing.T) {
 		t.Errorf("SameChannelCount = %d, want 2", got)
 	}
 }
+
+func TestRecommendChannel(t *testing.T) {
+	// 2.4 GHz, crowded on 1 and 6, so 11 should win.
+	w24 := WiFiInfo{Channel: 1, Nearby: []AccessPoint{
+		{Channel: 1}, {Channel: 1}, {Channel: 6}, {Channel: 3}, // 3 overlaps both 1 and 6
+	}}
+	if got := w24.RecommendChannel(); got != 11 {
+		t.Errorf("2.4GHz recommend = %d, want 11", got)
+	}
+
+	// 5 GHz, current 149 crowded, 36 in use but quieter -> suggest 36.
+	w5 := WiFiInfo{Channel: 149, Nearby: []AccessPoint{
+		{Channel: 149}, {Channel: 149}, {Channel: 36},
+	}}
+	if got := w5.RecommendChannel(); got != 36 {
+		t.Errorf("5GHz recommend = %d, want 36", got)
+	}
+
+	// Already clearest: keep current.
+	wClear := WiFiInfo{Channel: 36, Nearby: []AccessPoint{{Channel: 149}}}
+	if got := wClear.RecommendChannel(); got != 36 {
+		t.Errorf("clear channel recommend = %d, want 36 (keep)", got)
+	}
+}
