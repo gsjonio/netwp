@@ -45,6 +45,13 @@ go build -o netwp.exe ./cmd/netwp
 go test ./...
 ```
 
+Para um binário menor, remova a tabela de símbolos e o DWARF
+(cerca de 12 MB para 8.8 MB):
+
+```powershell
+go build -ldflags "-s -w" -o netwp.exe ./cmd/netwp
+```
+
 O scanner Windows usa a API `SendARP`: **não exige admin nem Npcap**.
 
 ### Instalar como `netwp`
@@ -54,7 +61,7 @@ PATH, você chama como `netwp` de qualquer terminal (o Windows resolve o `.exe`
 sozinho):
 
 ```powershell
-go install ./cmd/netwp
+go install -ldflags "-s -w" ./cmd/netwp   # -ldflags opcional, só para um binário menor
 netwp            # varredura
 netwp monitor    # monitor ao vivo
 netwp speedtest  # teste de banda
