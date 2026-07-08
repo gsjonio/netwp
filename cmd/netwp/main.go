@@ -42,7 +42,7 @@ func main() {
 
 	var err error
 	switch command {
-	case "", "scan":
+	case "", "scan", "--json": // --json is a scan flag, not its own subcommand
 		err = runScan()
 	case "monitor":
 		err = runMonitor()
@@ -55,7 +55,7 @@ func main() {
 	case "dashboard":
 		err = runDashboard()
 	default:
-		err = fmt.Errorf("unknown command %q (use: scan | monitor | speedtest | iface | alias | dashboard)", command)
+		err = fmt.Errorf("unknown command %q (use: scan [--json] | monitor | speedtest | iface | alias | dashboard)", command)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "netwp:", err)
@@ -78,6 +78,13 @@ func openAliasStore() (*aliasstore.Store, error) {
 }
 
 func runScan() error {
+	asJSON := false
+	for _, a := range os.Args[1:] {
+		if a == "--json" {
+			asJSON = true
+		}
+	}
+
 	network, err := netinfo.LocalNetwork()
 	if err != nil {
 		return err
@@ -97,8 +104,15 @@ func runScan() error {
 	if err != nil {
 		return err
 	}
-	tui.RenderDevices(os.Stdout, devices)
-	fmt.Printf("\n%d device(s) found.\n", len(devices))
+
+	if asJSON {
+		if err := tui.RenderDevicesJSON(os.Stdout, devices); err != nil {
+			return err
+		}
+	} else {
+		tui.RenderDevices(os.Stdout, devices)
+		fmt.Printf("\n%d device(s) found.\n", len(devices))
+	}
 
 	// Cache the IP-to-MAC map so `alias set <ip>` can skip a fresh scan.
 	// Best-effort: a failed write just means the next alias re-scans.
