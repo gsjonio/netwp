@@ -15,10 +15,12 @@ import (
 	"github.com/gsjonio/netwp/internal/adapter/aliasstore"
 	"github.com/gsjonio/netwp/internal/adapter/arpscan"
 	"github.com/gsjonio/netwp/internal/adapter/httpspeed"
+	"github.com/gsjonio/netwp/internal/adapter/ifacestat"
 	"github.com/gsjonio/netwp/internal/adapter/netinfo"
 	"github.com/gsjonio/netwp/internal/adapter/oui"
 	"github.com/gsjonio/netwp/internal/adapter/scancache"
 	"github.com/gsjonio/netwp/internal/adapter/tcpprobe"
+	"github.com/gsjonio/netwp/internal/adapter/wifi"
 	"github.com/gsjonio/netwp/internal/core"
 	"github.com/gsjonio/netwp/internal/tui"
 )
@@ -49,8 +51,10 @@ func main() {
 		err = runIface()
 	case "alias":
 		err = runAlias()
+	case "dashboard":
+		err = runDashboard()
 	default:
-		err = fmt.Errorf("unknown command %q (use: scan | monitor | speedtest | iface | alias)", command)
+		err = fmt.Errorf("unknown command %q (use: scan | monitor | speedtest | iface | alias | dashboard)", command)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "netwp:", err)
@@ -234,6 +238,25 @@ func runMonitor() error {
 	}
 	tracker := core.NewTracker(offlineAfter)
 	return tui.RunMonitor(buildDiscovery(store), tracker, network, monitorEvery, monitorScanBudget)
+}
+
+func runDashboard() error {
+	network, err := netinfo.LocalNetwork()
+	if err != nil {
+		return err
+	}
+	info, err := netinfo.Interface{}.Inspect()
+	if err != nil {
+		return err
+	}
+	store, err := openAliasStore()
+	if err != nil {
+		return err
+	}
+	tracker := core.NewTracker(offlineAfter)
+	reader := ifacestat.New(info.Name)
+	speed := core.NewSpeedtest(httpspeed.New())
+	return tui.RunDashboard(buildDiscovery(store), tracker, network, info, reader, wifi.New(), speed)
 }
 
 // runAlias dispatches the alias subcommands: set, ls, rm.
