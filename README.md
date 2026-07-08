@@ -49,6 +49,9 @@ netwp speedtest       # download/upload throughput / teste de banda
 netwp iface           # active interface IP config / config de IP da interface
 netwp iface static <ip>/<bits> <gateway> [dns...]   # set a static address (admin)
 netwp iface dhcp      # switch back to DHCP (admin) / volta para DHCP (admin)
+netwp alias set <ip-or-mac> <name>   # nickname a device / apelida um dispositivo
+netwp alias ls        # list nicknames / lista os apelidos
+netwp alias rm <ip-or-mac>   # remove a nickname / remove um apelido
 ```
 
 The Windows scanner uses `SendARP`: no admin rights and no Npcap required.

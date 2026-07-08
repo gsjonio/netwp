@@ -16,6 +16,7 @@ planned. Windows-first, portable to Linux.
 - [x] Interface IP inspect (read-only)
 - [x] Interface IP configure (static/DHCP, Windows only)
 - [x] Linux adapter (AF_PACKET raw ARP, gateway, DNS)
+- [x] Persistent device aliases (nicknames, keyed by MAC)
 
 ## Architecture
 
@@ -42,6 +43,9 @@ go build -o netwp.exe ./cmd/netwp
 .\netwp.exe iface     # active interface's IP config
 .\netwp.exe iface static 192.168.1.50/24 192.168.1.1 8.8.8.8  # set a static address (asks to confirm)
 .\netwp.exe iface dhcp                                        # switch back to DHCP (asks to confirm)
+.\netwp.exe alias set 192.168.1.20 "Living Room TV"  # nickname a device (by IP or MAC)
+.\netwp.exe alias ls                                 # list nicknames
+.\netwp.exe alias rm 192.168.1.20                    # remove a nickname
 go test ./...
 ```
 
@@ -76,6 +80,9 @@ netwp iface      # interface IP config
   `oui.go`.
 - Active scanning may be flagged as intrusive on managed/corporate networks.
   Only scan networks you own or are authorized to.
+- Device aliases are stored as JSON in `<user-config-dir>/netwp/aliases.json`,
+  keyed by MAC so a nickname sticks even when DHCP hands the device a new IP.
+  The file is plain text and safe to edit by hand.
 - The bandwidth test uses Cloudflare's public `speed.cloudflare.com`
   endpoint: no API key, no self-hosted server.
 - `iface static`/`iface dhcp` shell out to `netsh` and need an elevated

@@ -16,6 +16,7 @@ interface estão planejados. Windows primeiro, portável para Linux.
 - [x] Inspeção de IP da interface (somente leitura)
 - [x] Configuração de IP da interface (estático/DHCP, só Windows)
 - [x] Adapter Linux (ARP cru via AF_PACKET, gateway, DNS)
+- [x] Apelidos persistentes de dispositivos (chaveados por MAC)
 
 ## Arquitetura
 
@@ -42,6 +43,9 @@ go build -o netwp.exe ./cmd/netwp
 .\netwp.exe iface     # config de IP da interface ativa
 .\netwp.exe iface static 192.168.1.50/24 192.168.1.1 8.8.8.8  # define IP estático (pede confirmação)
 .\netwp.exe iface dhcp                                        # volta para DHCP (pede confirmação)
+.\netwp.exe alias set 192.168.1.20 "TV da Sala"  # apelida um dispositivo (por IP ou MAC)
+.\netwp.exe alias ls                             # lista os apelidos
+.\netwp.exe alias rm 192.168.1.20                # remove um apelido
 go test ./...
 ```
 
@@ -74,6 +78,9 @@ netwp iface      # config de IP da interface
   binário (`internal/adapter/oui/data`). Atualize com o comando em `oui.go`.
 - Varredura ativa pode ser vista como intrusiva em redes gerenciadas/corporativas.
   Escaneie apenas redes suas ou autorizadas.
+- Os apelidos ficam em JSON em `<pasta-de-config-do-usuário>/netwp/aliases.json`,
+  chaveados por MAC, então o apelido persiste mesmo quando o DHCP troca o IP do
+  aparelho. O arquivo é texto puro e pode ser editado à mão.
 - O teste de banda usa o endpoint público `speed.cloudflare.com`: sem chave
   de API, sem servidor próprio.
 - `iface static`/`iface dhcp` chamam o `netsh` e exigem terminal
