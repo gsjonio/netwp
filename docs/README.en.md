@@ -14,8 +14,8 @@ planned. Windows-first, portable to Linux.
 - [x] Continuous monitoring (join/leave), live TUI
 - [x] Bandwidth test
 - [x] Interface IP inspect (read-only)
-- [ ] Interface IP configure (static/DHCP)
-- [ ] Linux adapter (AF_PACKET raw ARP)
+- [x] Interface IP configure (static/DHCP, Windows only)
+- [x] Linux adapter (AF_PACKET raw ARP, gateway, DNS)
 
 ## Architecture
 
@@ -39,7 +39,9 @@ go build -o netwp.exe ./cmd/netwp
 .\netwp.exe            # one-shot scan (default)
 .\netwp.exe monitor   # live TUI: devices joining/leaving in real time (q to quit)
 .\netwp.exe speedtest # download/upload throughput
-.\netwp.exe iface     # active interface's IP config (read-only)
+.\netwp.exe iface     # active interface's IP config
+.\netwp.exe iface static 192.168.1.50/24 192.168.1.1 8.8.8.8  # set a static address (asks to confirm)
+.\netwp.exe iface dhcp                                        # switch back to DHCP (asks to confirm)
 go test ./...
 ```
 
@@ -69,8 +71,14 @@ netwp iface      # interface IP config
   Only scan networks you own or are authorized to.
 - The bandwidth test uses Cloudflare's public `speed.cloudflare.com`
   endpoint: no API key, no self-hosted server.
-- `iface` is read-only. Changing the address (static/DHCP) needs admin
-  rights and isn't implemented yet.
+- `iface static`/`iface dhcp` shell out to `netsh` and need an elevated
+  (admin) terminal on Windows. They always ask for a typed "yes" before
+  touching the real configuration; there's no `--yes` flag to skip it.
+  Not implemented on Linux yet.
+- The Linux scanner (raw ARP over `AF_PACKET`) needs `CAP_NET_RAW` (root, or
+  `setcap cap_net_raw+ep` on the binary). It was written and cross-compiled
+  (`GOOS=linux`) from a Windows dev machine and has not been run against
+  real Linux hardware yet.
 
 ## License
 

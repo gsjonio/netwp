@@ -14,8 +14,8 @@ interface estão planejados. Windows primeiro, portável para Linux.
 - [x] Monitoramento contínuo (entrada/saída), TUI ao vivo
 - [x] Teste de banda
 - [x] Inspeção de IP da interface (somente leitura)
-- [ ] Configuração de IP da interface (estático/DHCP)
-- [ ] Adapter Linux (ARP cru via AF_PACKET)
+- [x] Configuração de IP da interface (estático/DHCP, só Windows)
+- [x] Adapter Linux (ARP cru via AF_PACKET, gateway, DNS)
 
 ## Arquitetura
 
@@ -39,7 +39,9 @@ go build -o netwp.exe ./cmd/netwp
 .\netwp.exe            # varredura única (padrão)
 .\netwp.exe monitor   # TUI ao vivo: dispositivos entrando/saindo em tempo real (q sai)
 .\netwp.exe speedtest # teste de download/upload
-.\netwp.exe iface     # config de IP da interface ativa (somente leitura)
+.\netwp.exe iface     # config de IP da interface ativa
+.\netwp.exe iface static 192.168.1.50/24 192.168.1.1 8.8.8.8  # define IP estático (pede confirmação)
+.\netwp.exe iface dhcp                                        # volta para DHCP (pede confirmação)
 go test ./...
 ```
 
@@ -67,8 +69,14 @@ netwp iface      # config de IP da interface
   Escaneie apenas redes suas ou autorizadas.
 - O teste de banda usa o endpoint público `speed.cloudflare.com`: sem chave
   de API, sem servidor próprio.
-- O `iface` é somente leitura. Alterar o endereço (estático/DHCP) exige
-  privilégio de admin e ainda não está implementado.
+- `iface static`/`iface dhcp` chamam o `netsh` e exigem terminal
+  administrador no Windows. Sempre pedem que você digite "yes" antes de
+  mexer na configuração de verdade; não existe flag `--yes` para pular isso.
+  Ainda não implementado no Linux.
+- O scanner Linux (ARP cru via `AF_PACKET`) exige `CAP_NET_RAW` (root, ou
+  `setcap cap_net_raw+ep` no binário). Foi escrito e cross-compilado
+  (`GOOS=linux`) numa máquina Windows e ainda não rodou em hardware Linux
+  de verdade.
 
 ## Licença
 
