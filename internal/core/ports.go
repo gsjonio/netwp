@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"net"
+	"time"
 )
 
 // Scanner performs active discovery of hosts on a target network.
@@ -33,6 +34,12 @@ type AliasLookup interface {
 // connections on — the "detailed scan" used to refine device classification.
 type Prober interface {
 	OpenPorts(ctx context.Context, ip net.IP) []int
+}
+
+// Pinger measures ICMP round-trip time to a host. ok is false on timeout or
+// error (host unreachable), in which case the duration is meaningless.
+type Pinger interface {
+	Ping(ip net.IP, timeout time.Duration) (rtt time.Duration, ok bool)
 }
 
 // InterfaceInspector reads the active network interface's IP configuration.

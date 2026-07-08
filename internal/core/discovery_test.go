@@ -6,6 +6,7 @@ import (
 	"sort"
 	"sync"
 	"testing"
+	"time"
 )
 
 type fakeScanner struct{ devices []Device }
@@ -29,6 +30,12 @@ func (f fakeAlias) Alias(mac net.HardwareAddr) string {
 		return "Living Room TV"
 	}
 	return ""
+}
+
+type fakePinger struct{}
+
+func (fakePinger) Ping(net.IP, time.Duration) (time.Duration, bool) {
+	return 3 * time.Millisecond, true
 }
 
 // recordingProber notes which IPs were probed and reports a fixed open-port
@@ -59,7 +66,7 @@ func TestDiscoverySkipsSelfAndGatewayProbe(t *testing.T) {
 			{IP: gateway, MAC: net.HardwareAddr{2, 2, 2, 2, 2, 2}},
 			{IP: other, MAC: otherMAC},
 		}},
-		fakeResolver{}, fakeVendor{}, prober, fakeAlias{mac: otherMAC.String()},
+		fakeResolver{}, fakeVendor{}, prober, fakeAlias{mac: otherMAC.String()}, fakePinger{},
 	)
 
 	devices, err := d.Run(context.Background(), Network{Self: self, Gateway: gateway})
@@ -96,5 +103,8 @@ func TestDiscoverySkipsSelfAndGatewayProbe(t *testing.T) {
 	}
 	if got := byIP[self.String()].Alias; got != "" {
 		t.Errorf("self should have no alias, got %q", got)
+	}
+	if d := byIP[other.String()]; !d.Reachable || d.RTT != 3*time.Millisecond {
+		t.Errorf("ping enrichment missing: reachable=%v rtt=%v", d.Reachable, d.RTT)
 	}
 }

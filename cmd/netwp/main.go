@@ -15,6 +15,7 @@ import (
 	"github.com/gsjonio/netwp/internal/adapter/aliasstore"
 	"github.com/gsjonio/netwp/internal/adapter/arpscan"
 	"github.com/gsjonio/netwp/internal/adapter/httpspeed"
+	"github.com/gsjonio/netwp/internal/adapter/icmpping"
 	"github.com/gsjonio/netwp/internal/adapter/ifacestat"
 	"github.com/gsjonio/netwp/internal/adapter/netinfo"
 	"github.com/gsjonio/netwp/internal/adapter/oui"
@@ -64,7 +65,7 @@ func main() {
 
 // buildDiscovery assembles the discovery use case from its platform adapters.
 func buildDiscovery(aliases core.AliasLookup) *core.Discovery {
-	return core.NewDiscovery(arpscan.New(), netinfo.DNSResolver{}, oui.New(), tcpprobe.New(), aliases)
+	return core.NewDiscovery(arpscan.New(), netinfo.DNSResolver{}, oui.New(), tcpprobe.New(), aliases, icmpping.New())
 }
 
 // openAliasStore opens the persistent nickname store at its default path.
@@ -256,7 +257,7 @@ func runDashboard() error {
 	tracker := core.NewTracker(offlineAfter)
 	reader := ifacestat.New(info.Name)
 	speed := core.NewSpeedtest(httpspeed.New())
-	return tui.RunDashboard(buildDiscovery(store), tracker, network, info, reader, wifi.New(), speed)
+	return tui.RunDashboard(buildDiscovery(store), tracker, network, info, reader, wifi.New(), speed, icmpping.New())
 }
 
 // runAlias dispatches the alias subcommands: set, ls, rm.

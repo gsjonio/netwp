@@ -1,7 +1,9 @@
 package tui
 
 import (
+	"fmt"
 	"net"
+	"time"
 
 	"github.com/gsjonio/netwp/internal/core"
 )
@@ -31,4 +33,16 @@ func classLabel(c core.DeviceClass) string {
 		return dash
 	}
 	return c.String()
+}
+
+// rttText renders a round-trip time. Sub-millisecond LAN replies show as "<1ms";
+// an unreachable host shows the placeholder.
+func rttText(rtt time.Duration, reachable bool) string {
+	if !reachable {
+		return dash
+	}
+	if rtt < time.Millisecond {
+		return "<1ms"
+	}
+	return fmt.Sprintf("%dms", rtt.Milliseconds())
 }

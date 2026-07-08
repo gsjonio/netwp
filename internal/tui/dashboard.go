@@ -20,15 +20,17 @@ const (
 	dashWifiEvery   = 6 * time.Second
 	dashScanEvery   = 15 * time.Second
 	dashSpeedEvery  = 5 * time.Minute
+	dashPingEvery   = 5 * time.Second
 	dashScanBudget  = 30 * time.Second
 	dashSpeedBudget = 40 * time.Second
+	dashPingTarget  = "8.8.8.8" // internet-latency probe target
 	dashDefaultCols = 112
 	histLen         = 24
 )
 
 // RunDashboard starts the composite live dashboard and blocks until the user quits.
 func RunDashboard(discovery *core.Discovery, tracker *core.Tracker, network core.Network,
-	info core.InterfaceInfo, reader core.CounterReader, wifi core.WiFiInspector, speed *core.Speedtest) error {
+	info core.InterfaceInfo, reader core.CounterReader, wifi core.WiFiInspector, speed *core.Speedtest, pinger core.Pinger) error {
 	m := dashModel{
 		discovery: discovery,
 		tracker:   tracker,
@@ -37,6 +39,7 @@ func RunDashboard(discovery *core.Discovery, tracker *core.Tracker, network core
 		reader:    reader,
 		wifi:      wifi,
 		speed:     speed,
+		pinger:    pinger,
 		meter:     &core.RateMeter{},
 		start:     time.Now(),
 		width:     dashDefaultCols,
@@ -53,18 +56,21 @@ type dashModel struct {
 	reader    core.CounterReader
 	wifi      core.WiFiInspector
 	speed     *core.Speedtest
+	pinger    core.Pinger
 	meter     *core.RateMeter
 
-	start    time.Time
-	rate     core.Rate
-	downHist []float64
-	wifiInfo core.WiFiInfo
-	wifiErr  error
-	result   core.BandwidthResult
-	speedAt  time.Time
-	speedErr error
-	lastScan time.Time
-	width    int
+	start      time.Time
+	rate       core.Rate
+	downHist   []float64
+	wifiInfo   core.WiFiInfo
+	wifiErr    error
+	result     core.BandwidthResult
+	speedAt    time.Time
+	speedErr   error
+	netLatency time.Duration
+	netUp      bool
+	lastScan   time.Time
+	width      int
 }
 
 type (
@@ -86,6 +92,11 @@ type (
 		err    error
 	}
 	speedTickMsg struct{}
+	pingMsg      struct {
+		rtt time.Duration
+		ok  bool
+	}
+	pingTickMsg struct{}
 )
 
 func (m dashModel) readSample() tea.Msg {
@@ -115,12 +126,17 @@ func (m dashModel) runSpeed() tea.Msg {
 	return speedMsg{result: r, at: time.Now(), err: err}
 }
 
+func (m dashModel) readPing() tea.Msg {
+	rtt, ok := m.pinger.Ping(net.ParseIP(dashPingTarget), 800*time.Millisecond)
+	return pingMsg{rtt: rtt, ok: ok}
+}
+
 func tick(d time.Duration, msg tea.Msg) tea.Cmd {
 	return tea.Tick(d, func(time.Time) tea.Msg { return msg })
 }
 
 func (m dashModel) Init() tea.Cmd {
-	return tea.Batch(m.readSample, m.readWifi, m.scan, m.runSpeed)
+	return tea.Batch(m.readSample, m.readWifi, m.scan, m.runSpeed, m.readPing)
 }
 
 func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -163,6 +179,12 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tick(dashSpeedEvery, speedTickMsg{})
 	case speedTickMsg:
 		return m, m.runSpeed
+
+	case pingMsg:
+		m.netLatency, m.netUp = msg.rtt, msg.ok
+		return m, tick(dashPingEvery, pingTickMsg{})
+	case pingTickMsg:
+		return m, m.readPing
 	}
 	return m, nil
 }
@@ -200,8 +222,9 @@ func (m dashModel) View() string {
 func (m dashModel) renderHeader(width int) string {
 	title := styTitle.Render("netwp dashboard")
 	clock := time.Now().Format("15:04:05")
-	left := fmt.Sprintf("%s   %s · IP %s · GW %s · up %s",
-		title, m.info.Name, m.info.IP, ipOr(m.info.Gateway, "?"), uptime(m.start))
+	left := fmt.Sprintf("%s   %s · IP %s · GW %s · net %s · up %s",
+		title, m.info.Name, m.info.IP, ipOr(m.info.Gateway, "?"),
+		netStyle(m.netUp).Render(rttText(m.netLatency, m.netUp)), uptime(m.start))
 	gap := width - lipgloss.Width(left) - len(clock) - 2
 	if gap < 1 {
 		gap = 1
@@ -271,6 +294,13 @@ func panel(title, body string, width int) string {
 		Width(inner).
 		Padding(0, 1).
 		Render(content)
+}
+
+func netStyle(up bool) lipgloss.Style {
+	if up {
+		return styOnline
+	}
+	return styOffline
 }
 
 func signalStyle(pct int) lipgloss.Style {

@@ -3,21 +3,25 @@ package core
 import (
 	"context"
 	"sync"
+	"time"
 )
 
+const pingTimeout = 500 * time.Millisecond
+
 // Discovery is the device-discovery use case. It orchestrates a scan and then
-// enriches each result with hostname, vendor and a class guess. It depends only
-// on ports, so it is fully testable with fakes.
+// enriches each result with hostname, vendor, class and round-trip time. It
+// depends only on ports, so it is fully testable with fakes.
 type Discovery struct {
 	scanner Scanner
 	names   HostResolver
 	vendors VendorLookup
 	prober  Prober
 	aliases AliasLookup
+	pinger  Pinger
 }
 
-func NewDiscovery(scanner Scanner, names HostResolver, vendors VendorLookup, prober Prober, aliases AliasLookup) *Discovery {
-	return &Discovery{scanner: scanner, names: names, vendors: vendors, prober: prober, aliases: aliases}
+func NewDiscovery(scanner Scanner, names HostResolver, vendors VendorLookup, prober Prober, aliases AliasLookup, pinger Pinger) *Discovery {
+	return &Discovery{scanner: scanner, names: names, vendors: vendors, prober: prober, aliases: aliases, pinger: pinger}
 }
 
 // Run scans the target network and returns the enriched, classified devices.
@@ -54,6 +58,11 @@ func (d *Discovery) Run(ctx context.Context, target Network) ([]Device, error) {
 					ports = d.prober.OpenPorts(ctx, dev.IP)
 				}()
 			}
+			inner.Add(1)
+			go func() {
+				defer inner.Done()
+				dev.RTT, dev.Reachable = d.pinger.Ping(dev.IP, pingTimeout)
+			}()
 			dev.Hostname = d.names.Hostname(dev.IP)
 			dev.Vendor = d.vendors.Vendor(dev.MAC)
 			dev.Alias = d.aliases.Alias(dev.MAC)
