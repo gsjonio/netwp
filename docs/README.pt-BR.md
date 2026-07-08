@@ -12,7 +12,7 @@ interface estão planejados. Windows primeiro, portável para Linux.
 
 - [x] Núcleo de descoberta (ARP scan, hostname, fabricante por OUI, palpite de classe)
 - [x] Monitoramento contínuo (entrada/saída), TUI ao vivo
-- [ ] Teste de banda
+- [x] Teste de banda
 - [ ] Inspeção/configuração de IP da interface
 - [ ] Adapter Linux (ARP cru via AF_PACKET)
 
@@ -37,6 +37,7 @@ Requer Go 1.22+.
 go build -o netwp.exe ./cmd/netwp
 .\netwp.exe            # varredura única (padrão)
 .\netwp.exe monitor   # TUI ao vivo: dispositivos entrando/saindo em tempo real (q sai)
+.\netwp.exe speedtest # teste de download/upload
 go test ./...
 ```
 
@@ -52,6 +53,7 @@ sozinho):
 go install ./cmd/netwp
 netwp            # varredura
 netwp monitor    # monitor ao vivo
+netwp speedtest  # teste de banda
 ```
 
 ## Notas
@@ -60,6 +62,8 @@ netwp monitor    # monitor ao vivo
   binário (`internal/adapter/oui/data`). Atualize com o comando em `oui.go`.
 - Varredura ativa pode ser vista como intrusiva em redes gerenciadas/corporativas.
   Escaneie apenas redes suas ou autorizadas.
+- O teste de banda usa o endpoint público `speed.cloudflare.com`: sem chave
+  de API, sem servidor próprio.
 
 ## Licença
 

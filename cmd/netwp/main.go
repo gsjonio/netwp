@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gsjonio/netwp/internal/adapter/arpscan"
+	"github.com/gsjonio/netwp/internal/adapter/httpspeed"
 	"github.com/gsjonio/netwp/internal/adapter/netinfo"
 	"github.com/gsjonio/netwp/internal/adapter/oui"
 	"github.com/gsjonio/netwp/internal/adapter/tcpprobe"
@@ -22,6 +23,7 @@ const (
 	monitorEvery      = 10 * time.Second // interval between monitor scans
 	monitorScanBudget = 30 * time.Second // max time a single monitor scan may run
 	offlineAfter      = 30 * time.Second // grace before a missing device is offline
+	speedtestTimeout  = 30 * time.Second // download + upload budget
 )
 
 func main() {
@@ -36,8 +38,10 @@ func main() {
 		err = runScan()
 	case "monitor":
 		err = runMonitor()
+	case "speedtest":
+		err = runSpeedtest()
 	default:
-		err = fmt.Errorf("unknown command %q (use: scan | monitor)", command)
+		err = fmt.Errorf("unknown command %q (use: scan | monitor | speedtest)", command)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "netwp:", err)
@@ -93,6 +97,23 @@ func withSpinner(label string, fn func() error) error {
 	err := fn()
 	close(done)
 	return err
+}
+
+func runSpeedtest() error {
+	ctx, cancel := context.WithTimeout(context.Background(), speedtestTimeout)
+	defer cancel()
+
+	var result core.BandwidthResult
+	var err error
+	err = withSpinner("running speed test", func() error {
+		result, err = core.NewSpeedtest(httpspeed.New()).Run(ctx)
+		return err
+	})
+	if err != nil {
+		return err
+	}
+	tui.RenderBandwidth(os.Stdout, result)
+	return nil
 }
 
 func runMonitor() error {

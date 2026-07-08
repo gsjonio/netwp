@@ -12,7 +12,7 @@ planned. Windows-first, portable to Linux.
 
 - [x] Device discovery core (ARP scan, hostname, vendor by OUI, device-class guess)
 - [x] Continuous monitoring (join/leave), live TUI
-- [ ] Bandwidth test
+- [x] Bandwidth test
 - [ ] Interface IP inspect/configure
 - [ ] Linux adapter (AF_PACKET raw ARP)
 
@@ -37,6 +37,7 @@ Requires Go 1.22+.
 go build -o netwp.exe ./cmd/netwp
 .\netwp.exe            # one-shot scan (default)
 .\netwp.exe monitor   # live TUI: devices joining/leaving in real time (q to quit)
+.\netwp.exe speedtest # download/upload throughput
 go test ./...
 ```
 
@@ -53,6 +54,7 @@ your PATH you can call it as `netwp` from any terminal (Windows resolves the
 go install ./cmd/netwp
 netwp            # scan
 netwp monitor    # live monitor
+netwp speedtest  # bandwidth test
 ```
 
 ## Notes
@@ -62,6 +64,8 @@ netwp monitor    # live monitor
   `oui.go`.
 - Active scanning may be flagged as intrusive on managed/corporate networks.
   Only scan networks you own or are authorized to.
+- The bandwidth test uses Cloudflare's public `speed.cloudflare.com`
+  endpoint: no API key, no self-hosted server.
 
 ## License
 
