@@ -18,6 +18,10 @@ inspeção de interface. Windows primeiro, portável para Linux.
 - [x] Adapter Linux (ARP cru via AF_PACKET, gateway, DNS)
 - [x] Apelidos persistentes de dispositivos (chaveados por MAC)
 - [x] Dashboard ao vivo (WiFi, banda em tempo real, speedtest, dispositivos)
+- [x] Latência por dispositivo (RTT) e latência da internet, ICMP nativo (sem admin)
+- [x] Recomendação de canal WiFi por congestionamento de APs vizinhos
+- [x] Alerta de dispositivo novo (entrada de MAC não reconhecido no monitor/dashboard)
+- [x] Exportação JSON (`netwp scan --json`)
 
 ## Arquitetura
 
@@ -38,7 +42,8 @@ Requer Go 1.22+.
 
 ```powershell
 go build -o netwp.exe ./cmd/netwp
-.\netwp.exe            # varredura única (padrão)
+.\netwp.exe            # varredura única (padrão), com RTT por dispositivo
+.\netwp.exe scan --json # mesma varredura, saída JSON no stdout
 .\netwp.exe monitor   # TUI ao vivo: dispositivos entrando/saindo em tempo real (q sai)
 .\netwp.exe dashboard # dashboard completo: wifi + banda ao vivo + speedtest + dispositivos
 .\netwp.exe speedtest # teste de download/upload
@@ -68,10 +73,13 @@ sozinho):
 
 ```powershell
 go install -ldflags "-s -w" ./cmd/netwp   # -ldflags opcional, só para um binário menor
-netwp            # varredura
-netwp monitor    # monitor ao vivo
-netwp speedtest  # teste de banda
-netwp iface      # config de IP da interface
+netwp             # varredura
+netwp scan --json # varredura, saída JSON
+netwp monitor     # monitor ao vivo
+netwp dashboard   # dashboard completo
+netwp speedtest   # teste de banda
+netwp iface       # config de IP da interface
+netwp alias set 192.168.1.20 "TV da Sala"  # apelida um dispositivo
 ```
 
 ## Notas
@@ -101,6 +109,16 @@ netwp iface      # config de IP da interface
   `setcap cap_net_raw+ep` no binário). Foi escrito e cross-compilado
   (`GOOS=linux`) numa máquina Windows e ainda não rodou em hardware Linux
   de verdade.
+- O RTT vem de um ICMP echo real por dispositivo: `IcmpSendEcho` (iphlpapi) no
+  Windows, sem exigir admin; o binário `ping` do sistema nas outras
+  plataformas. Um dispositivo que responde ARP mas não ICMP (com firewall)
+  aparece online sem RTT.
+- A sugestão de canal WiFi é uma contagem simples de congestionamento sobre os
+  APs visíveis, não um planejador de RF: não considera intensidade de sinal,
+  restrições de DFS nem regras regulatórias.
+- Uma entrada só é marcada como "unknown" no log de atividade quando o MAC não
+  tem apelido definido. Apelidar um dispositivo o marca como reconhecido nas
+  próximas entradas.
 
 ## Licença
 

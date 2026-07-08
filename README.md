@@ -18,6 +18,10 @@ inspection. Windows-first, portable to Linux.
 - [x] Linux adapter (AF_PACKET raw ARP, gateway, DNS)
 - [x] Persistent device aliases (nicknames, keyed by MAC)
 - [x] Live dashboard (Wi-Fi, real-time bandwidth, speedtest, devices)
+- [x] Per-device latency (RTT) and internet latency, native ICMP (no admin)
+- [x] Wi-Fi channel recommendation from nearby AP congestion
+- [x] New-device alerts (unrecognized MAC joins flagged in monitor/dashboard)
+- [x] JSON export (`netwp scan --json`)
 
 ## Architecture
 
@@ -38,7 +42,8 @@ Requires Go 1.22+.
 
 ```powershell
 go build -o netwp.exe ./cmd/netwp
-.\netwp.exe            # one-shot scan (default)
+.\netwp.exe            # one-shot scan (default), with per-device RTT
+.\netwp.exe scan --json # same scan, machine-readable JSON on stdout
 .\netwp.exe monitor   # live TUI: devices joining/leaving in real time (q to quit)
 .\netwp.exe dashboard # full dashboard: wifi + live bandwidth + speedtest + devices
 .\netwp.exe speedtest # download/upload throughput
@@ -69,10 +74,13 @@ your PATH you can call it as `netwp` from any terminal (Windows resolves the
 
 ```powershell
 go install -ldflags "-s -w" ./cmd/netwp   # -ldflags optional, just for a smaller binary
-netwp            # scan
-netwp monitor    # live monitor
-netwp speedtest  # bandwidth test
-netwp iface      # interface IP config
+netwp             # scan
+netwp scan --json # scan, JSON output
+netwp monitor     # live monitor
+netwp dashboard   # full dashboard
+netwp speedtest   # bandwidth test
+netwp iface       # interface IP config
+netwp alias set 192.168.1.20 "Living Room TV"  # nickname a device
 ```
 
 ## Notes
@@ -103,6 +111,14 @@ netwp iface      # interface IP config
   `setcap cap_net_raw+ep` on the binary). It was written and cross-compiled
   (`GOOS=linux`) from a Windows dev machine and has not been run against
   real Linux hardware yet.
+- RTT comes from a real ICMP echo per device: `IcmpSendEcho` (iphlpapi) on
+  Windows, no admin required; the system `ping` binary elsewhere. A device
+  that answers ARP but not ICMP (firewalled) shows online with no RTT.
+- The Wi-Fi channel suggestion is a simple congestion count over the visible
+  APs, not an RF planner: it does not account for signal strength, DFS
+  restrictions, or regulatory rules.
+- A device join is flagged "unknown" in the activity log only when its MAC
+  has no alias set. Aliasing a device marks it as recognized for future joins.
 
 ## License
 
