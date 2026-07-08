@@ -40,8 +40,10 @@ func main() {
 		err = runMonitor()
 	case "speedtest":
 		err = runSpeedtest()
+	case "iface":
+		err = runIface()
 	default:
-		err = fmt.Errorf("unknown command %q (use: scan | monitor | speedtest)", command)
+		err = fmt.Errorf("unknown command %q (use: scan | monitor | speedtest | iface)", command)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "netwp:", err)
@@ -113,6 +115,15 @@ func runSpeedtest() error {
 		return err
 	}
 	tui.RenderBandwidth(os.Stdout, result)
+	return nil
+}
+
+func runIface() error {
+	info, err := netinfo.Interface{}.Inspect()
+	if err != nil {
+		return err
+	}
+	tui.RenderInterface(os.Stdout, info)
 	return nil
 }
 

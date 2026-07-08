@@ -13,7 +13,8 @@ interface estão planejados. Windows primeiro, portável para Linux.
 - [x] Núcleo de descoberta (ARP scan, hostname, fabricante por OUI, palpite de classe)
 - [x] Monitoramento contínuo (entrada/saída), TUI ao vivo
 - [x] Teste de banda
-- [ ] Inspeção/configuração de IP da interface
+- [x] Inspeção de IP da interface (somente leitura)
+- [ ] Configuração de IP da interface (estático/DHCP)
 - [ ] Adapter Linux (ARP cru via AF_PACKET)
 
 ## Arquitetura
@@ -38,6 +39,7 @@ go build -o netwp.exe ./cmd/netwp
 .\netwp.exe            # varredura única (padrão)
 .\netwp.exe monitor   # TUI ao vivo: dispositivos entrando/saindo em tempo real (q sai)
 .\netwp.exe speedtest # teste de download/upload
+.\netwp.exe iface     # config de IP da interface ativa (somente leitura)
 go test ./...
 ```
 
@@ -54,6 +56,7 @@ go install ./cmd/netwp
 netwp            # varredura
 netwp monitor    # monitor ao vivo
 netwp speedtest  # teste de banda
+netwp iface      # config de IP da interface
 ```
 
 ## Notas
@@ -64,6 +67,8 @@ netwp speedtest  # teste de banda
   Escaneie apenas redes suas ou autorizadas.
 - O teste de banda usa o endpoint público `speed.cloudflare.com`: sem chave
   de API, sem servidor próprio.
+- O `iface` é somente leitura. Alterar o endereço (estático/DHCP) exige
+  privilégio de admin e ainda não está implementado.
 
 ## Licença
 

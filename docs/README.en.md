@@ -13,7 +13,8 @@ planned. Windows-first, portable to Linux.
 - [x] Device discovery core (ARP scan, hostname, vendor by OUI, device-class guess)
 - [x] Continuous monitoring (join/leave), live TUI
 - [x] Bandwidth test
-- [ ] Interface IP inspect/configure
+- [x] Interface IP inspect (read-only)
+- [ ] Interface IP configure (static/DHCP)
 - [ ] Linux adapter (AF_PACKET raw ARP)
 
 ## Architecture
@@ -38,6 +39,7 @@ go build -o netwp.exe ./cmd/netwp
 .\netwp.exe            # one-shot scan (default)
 .\netwp.exe monitor   # live TUI: devices joining/leaving in real time (q to quit)
 .\netwp.exe speedtest # download/upload throughput
+.\netwp.exe iface     # active interface's IP config (read-only)
 go test ./...
 ```
 
@@ -55,6 +57,7 @@ go install ./cmd/netwp
 netwp            # scan
 netwp monitor    # live monitor
 netwp speedtest  # bandwidth test
+netwp iface      # interface IP config
 ```
 
 ## Notes
@@ -66,6 +69,8 @@ netwp speedtest  # bandwidth test
   Only scan networks you own or are authorized to.
 - The bandwidth test uses Cloudflare's public `speed.cloudflare.com`
   endpoint: no API key, no self-hosted server.
+- `iface` is read-only. Changing the address (static/DHCP) needs admin
+  rights and isn't implemented yet.
 
 ## License
 

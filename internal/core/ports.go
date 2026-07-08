@@ -29,3 +29,8 @@ type VendorLookup interface {
 type Prober interface {
 	OpenPorts(ctx context.Context, ip net.IP) []int
 }
+
+// InterfaceInspector reads the active network interface's IP configuration.
+type InterfaceInspector interface {
+	Inspect() (InterfaceInfo, error)
+}
