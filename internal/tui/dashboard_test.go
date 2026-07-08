@@ -37,6 +37,42 @@ func TestDashboardViewSmoke(t *testing.T) {
 	}
 }
 
+// TestDashboardTruncatesDevicesToFitHeight builds a model with far more
+// devices than a short terminal can show, and checks the footer still
+// appears within the reported height (it must not scroll off screen) and
+// that the device list was actually shortened.
+func TestDashboardTruncatesDevicesToFitHeight(t *testing.T) {
+	tracker := core.NewTracker(30 * time.Second)
+	var devices []core.Device
+	for i := 0; i < 40; i++ {
+		devices = append(devices, core.Device{
+			IP:  net.IPv4(192, 168, 1, byte(i+1)),
+			MAC: net.HardwareAddr{1, 2, 3, 4, 5, byte(i)},
+		})
+	}
+	tracker.Observe(devices, time.Now())
+
+	m := dashModel{
+		tracker: tracker,
+		info:    core.InterfaceInfo{Name: "Ethernet", IP: net.IPv4(192, 168, 1, 10), Gateway: net.IPv4(192, 168, 1, 1)},
+		start:   time.Now(),
+		width:   112,
+		height:  20,
+	}
+
+	out := m.View()
+	lines := strings.Split(out, "\n")
+	if len(lines) > m.height+1 { // +1 tolerance: this is a line budget estimate, not pixel-exact
+		t.Errorf("rendered %d lines, want <= ~%d (height=%d)", len(lines), m.height+1, m.height)
+	}
+	if !strings.Contains(out, "r rescan") {
+		t.Error("footer missing from a short-terminal render")
+	}
+	if !strings.Contains(out, "showing") {
+		t.Error("expected the device panel title to note truncation")
+	}
+}
+
 func TestRateStr(t *testing.T) {
 	cases := map[float64]string{
 		125000: "1.0 Mbps", // 125000 B/s * 8 = 1 Mbps

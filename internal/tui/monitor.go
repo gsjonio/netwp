@@ -24,6 +24,7 @@ var (
 	styHead    = lipgloss.NewStyle().Bold(true)
 	styTitle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("39"))
 	styAlias   = lipgloss.NewStyle().Foreground(lipgloss.Color("51"))
+	styWarn    = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("203"))
 
 	spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 )
@@ -186,15 +187,23 @@ func renderMonitorTable(devices []core.TrackedDevice, ref time.Time) string {
 }
 
 func formatEvent(e core.Event) string {
-	name := e.Device.Hostname
+	name := e.Device.Alias
+	if name == "" {
+		name = e.Device.Hostname
+	}
 	if name == "" {
 		name = e.Device.IP.String()
 	}
 	ts := e.At.Format("15:04:05")
-	if e.Kind == core.Joined {
+	switch {
+	case e.Kind == core.Joined && e.Device.Alias == "":
+		// A join with no alias is an unrecognized device: worth flagging.
+		return styWarn.Render("⚠ " + ts + "  " + name + " joined (unknown)")
+	case e.Kind == core.Joined:
 		return styOnline.Render("＋") + " " + ts + "  " + name + " joined"
+	default:
+		return styOffline.Render("－") + " " + ts + "  " + name + " left"
 	}
-	return styOffline.Render("－") + " " + ts + "  " + name + " left"
 }
 
 // aliasText renders a highlighted nickname, or the placeholder when unset.

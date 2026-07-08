@@ -70,7 +70,9 @@ type dashModel struct {
 	netLatency time.Duration
 	netUp      bool
 	lastScan   time.Time
+	log        []string
 	width      int
+	height     int
 }
 
 type (
@@ -150,6 +152,7 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
+		m.height = msg.Height
 
 	case sampleMsg:
 		m.rate = m.meter.Update(msg.c, time.Now())
@@ -169,7 +172,12 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case scanMsg:
 		m.lastScan = msg.at
-		m.tracker.Observe(msg.devices, msg.at)
+		for _, e := range m.tracker.Observe(msg.devices, msg.at) {
+			m.log = append(m.log, formatEvent(e))
+		}
+		if len(m.log) > logLimit {
+			m.log = m.log[len(m.log)-logLimit:]
+		}
 		return m, tick(dashScanEvery, scanTickMsg{})
 	case scanTickMsg:
 		return m, m.scan
@@ -196,28 +204,54 @@ func (m dashModel) View() string {
 	}
 
 	header := m.renderHeader(width)
-
 	colW := (width - 4) / 3
 	top := lipgloss.JoinHorizontal(lipgloss.Top,
 		panel("WI-FI", m.renderWifi(), colW),
 		panel("BANDWIDTH", m.renderBandwidth(), colW),
 		panel("SPEEDTEST", m.renderSpeed(), colW),
 	)
+	footer := styOffline.Render("r rescan · q quit")
+
+	var activity string
+	if len(m.log) > 0 {
+		activity = panel("ACTIVITY", strings.Join(m.log, "\n"), width-2)
+	}
 
 	devices := m.tracker.Devices()
+	total := len(devices)
 	online := 0
 	for _, d := range devices {
 		if d.Online {
 			online++
 		}
 	}
+	devTitle := fmt.Sprintf("DEVICES · %d online / %d known", online, total)
+
+	// Trim the device table to whatever vertical room is left, so the footer
+	// never scrolls off screen on a short terminal. Fixed overhead below the
+	// header/top/activity/footer lines: the device panel's own border (2) +
+	// title (1), plus the inner table's border+header+separator+border (4).
+	if m.height > 0 {
+		used := lineCount(header) + lineCount(top) + lineCount(footer) + 7
+		if activity != "" {
+			used += lineCount(activity)
+		}
+		if budget := m.height - used; budget > 0 && total > budget {
+			devices = devices[:budget]
+			devTitle = fmt.Sprintf("DEVICES · %d online / %d known (showing %d)", online, total, budget)
+		}
+	}
 	devBody := renderMonitorTable(devices, m.lastScan)
-	devTitle := fmt.Sprintf("DEVICES · %d online / %d known", online, len(devices))
 
-	footer := styOffline.Render("r rescan · q quit")
-
-	return strings.Join([]string{header, top, panel(devTitle, devBody, width-2), footer}, "\n")
+	parts := []string{header, top}
+	if activity != "" {
+		parts = append(parts, activity)
+	}
+	parts = append(parts, panel(devTitle, devBody, width-2), footer)
+	return strings.Join(parts, "\n")
 }
+
+func lineCount(s string) int { return strings.Count(s, "\n") + 1 }
 
 func (m dashModel) renderHeader(width int) string {
 	title := styTitle.Render("netwp dashboard")
