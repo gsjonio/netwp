@@ -17,6 +17,7 @@ import (
 	"github.com/gsjonio/netwp/internal/adapter/httpspeed"
 	"github.com/gsjonio/netwp/internal/adapter/netinfo"
 	"github.com/gsjonio/netwp/internal/adapter/oui"
+	"github.com/gsjonio/netwp/internal/adapter/scancache"
 	"github.com/gsjonio/netwp/internal/adapter/tcpprobe"
 	"github.com/gsjonio/netwp/internal/core"
 	"github.com/gsjonio/netwp/internal/tui"
@@ -93,6 +94,12 @@ func runScan() error {
 	}
 	tui.RenderDevices(os.Stdout, devices)
 	fmt.Printf("\n%d device(s) found.\n", len(devices))
+
+	// Cache the IP-to-MAC map so `alias set <ip>` can skip a fresh scan.
+	// Best-effort: a failed write just means the next alias re-scans.
+	if path, err := scancache.DefaultPath(); err == nil {
+		_ = scancache.Save(path, devices)
+	}
 	return nil
 }
 
@@ -294,9 +301,10 @@ func runAliasRemove(store *aliasstore.Store, args []string) error {
 	return nil
 }
 
-// resolveMAC turns a CLI argument into a MAC. A MAC literal is used directly; an
-// IP is resolved by a quick ARP sweep of the local network. Keying aliases by
-// MAC keeps them stable when DHCP hands the device a new IP.
+// resolveMAC turns a CLI argument into a MAC. A MAC literal is used directly.
+// An IP is looked up in the last scan's cache first, and only if that misses is
+// a fresh ARP sweep run (whose result then refreshes the cache). Keying aliases
+// by MAC keeps them stable when DHCP hands the device a new IP.
 func resolveMAC(arg string) (net.HardwareAddr, error) {
 	if mac, err := net.ParseMAC(arg); err == nil {
 		return mac, nil
@@ -305,6 +313,14 @@ func resolveMAC(arg string) (net.HardwareAddr, error) {
 	if ip == nil {
 		return nil, fmt.Errorf("%q is neither a MAC nor an IP address", arg)
 	}
+
+	cachePath, _ := scancache.DefaultPath()
+	if cachePath != "" {
+		if mac, ok := scancache.Lookup(cachePath, ip); ok {
+			return mac, nil
+		}
+	}
+
 	network, err := netinfo.LocalNetwork()
 	if err != nil {
 		return nil, err
@@ -319,6 +335,9 @@ func resolveMAC(arg string) (net.HardwareAddr, error) {
 	})
 	if err != nil {
 		return nil, err
+	}
+	if cachePath != "" {
+		_ = scancache.Save(cachePath, devices)
 	}
 	for _, d := range devices {
 		if d.IP.Equal(ip) {
