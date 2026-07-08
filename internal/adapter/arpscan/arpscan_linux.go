@@ -15,9 +15,18 @@ import (
 	"net"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/gsjonio/netwp/internal/core"
 )
+
+// collectWindow bounds how long Scan keeps reading replies after firing all
+// probes. ARP replies on a LAN arrive in milliseconds, so a short window is
+// plenty and keeps a fast network from waiting out the whole ctx budget.
+//
+// ponytail: fixed 2s. If replies trickle in on a large/slow segment, widen
+// it or reset the timer on each reply (quiet-period detection).
+const collectWindow = 2 * time.Second
 
 // Scanner sends ARP requests over a raw socket bound to the outbound
 // interface and collects replies until ctx is done.
@@ -56,11 +65,18 @@ func (s *Scanner) Scan(ctx context.Context, target core.Network) ([]core.Device,
 	found := make(map[string]core.Device)
 	readerDone := make(chan struct{})
 
+	// The reader stops on whichever comes first: the caller's deadline, or a
+	// short collection window after all probes are sent. Without this cap a
+	// fast LAN would still block for the whole ctx budget (and the monitor,
+	// which passes a 30s budget, would never keep its interval).
+	scanCtx, cancel := context.WithTimeout(ctx, collectWindow)
+	defer cancel()
+
 	go func() {
 		defer close(readerDone)
 		buf := make([]byte, 128)
 		for {
-			if ctx.Err() != nil {
+			if scanCtx.Err() != nil {
 				return
 			}
 			n, _, err := syscall.Recvfrom(fd, buf, 0)
@@ -76,14 +92,14 @@ func (s *Scanner) Scan(ctx context.Context, target core.Network) ([]core.Device,
 	}()
 
 	for _, ip := range target.Hosts() {
-		if ctx.Err() != nil {
+		if scanCtx.Err() != nil {
 			break
 		}
 		frame := buildARPRequest(ifi.HardwareAddr, srcIP, ip)
 		_ = syscall.Sendto(fd, frame, 0, addr)
 	}
 
-	<-ctx.Done()
+	<-scanCtx.Done()
 	<-readerDone
 
 	mu.Lock()

@@ -17,6 +17,12 @@ import (
 // it keeps this file short. Arguments are passed as separate exec.Command
 // elements (no shell), so there is no injection risk from interface names or
 // user-supplied addresses.
+//
+// UNVERIFIED: not run against a real admin shell yet. Watch the interface
+// name with a space (e.g. "Ethernet 2"): Go quotes the whole argv element as
+// "name=Ethernet 2" on the Windows command line, and netsh's own parser may
+// expect the quotes around the value ("Ethernet 2"). If set fails with an
+// interface-not-found error, that's the cause.
 type Configurator struct{}
 
 func (Configurator) SetStatic(cfg core.StaticConfig) error {
@@ -39,7 +45,7 @@ func (Configurator) SetStatic(cfg core.StaticConfig) error {
 		if i == 0 {
 			dnsArgs = []string{"interface", "ip", "set", "dns", nameArg, "static", dns.String()}
 		} else {
-			dnsArgs = []string{"interface", "ip", "add", "dns", nameArg, dns.String(), fmt.Sprintf("index=%d", i+1)}
+			dnsArgs = []string{"interface", "ip", "add", "dns", nameArg, "addr=" + dns.String(), fmt.Sprintf("index=%d", i+1)}
 		}
 		if out, err := exec.Command("netsh", dnsArgs...).CombinedOutput(); err != nil {
 			return fmt.Errorf("netsh set dns: %w: %s", err, out)
