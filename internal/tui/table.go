@@ -99,23 +99,15 @@ func statusCell(online bool) cell {
 	return cell{"○ offline", colorDim}
 }
 
-func macCell(m net.HardwareAddr) cell {
-	if len(m) == 0 {
-		return cell{"—", colorDim}
-	}
-	return cell{m.String(), ""}
-}
+func macCell(m net.HardwareAddr) cell   { return dashCell(macText(m)) }
+func textCell(s string) cell            { return dashCell(orDash(s)) }
+func classCell(c core.DeviceClass) cell { return dashCell(classLabel(c)) }
 
-func textCell(s string) cell {
-	if s == "" {
-		return cell{"—", colorDim}
+// dashCell dims the placeholder glyph while leaving real values uncoloured, so
+// the "—" for a missing value reads as absent rather than as data.
+func dashCell(text string) cell {
+	if text == dash {
+		return cell{dash, colorDim}
 	}
-	return cell{s, ""}
-}
-
-func classCell(c core.DeviceClass) cell {
-	if c == core.ClassUnknown {
-		return cell{"—", colorDim}
-	}
-	return cell{c.String(), ""}
+	return cell{text, ""}
 }

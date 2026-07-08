@@ -3,7 +3,6 @@ package tui
 import (
 	"context"
 	"fmt"
-	"net"
 	"strings"
 	"time"
 
@@ -180,16 +179,9 @@ func renderMonitorTable(devices []core.TrackedDevice, ref time.Time) string {
 		if d.Online {
 			dot = styOnline.Render("●")
 		}
-		t.Row(dot, d.IP.String(), className(d.Class), macText(d.MAC), orDash(d.Hostname), orDash(d.Vendor), lastSeen(d, ref))
+		t.Row(dot, d.IP.String(), classLabel(d.Class), macText(d.MAC), orDash(d.Hostname), orDash(d.Vendor), lastSeen(d, ref))
 	}
 	return t.String()
-}
-
-func className(c core.DeviceClass) string {
-	if c == core.ClassUnknown {
-		return "—"
-	}
-	return c.String()
 }
 
 func formatEvent(e core.Event) string {
@@ -202,20 +194,6 @@ func formatEvent(e core.Event) string {
 		return styOnline.Render("＋") + " " + ts + "  " + name + " joined"
 	}
 	return styOffline.Render("－") + " " + ts + "  " + name + " left"
-}
-
-func macText(m net.HardwareAddr) string {
-	if len(m) == 0 {
-		return "—"
-	}
-	return m.String()
-}
-
-func orDash(s string) string {
-	if s == "" {
-		return "—"
-	}
-	return s
 }
 
 func lastSeen(d core.TrackedDevice, ref time.Time) string {
