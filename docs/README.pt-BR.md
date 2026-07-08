@@ -17,6 +17,7 @@ interface estão planejados. Windows primeiro, portável para Linux.
 - [x] Configuração de IP da interface (estático/DHCP, só Windows)
 - [x] Adapter Linux (ARP cru via AF_PACKET, gateway, DNS)
 - [x] Apelidos persistentes de dispositivos (chaveados por MAC)
+- [x] Dashboard ao vivo (WiFi, banda em tempo real, speedtest, dispositivos)
 
 ## Arquitetura
 
@@ -39,6 +40,7 @@ Requer Go 1.22+.
 go build -o netwp.exe ./cmd/netwp
 .\netwp.exe            # varredura única (padrão)
 .\netwp.exe monitor   # TUI ao vivo: dispositivos entrando/saindo em tempo real (q sai)
+.\netwp.exe dashboard # dashboard completo: wifi + banda ao vivo + speedtest + dispositivos
 .\netwp.exe speedtest # teste de download/upload
 .\netwp.exe iface     # config de IP da interface ativa
 .\netwp.exe iface static 192.168.1.50/24 192.168.1.1 8.8.8.8  # define IP estático (pede confirmação)
@@ -90,6 +92,11 @@ netwp iface      # config de IP da interface
   administrador no Windows. Sempre pedem que você digite "yes" antes de
   mexer na configuração de verdade; não existe flag `--yes` para pular isso.
   Ainda não implementado no Linux.
+- O painel de WiFi do dashboard lê o `netsh wlan` (aceita rótulos em inglês e
+  português). O scan de redes visíveis e o estado desconectado foram testados
+  em hardware real; os campos do link conectado (SSID/sinal/canal da sua
+  própria conexão) só têm cobertura por fixture, então confirme ligado no WiFi.
+  Numa máquina só-cabo o painel mostra "disconnected".
 - O scanner Linux (ARP cru via `AF_PACKET`) exige `CAP_NET_RAW` (root, ou
   `setcap cap_net_raw+ep` no binário). Foi escrito e cross-compilado
   (`GOOS=linux`) numa máquina Windows e ainda não rodou em hardware Linux

@@ -45,6 +45,7 @@ binário menor (cerca de 12 MB para 8.8 MB).*
 ```powershell
 netwp                 # scan the local network / varre a rede local
 netwp monitor         # live join/leave TUI / TUI ao vivo de entrada/saída
+netwp dashboard       # full live dashboard / dashboard completo ao vivo
 netwp speedtest       # download/upload throughput / teste de banda
 netwp iface           # active interface IP config / config de IP da interface
 netwp iface static <ip>/<bits> <gateway> [dns...]   # set a static address (admin)
