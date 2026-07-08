@@ -5,12 +5,14 @@ package main
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/gsjonio/netwp/internal/adapter/aliasstore"
 	"github.com/gsjonio/netwp/internal/adapter/arpscan"
 	"github.com/gsjonio/netwp/internal/adapter/httpspeed"
 	"github.com/gsjonio/netwp/internal/adapter/netinfo"
@@ -44,8 +46,10 @@ func main() {
 		err = runSpeedtest()
 	case "iface":
 		err = runIface()
+	case "alias":
+		err = runAlias()
 	default:
-		err = fmt.Errorf("unknown command %q (use: scan | monitor | speedtest | iface | iface static | iface dhcp)", command)
+		err = fmt.Errorf("unknown command %q (use: scan | monitor | speedtest | iface | alias)", command)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "netwp:", err)
@@ -54,12 +58,25 @@ func main() {
 }
 
 // buildDiscovery assembles the discovery use case from its platform adapters.
-func buildDiscovery() *core.Discovery {
-	return core.NewDiscovery(arpscan.New(), netinfo.DNSResolver{}, oui.New(), tcpprobe.New())
+func buildDiscovery(aliases core.AliasLookup) *core.Discovery {
+	return core.NewDiscovery(arpscan.New(), netinfo.DNSResolver{}, oui.New(), tcpprobe.New(), aliases)
+}
+
+// openAliasStore opens the persistent nickname store at its default path.
+func openAliasStore() (*aliasstore.Store, error) {
+	path, err := aliasstore.DefaultPath()
+	if err != nil {
+		return nil, err
+	}
+	return aliasstore.Open(path)
 }
 
 func runScan() error {
 	network, err := netinfo.LocalNetwork()
+	if err != nil {
+		return err
+	}
+	store, err := openAliasStore()
 	if err != nil {
 		return err
 	}
@@ -68,7 +85,7 @@ func runScan() error {
 
 	var devices []core.Device
 	err = withSpinner(fmt.Sprintf("scanning %s", network.CIDR), func() error {
-		devices, err = buildDiscovery().Run(ctx, network)
+		devices, err = buildDiscovery(store).Run(ctx, network)
 		return err
 	})
 	if err != nil {
@@ -204,6 +221,109 @@ func runMonitor() error {
 	if err != nil {
 		return err
 	}
+	store, err := openAliasStore()
+	if err != nil {
+		return err
+	}
 	tracker := core.NewTracker(offlineAfter)
-	return tui.RunMonitor(buildDiscovery(), tracker, network, monitorEvery, monitorScanBudget)
+	return tui.RunMonitor(buildDiscovery(store), tracker, network, monitorEvery, monitorScanBudget)
+}
+
+// runAlias dispatches the alias subcommands: set, ls, rm.
+func runAlias() error {
+	args := os.Args[2:]
+	if len(args) == 0 {
+		return errors.New("usage: netwp alias set <ip-or-mac> <name> | alias ls | alias rm <ip-or-mac>")
+	}
+	store, err := openAliasStore()
+	if err != nil {
+		return err
+	}
+	switch args[0] {
+	case "ls", "list":
+		return runAliasList(store)
+	case "set":
+		return runAliasSet(store, args[1:])
+	case "rm", "remove", "del":
+		return runAliasRemove(store, args[1:])
+	default:
+		return fmt.Errorf("unknown alias subcommand %q (use: set | ls | rm)", args[0])
+	}
+}
+
+func runAliasList(store *aliasstore.Store) error {
+	list := store.List()
+	if len(list) == 0 {
+		fmt.Println("no aliases set.")
+		return nil
+	}
+	for _, a := range list {
+		fmt.Printf("%-17s  %s\n", a.MAC, a.Name)
+	}
+	return nil
+}
+
+func runAliasSet(store *aliasstore.Store, args []string) error {
+	if len(args) < 2 {
+		return errors.New("usage: netwp alias set <ip-or-mac> <name>")
+	}
+	mac, err := resolveMAC(args[0])
+	if err != nil {
+		return err
+	}
+	name := strings.Join(args[1:], " ")
+	if err := store.Set(mac, name); err != nil {
+		return err
+	}
+	fmt.Printf("aliased %s → %q\n", mac, name)
+	return nil
+}
+
+func runAliasRemove(store *aliasstore.Store, args []string) error {
+	if len(args) < 1 {
+		return errors.New("usage: netwp alias rm <ip-or-mac>")
+	}
+	mac, err := resolveMAC(args[0])
+	if err != nil {
+		return err
+	}
+	if err := store.Delete(mac); err != nil {
+		return err
+	}
+	fmt.Printf("removed alias for %s\n", mac)
+	return nil
+}
+
+// resolveMAC turns a CLI argument into a MAC. A MAC literal is used directly; an
+// IP is resolved by a quick ARP sweep of the local network. Keying aliases by
+// MAC keeps them stable when DHCP hands the device a new IP.
+func resolveMAC(arg string) (net.HardwareAddr, error) {
+	if mac, err := net.ParseMAC(arg); err == nil {
+		return mac, nil
+	}
+	ip := net.ParseIP(arg)
+	if ip == nil {
+		return nil, fmt.Errorf("%q is neither a MAC nor an IP address", arg)
+	}
+	network, err := netinfo.LocalNetwork()
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), scanTimeout)
+	defer cancel()
+
+	var devices []core.Device
+	err = withSpinner("resolving "+arg, func() error {
+		devices, err = arpscan.New().Scan(ctx, network)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, d := range devices {
+		if d.IP.Equal(ip) {
+			return d.MAC, nil
+		}
+	}
+	return nil, fmt.Errorf("no device with IP %s found on the network (is it online?)", arg)
 }

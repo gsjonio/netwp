@@ -13,10 +13,11 @@ type Discovery struct {
 	names   HostResolver
 	vendors VendorLookup
 	prober  Prober
+	aliases AliasLookup
 }
 
-func NewDiscovery(scanner Scanner, names HostResolver, vendors VendorLookup, prober Prober) *Discovery {
-	return &Discovery{scanner: scanner, names: names, vendors: vendors, prober: prober}
+func NewDiscovery(scanner Scanner, names HostResolver, vendors VendorLookup, prober Prober, aliases AliasLookup) *Discovery {
+	return &Discovery{scanner: scanner, names: names, vendors: vendors, prober: prober, aliases: aliases}
 }
 
 // Run scans the target network and returns the enriched, classified devices.
@@ -55,6 +56,7 @@ func (d *Discovery) Run(ctx context.Context, target Network) ([]Device, error) {
 			}
 			dev.Hostname = d.names.Hostname(dev.IP)
 			dev.Vendor = d.vendors.Vendor(dev.MAC)
+			dev.Alias = d.aliases.Alias(dev.MAC)
 			inner.Wait()
 			dev.Class = Classify(*dev, target.Gateway, target.Self, ports)
 		}(i)

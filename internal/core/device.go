@@ -9,6 +9,7 @@ import "net"
 type Device struct {
 	IP       net.IP           // IPv4 address on the local subnet
 	MAC      net.HardwareAddr // Layer-2 address (from ARP)
+	Alias    string           // User-defined nickname, keyed by MAC; empty if unset
 	Hostname string           // Reverse-DNS name, empty if unresolved
 	Vendor   string           // Manufacturer, resolved from the MAC's OUI prefix
 	Class    DeviceClass      // Best-effort guess at what kind of device this is

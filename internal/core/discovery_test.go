@@ -20,6 +20,17 @@ type fakeVendor struct{}
 
 func (fakeVendor) Vendor(net.HardwareAddr) string { return "ACME" }
 
+// fakeAlias returns a nickname only for one specific MAC, to prove enrichment
+// binds the alias by MAC.
+type fakeAlias struct{ mac string }
+
+func (f fakeAlias) Alias(mac net.HardwareAddr) string {
+	if mac.String() == f.mac {
+		return "Living Room TV"
+	}
+	return ""
+}
+
 // recordingProber notes which IPs were probed and reports a fixed open-port
 // set, so the test can assert self/gateway are skipped.
 type recordingProber struct {
@@ -40,14 +51,15 @@ func TestDiscoverySkipsSelfAndGatewayProbe(t *testing.T) {
 	gateway := net.IPv4(192, 168, 1, 1)
 	other := net.IPv4(192, 168, 1, 20)
 
+	otherMAC := net.HardwareAddr{3, 3, 3, 3, 3, 3}
 	prober := &recordingProber{ports: []int{portSSH}} // SSH -> ClassComputer
 	d := NewDiscovery(
 		fakeScanner{devices: []Device{
 			{IP: self, MAC: net.HardwareAddr{1, 1, 1, 1, 1, 1}},
 			{IP: gateway, MAC: net.HardwareAddr{2, 2, 2, 2, 2, 2}},
-			{IP: other, MAC: net.HardwareAddr{3, 3, 3, 3, 3, 3}},
+			{IP: other, MAC: otherMAC},
 		}},
-		fakeResolver{}, fakeVendor{}, prober,
+		fakeResolver{}, fakeVendor{}, prober, fakeAlias{mac: otherMAC.String()},
 	)
 
 	devices, err := d.Run(context.Background(), Network{Self: self, Gateway: gateway})
@@ -78,5 +90,11 @@ func TestDiscoverySkipsSelfAndGatewayProbe(t *testing.T) {
 	}
 	if got := byIP[other.String()].Vendor; got != "ACME" {
 		t.Errorf("vendor enrichment missing: %q", got)
+	}
+	if got := byIP[other.String()].Alias; got != "Living Room TV" {
+		t.Errorf("alias enrichment missing: %q", got)
+	}
+	if got := byIP[self.String()].Alias; got != "" {
+		t.Errorf("self should have no alias, got %q", got)
 	}
 }

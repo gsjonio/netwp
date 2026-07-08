@@ -24,6 +24,11 @@ type VendorLookup interface {
 	Vendor(mac net.HardwareAddr) string
 }
 
+// AliasLookup returns a user-defined nickname for a MAC, or "" if none is set.
+type AliasLookup interface {
+	Alias(mac net.HardwareAddr) string
+}
+
 // Prober reports which of a small set of well-known TCP ports a host accepts
 // connections on — the "detailed scan" used to refine device classification.
 type Prober interface {

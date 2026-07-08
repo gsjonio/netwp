@@ -22,6 +22,7 @@ import (
 const (
 	colorReset = "\x1b[0m"
 	colorGreen = "\x1b[32m"
+	colorCyan  = "\x1b[36m"
 	colorDim   = "\x1b[90m"
 	colorBold  = "\x1b[1m"
 )
@@ -45,7 +46,7 @@ func RenderDevices(w io.Writer, devices []core.Device) {
 	})
 
 	header := []cell{
-		{"STATUS", colorBold}, {"IP", colorBold}, {"MAC", colorBold},
+		{"STATUS", colorBold}, {"IP", colorBold}, {"ALIAS", colorBold}, {"MAC", colorBold},
 		{"CLASS", colorBold}, {"HOSTNAME", colorBold}, {"VENDOR", colorBold},
 	}
 	rows := make([][]cell, 0, len(devices))
@@ -53,6 +54,7 @@ func RenderDevices(w io.Writer, devices []core.Device) {
 		rows = append(rows, []cell{
 			statusCell(d.Online),
 			{d.IP.String(), ""},
+			aliasCell(d.Alias),
 			macCell(d.MAC),
 			classCell(d.Class),
 			textCell(d.Hostname),
@@ -110,4 +112,12 @@ func dashCell(text string) cell {
 		return cell{dash, colorDim}
 	}
 	return cell{text, ""}
+}
+
+// aliasCell highlights a user-set nickname so it stands out from resolved data.
+func aliasCell(alias string) cell {
+	if alias == "" {
+		return cell{dash, colorDim}
+	}
+	return cell{alias, colorCyan}
 }

@@ -23,6 +23,7 @@ var (
 	styOffline = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	styHead    = lipgloss.NewStyle().Bold(true)
 	styTitle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("39"))
+	styAlias   = lipgloss.NewStyle().Foreground(lipgloss.Color("51"))
 
 	spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 )
@@ -172,14 +173,14 @@ func renderMonitorTable(devices []core.TrackedDevice, ref time.Time) string {
 			}
 			return lipgloss.NewStyle().Padding(0, 1)
 		}).
-		Headers("", "IP", "CLASS", "MAC", "HOSTNAME", "VENDOR", "LAST SEEN")
+		Headers("", "IP", "ALIAS", "CLASS", "MAC", "HOSTNAME", "VENDOR", "LAST SEEN")
 
 	for _, d := range devices {
 		dot := styOffline.Render("○")
 		if d.Online {
 			dot = styOnline.Render("●")
 		}
-		t.Row(dot, d.IP.String(), classLabel(d.Class), macText(d.MAC), orDash(d.Hostname), orDash(d.Vendor), lastSeen(d, ref))
+		t.Row(dot, d.IP.String(), aliasText(d.Alias), classLabel(d.Class), macText(d.MAC), orDash(d.Hostname), orDash(d.Vendor), lastSeen(d, ref))
 	}
 	return t.String()
 }
@@ -194,6 +195,14 @@ func formatEvent(e core.Event) string {
 		return styOnline.Render("＋") + " " + ts + "  " + name + " joined"
 	}
 	return styOffline.Render("－") + " " + ts + "  " + name + " left"
+}
+
+// aliasText renders a highlighted nickname, or the placeholder when unset.
+func aliasText(alias string) string {
+	if alias == "" {
+		return dash
+	}
+	return styAlias.Render(alias)
 }
 
 func lastSeen(d core.TrackedDevice, ref time.Time) string {
