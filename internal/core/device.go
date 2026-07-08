@@ -19,4 +19,5 @@ type Device struct {
 	RTT       time.Duration    // ICMP round-trip time; 0 with Reachable false if no reply
 	Reachable bool             // Answered an ICMP echo during enrichment
 	Online    bool             // Answered the active probe during this scan
+	Ports     []int            // Open TCP ports found by the classification probe; nil if not probed
 }

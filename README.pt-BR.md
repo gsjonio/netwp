@@ -22,6 +22,8 @@ inspeção de interface. Windows primeiro, portável para Linux.
 - [x] Recomendação de canal WiFi por congestionamento de APs vizinhos
 - [x] Alerta de dispositivo novo (entrada de MAC não reconhecido no monitor/dashboard)
 - [x] Exportação JSON (`netwp scan --json`)
+- [x] Fallback de hostname via mDNS/NetBIOS quando o DNS reverso não retorna nada
+- [x] Detalhe de portas por dispositivo (`netwp ports <ip>`)
 
 ## Arquitetura
 
@@ -53,6 +55,7 @@ go build -o netwp.exe ./cmd/netwp
 .\netwp.exe alias set 192.168.1.20 "TV da Sala"  # apelida um dispositivo (por IP ou MAC)
 .\netwp.exe alias ls                             # lista os apelidos
 .\netwp.exe alias rm 192.168.1.20                # remove um apelido
+.\netwp.exe ports 192.168.1.20                   # portas abertas + RTT de um dispositivo
 go test ./...
 ```
 
@@ -80,6 +83,7 @@ netwp dashboard   # dashboard completo
 netwp speedtest   # teste de banda
 netwp iface       # config de IP da interface
 netwp alias set 192.168.1.20 "TV da Sala"  # apelida um dispositivo
+netwp ports 192.168.1.20                   # portas abertas + RTT de um dispositivo
 ```
 
 ## Notas
@@ -119,6 +123,17 @@ netwp alias set 192.168.1.20 "TV da Sala"  # apelida um dispositivo
 - Uma entrada só é marcada como "unknown" no log de atividade quando o MAC não
   tem apelido definido. Apelidar um dispositivo o marca como reconhecido nas
   próximas entradas.
+- Quando o DNS reverso não retorna nada, a resolução de hostname cai para uma
+  consulta reversa de mDNS e uma consulta NetBIOS NBSTAT, disputadas entre si
+  com orçamento de 400ms cada. Nenhuma das duas é garantida: um dispositivo
+  sem responder Bonjour/Avahi e sem suporte a NetBIOS (muitos celulares, a
+  maioria das máquinas Linux sem avahi) continua sem hostname. Verificado em
+  hardware real na rede do autor, incluindo um dispositivo cujo nome mDNS
+  configurado é literalmente "none".
+- `netwp ports <ip>` sonda um único dispositivo diretamente em vez de rodar
+  uma varredura completa: as mesmas portas TCP conhecidas usadas na
+  classificação, reportadas individualmente com nome, mais um RTT ICMP
+  fresco. Não há histórico de portas entre execuções, só o estado atual.
 
 ## Licença
 

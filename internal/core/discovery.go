@@ -67,6 +67,7 @@ func (d *Discovery) Run(ctx context.Context, target Network) ([]Device, error) {
 			dev.Vendor = d.vendors.Vendor(dev.MAC)
 			dev.Alias = d.aliases.Alias(dev.MAC)
 			inner.Wait()
+			dev.Ports = ports
 			dev.Class = Classify(*dev, target.Gateway, target.Self, ports)
 		}(i)
 	}

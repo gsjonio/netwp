@@ -22,6 +22,8 @@ inspection. Windows-first, portable to Linux.
 - [x] Wi-Fi channel recommendation from nearby AP congestion
 - [x] New-device alerts (unrecognized MAC joins flagged in monitor/dashboard)
 - [x] JSON export (`netwp scan --json`)
+- [x] Hostname fallback via mDNS/NetBIOS when reverse DNS has nothing
+- [x] Per-device port detail (`netwp ports <ip>`)
 
 ## Architecture
 
@@ -53,6 +55,7 @@ go build -o netwp.exe ./cmd/netwp
 .\netwp.exe alias set 192.168.1.20 "Living Room TV"  # nickname a device (by IP or MAC)
 .\netwp.exe alias ls                                 # list nicknames
 .\netwp.exe alias rm 192.168.1.20                    # remove a nickname
+.\netwp.exe ports 192.168.1.20                       # open ports + RTT for one device
 go test ./...
 ```
 
@@ -81,6 +84,7 @@ netwp dashboard   # full dashboard
 netwp speedtest   # bandwidth test
 netwp iface       # interface IP config
 netwp alias set 192.168.1.20 "Living Room TV"  # nickname a device
+netwp ports 192.168.1.20                       # open ports + RTT for one device
 ```
 
 ## Notes
@@ -119,6 +123,17 @@ netwp alias set 192.168.1.20 "Living Room TV"  # nickname a device
   restrictions, or regulatory rules.
 - A device join is flagged "unknown" in the activity log only when its MAC
   has no alias set. Aliasing a device marks it as recognized for future joins.
+- When reverse DNS returns nothing, hostname resolution falls back to a
+  multicast-DNS reverse lookup and a NetBIOS NBSTAT query, raced against each
+  other with a 400ms budget each. Neither is guaranteed: a device with no
+  Bonjour/Avahi responder and no NetBIOS support (many phones, most Linux
+  boxes without avahi) still shows no hostname. Verified against real
+  hardware on the author's LAN, including one device that turned out to
+  report "none" as its own mDNS name.
+- `netwp ports <ip>` re-probes a single device directly instead of running a
+  full network scan: the same well-known TCP ports used for classification,
+  reported individually with names, plus a fresh ICMP RTT. There is no
+  port-history tracking across runs, just the current state.
 
 ## License
 

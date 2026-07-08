@@ -21,6 +21,7 @@ type deviceJSON struct {
 	RTTMillis *float64 `json:"rtt_ms,omitempty"`
 	Reachable bool     `json:"reachable"`
 	Online    bool     `json:"online"`
+	Ports     []int    `json:"ports,omitempty"`
 }
 
 // RenderDevicesJSON writes devices as an indented JSON array to w.
@@ -36,6 +37,7 @@ func RenderDevicesJSON(w io.Writer, devices []core.Device) error {
 			Class:     d.Class.String(),
 			Reachable: d.Reachable,
 			Online:    d.Online,
+			Ports:     d.Ports,
 		}
 		if d.Reachable {
 			ms := float64(d.RTT.Microseconds()) / 1000

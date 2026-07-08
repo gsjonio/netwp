@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gsjonio/netwp/internal/adapter/aliasstore"
@@ -17,6 +18,7 @@ import (
 	"github.com/gsjonio/netwp/internal/adapter/httpspeed"
 	"github.com/gsjonio/netwp/internal/adapter/icmpping"
 	"github.com/gsjonio/netwp/internal/adapter/ifacestat"
+	"github.com/gsjonio/netwp/internal/adapter/namelookup"
 	"github.com/gsjonio/netwp/internal/adapter/netinfo"
 	"github.com/gsjonio/netwp/internal/adapter/oui"
 	"github.com/gsjonio/netwp/internal/adapter/scancache"
@@ -25,6 +27,27 @@ import (
 	"github.com/gsjonio/netwp/internal/core"
 	"github.com/gsjonio/netwp/internal/tui"
 )
+
+// portNames labels the ports tcpprobe checks, for `netwp ports` output.
+var portNames = map[int]string{
+	22:    "SSH",
+	80:    "HTTP",
+	443:   "HTTPS",
+	445:   "SMB",
+	515:   "LPD (printing)",
+	631:   "IPP (printing)",
+	3389:  "RDP",
+	8009:  "Chromecast",
+	9100:  "JetDirect (printing)",
+	62078: "iOS sync (lockdownd)",
+}
+
+func portName(p int) string {
+	if name, ok := portNames[p]; ok {
+		return name
+	}
+	return "unknown"
+}
 
 const (
 	scanTimeout       = 20 * time.Second // one-shot scan budget
@@ -54,8 +77,10 @@ func main() {
 		err = runAlias()
 	case "dashboard":
 		err = runDashboard()
+	case "ports":
+		err = runPorts()
 	default:
-		err = fmt.Errorf("unknown command %q (use: scan [--json] | monitor | speedtest | iface | alias | dashboard)", command)
+		err = fmt.Errorf("unknown command %q (use: scan [--json] | monitor | speedtest | iface | alias | dashboard | ports)", command)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "netwp:", err)
@@ -65,7 +90,7 @@ func main() {
 
 // buildDiscovery assembles the discovery use case from its platform adapters.
 func buildDiscovery(aliases core.AliasLookup) *core.Discovery {
-	return core.NewDiscovery(arpscan.New(), netinfo.DNSResolver{}, oui.New(), tcpprobe.New(), aliases, icmpping.New())
+	return core.NewDiscovery(arpscan.New(), namelookup.New(), oui.New(), tcpprobe.New(), aliases, icmpping.New())
 }
 
 // openAliasStore opens the persistent nickname store at its default path.
@@ -144,6 +169,53 @@ func withSpinner(label string, fn func() error) error {
 	err := fn()
 	close(done)
 	return err
+}
+
+// runPorts probes a single IP directly: ICMP reachability plus the same
+// well-known TCP ports a scan checks for classification, but reported in
+// full instead of being folded into a class guess.
+func runPorts() error {
+	args := os.Args[2:]
+	if len(args) < 1 {
+		return errors.New("usage: netwp ports <ip>")
+	}
+	ip := net.ParseIP(args[0])
+	if ip == nil {
+		return fmt.Errorf("invalid IP %q", args[0])
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), scanTimeout)
+	defer cancel()
+
+	var open []int
+	var rtt time.Duration
+	var reachable bool
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		open = tcpprobe.New().OpenPorts(ctx, ip)
+	}()
+	go func() {
+		defer wg.Done()
+		rtt, reachable = icmpping.New().Ping(ip, 500*time.Millisecond)
+	}()
+	wg.Wait()
+
+	if reachable {
+		fmt.Printf("%s: reachable, RTT %s\n", ip, rtt.Round(time.Millisecond))
+	} else {
+		fmt.Printf("%s: no ICMP reply\n", ip)
+	}
+	if len(open) == 0 {
+		fmt.Println("no open ports found among the probed set.")
+		return nil
+	}
+	fmt.Println("open ports:")
+	for _, p := range open {
+		fmt.Printf("  %-6d %s\n", p, portName(p))
+	}
+	return nil
 }
 
 func runSpeedtest() error {
