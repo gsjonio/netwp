@@ -107,10 +107,11 @@ netwp ports 192.168.1.20                       # open ports + RTT for one device
   touching the real configuration; there's no `--yes` flag to skip it.
   Not implemented on Linux yet.
 - The dashboard's Wi-Fi panel reads `netsh wlan` (English and Portuguese
-  labels supported). The visible-networks scan and disconnected state are
-  verified on real hardware; the connected-link fields (SSID/signal/channel of
-  your own association) are covered by fixtures only, so confirm them once
-  connected to Wi-Fi. On a wired-only host the panel shows "disconnected".
+  labels supported). Verified on real hardware in both states: disconnected,
+  and connected (SSID/BSSID/channel/signal/Rx-Tx rate of your own
+  association). The English labels are still fixture-only, since testing
+  them needs an English-locale Windows install. On a wired-only host the
+  panel shows "disconnected".
 - The Linux scanner (raw ARP over `AF_PACKET`) needs `CAP_NET_RAW` (root, or
   `setcap cap_net_raw+ep` on the binary). It was written and cross-compiled
   (`GOOS=linux`) from a Windows dev machine and has not been run against

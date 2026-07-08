@@ -33,17 +33,22 @@ func TestParseNetworks(t *testing.T) {
 	}
 }
 
-// Representative connected `show interfaces` block, Portuguese labels.
+// Real capture from `netsh wlan show interfaces` (pt-BR), connected, trimmed
+// to the fields the parser reads. Caught two real bugs the first time this
+// was verified against live output: the BSSID line is "AP BSSID", not bare
+// "BSSID", and the Rx-rate label is "Taxa de recepção", not "recebimento"
+// (the original fixture here had invented, not captured, labels).
 const interfacesPT = `    Nome                   : Wi-Fi 2
-    SSID                   : Tam Oi Fibra 5G
-    BSSID                  : 84:3e:92:7a:6b:70
     Estado                 : Conectado
-    Tipo de rádio          : 802.11ax
-    Banda                  : 5 GHz
-    Canal                  : 149
-    Taxa de recebimento (Mbps)  : 270
-    Taxa de transmissão (Mbps)  : 300
-    Sinal                  : 47%
+    SSID                   : GUSTAVO -5G
+    AP BSSID               : 84:0b:bb:1c:9e:5f
+    Banda                   : 5 GHz
+    Canal                : 44
+    Tipo de rede           : Infraestrutura
+    Tipo de rádio             : 802.11ac
+    Taxa de recepção (Mbps)    : 6
+    Taxa de transmissão (Mbps)   : 26
+    Sinal                 : 62%
 `
 
 func TestParseInterfacesPT(t *testing.T) {
@@ -51,24 +56,26 @@ func TestParseInterfacesPT(t *testing.T) {
 	if !w.Connected {
 		t.Fatal("expected Connected=true")
 	}
-	if w.SSID != "Tam Oi Fibra 5G" {
+	if w.SSID != "GUSTAVO -5G" {
 		t.Errorf("SSID = %q", w.SSID)
 	}
-	if w.BSSID != "84:3e:92:7a:6b:70" {
-		t.Errorf("BSSID = %q (colons in value must survive)", w.BSSID)
+	if w.BSSID != "84:0b:bb:1c:9e:5f" {
+		t.Errorf("BSSID = %q (colons in value must survive, and \"AP BSSID\" must match)", w.BSSID)
 	}
-	if w.Channel != 149 || w.SignalPercent != 47 {
-		t.Errorf("channel/signal = %d/%d, want 149/47", w.Channel, w.SignalPercent)
+	if w.Channel != 44 || w.SignalPercent != 62 {
+		t.Errorf("channel/signal = %d/%d, want 44/62", w.Channel, w.SignalPercent)
 	}
-	if w.RxRateMbps != 270 || w.TxRateMbps != 300 {
-		t.Errorf("rx/tx = %d/%d, want 270/300", w.RxRateMbps, w.TxRateMbps)
+	if w.RxRateMbps != 6 || w.TxRateMbps != 26 {
+		t.Errorf("rx/tx = %d/%d, want 6/26", w.RxRateMbps, w.TxRateMbps)
 	}
 	if w.Band != "5 GHz" {
 		t.Errorf("band = %q", w.Band)
 	}
 }
 
-// Same fields, English labels: the parser must handle both locales.
+// Same fields, English labels. UNVERIFIED: no real English-locale Windows was
+// available to capture from, so "BSSID"/"Receive rate"/"Transmit rate" are
+// best-guess labels, not a real capture like interfacesPT above.
 const interfacesEN = `    Name                   : Wi-Fi
     SSID                   : HomeNet
     BSSID                  : aa:bb:cc:dd:ee:ff

@@ -55,7 +55,7 @@ func parseInterfaces(out string) core.WiFiInfo {
 		switch k {
 		case "ssid":
 			w.SSID = v
-		case "bssid":
+		case "bssid", "ap bssid":
 			w.BSSID = v
 		case "signal", "sinal":
 			w.SignalPercent = firstInt(v)
@@ -67,7 +67,7 @@ func parseInterfaces(out string) core.WiFiInfo {
 			w.RadioType = v
 		}
 		switch {
-		case strings.HasPrefix(k, "receive rate"), strings.HasPrefix(k, "taxa de recebimento"):
+		case strings.HasPrefix(k, "receive rate"), strings.HasPrefix(k, "taxa de recepção"), strings.HasPrefix(k, "taxa de recebimento"):
 			w.RxRateMbps = firstInt(v)
 		case strings.HasPrefix(k, "transmit rate"), strings.HasPrefix(k, "taxa de transmiss"):
 			w.TxRateMbps = firstInt(v)

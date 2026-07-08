@@ -105,10 +105,11 @@ netwp ports 192.168.1.20                   # portas abertas + RTT de um disposit
   mexer na configuração de verdade; não existe flag `--yes` para pular isso.
   Ainda não implementado no Linux.
 - O painel de WiFi do dashboard lê o `netsh wlan` (aceita rótulos em inglês e
-  português). O scan de redes visíveis e o estado desconectado foram testados
-  em hardware real; os campos do link conectado (SSID/sinal/canal da sua
-  própria conexão) só têm cobertura por fixture, então confirme ligado no WiFi.
-  Numa máquina só-cabo o painel mostra "disconnected".
+  português). Verificado em hardware real nos dois estados: desconectado e
+  conectado (SSID/BSSID/canal/sinal/taxa Rx-Tx da própria conexão). Os
+  rótulos em inglês ainda são só fixture, testá-los exige uma instalação
+  Windows em locale inglês. Numa máquina só-cabo o painel mostra
+  "disconnected".
 - O scanner Linux (ARP cru via `AF_PACKET`) exige `CAP_NET_RAW` (root, ou
   `setcap cap_net_raw+ep` no binário). Foi escrito e cross-compilado
   (`GOOS=linux`) numa máquina Windows e ainda não rodou em hardware Linux
