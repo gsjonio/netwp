@@ -34,3 +34,10 @@ type Prober interface {
 type InterfaceInspector interface {
 	Inspect() (InterfaceInfo, error)
 }
+
+// InterfaceConfigurator applies an IPv4 configuration change to the active
+// interface. Implementations require elevated/admin privileges.
+type InterfaceConfigurator interface {
+	SetStatic(cfg StaticConfig) error
+	SetDHCP() error
+}
