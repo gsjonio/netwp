@@ -6,3 +6,6 @@
 # Test / coverage
 *.out
 coverage.*
+
+# Claude generated files
+.claude

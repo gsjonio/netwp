@@ -1,12 +1,12 @@
-# netwp (Português)
+# netwp
+
+🇺🇸 [English](README.md)
 
 **netwp** = *Internet / Rede Well Played* ("a rede, bem jogada").
 
-Gerenciador de rede via terminal escrito em Go. Faz descoberta ativa de
-dispositivos na rede local (ARP); monitoramento, teste de banda e inspeção de
-interface estão planejados. Windows primeiro, portável para Linux.
-
-🇬🇧 [English version](README.en.md)
+Gerenciador de rede via terminal escrito em Go: descoberta ativa de dispositivos
+na rede local (ARP), monitoramento ao vivo, dashboard completo, teste de banda e
+inspeção de interface. Windows primeiro, portável para Linux.
 
 ## Status
 
@@ -104,4 +104,4 @@ netwp iface      # config de IP da interface
 
 ## Licença
 
-[MIT](../LICENSE).
+[MIT](LICENSE).
