@@ -25,19 +25,38 @@ func (d *Discovery) Run(ctx context.Context, target Network) ([]Device, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Enrich concurrently: reverse DNS and port probing each block up to their
-	// timeout per host, so doing them in parallel keeps a scan bound by the
-	// slowest single host rather than their sum. Each goroutine writes a
-	// distinct slice element.
+	// Enrich concurrently across hosts. Within each host, reverse DNS (up to
+	// its timeout) and the TCP probe (up to its timeout) are independent, so
+	// they run in parallel and the host is bound by max(dns, probe) rather
+	// than their sum. Vendor lookup is an in-memory table hit, done inline.
+	// Self and the gateway are classified by identity, so their ports are
+	// never consulted: skip probing them entirely.
+	//
+	// ponytail: the whole scan completes before enrichment starts. Streaming
+	// scan results into enrichment as they arrive would overlap both phases;
+	// worth it only once ranges grow past a /24.
 	var wg sync.WaitGroup
 	for i := range devices {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			devices[i].Hostname = d.names.Hostname(devices[i].IP)
-			devices[i].Vendor = d.vendors.Vendor(devices[i].MAC)
-			ports := d.prober.OpenPorts(ctx, devices[i].IP)
-			devices[i].Class = Classify(devices[i], target.Gateway, target.Self, ports)
+			dev := &devices[i]
+			skipProbe := dev.IP.Equal(target.Self) ||
+				(target.Gateway != nil && dev.IP.Equal(target.Gateway))
+
+			var ports []int
+			var inner sync.WaitGroup
+			if !skipProbe {
+				inner.Add(1)
+				go func() {
+					defer inner.Done()
+					ports = d.prober.OpenPorts(ctx, dev.IP)
+				}()
+			}
+			dev.Hostname = d.names.Hostname(dev.IP)
+			dev.Vendor = d.vendors.Vendor(dev.MAC)
+			inner.Wait()
+			dev.Class = Classify(*dev, target.Gateway, target.Self, ports)
 		}(i)
 	}
 	wg.Wait()
