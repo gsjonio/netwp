@@ -51,7 +51,11 @@ internal/tui     legible table output
 
 ## Install
 
-Requires Go 1.24+.
+No Go toolchain? Grab a prebuilt binary from the
+[Releases page](https://github.com/gsjonio/netwp/releases/latest) instead
+(Windows and Linux amd64).
+
+Requires Go 1.24+ for the options below.
 
 ### Quick install (no clone needed)
 
