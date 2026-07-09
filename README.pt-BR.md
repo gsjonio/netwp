@@ -130,7 +130,9 @@ netwp ports 192.168.1.20                   # portas abertas + RTT de um disposit
 - `iface static`/`iface dhcp` chamam o `netsh` e exigem terminal
   administrador no Windows. Sempre pedem que você digite "yes" antes de
   mexer na configuração de verdade; não existe flag `--yes` para pular isso.
-  Ainda não implementado no Linux.
+  Verificado em hardware real numa sessão elevada, incluindo um nome de
+  interface com espaço ("Ethernet 2") — um risco sinalizado e agora
+  confirmado como não sendo problema. Ainda não implementado no Linux.
 - O painel de WiFi do dashboard lê o `netsh wlan` (aceita rótulos em inglês e
   português). Verificado em hardware real nos dois estados: desconectado e
   conectado (SSID/BSSID/canal/sinal/taxa Rx-Tx da própria conexão). Os

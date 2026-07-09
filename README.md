@@ -131,6 +131,8 @@ netwp ports 192.168.1.20                       # open ports + RTT for one device
 - `iface static`/`iface dhcp` shell out to `netsh` and need an elevated
   (admin) terminal on Windows. They always ask for a typed "yes" before
   touching the real configuration; there's no `--yes` flag to skip it.
+  Verified on real hardware in an elevated session, including an interface
+  name with a space ("Ethernet 2") — a risk flagged and now confirmed fine.
   Not implemented on Linux yet.
 - The dashboard's Wi-Fi panel reads `netsh wlan` (English and Portuguese
   labels supported). Verified on real hardware in both states: disconnected,
