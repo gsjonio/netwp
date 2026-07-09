@@ -49,7 +49,7 @@ func (s *Scanner) Scan(ctx context.Context, target core.Network) ([]core.Device,
 	if err != nil {
 		return nil, fmt.Errorf("open raw socket (needs CAP_NET_RAW/root): %w", err)
 	}
-	defer syscall.Close(fd)
+	defer syscall.Close(fd) //nolint:errcheck // best-effort cleanup
 
 	addr := &syscall.SockaddrLinklayer{Protocol: htons(etherTypeARP), Ifindex: ifi.Index}
 	if err := syscall.Bind(fd, addr); err != nil {
@@ -57,7 +57,7 @@ func (s *Scanner) Scan(ctx context.Context, target core.Network) ([]core.Device,
 	}
 	// Short receive timeout so the reader loop notices ctx cancellation
 	// instead of blocking forever once the network goes quiet.
-	syscall.SetsockoptTimeval(fd, syscall.SOL_SOCKET, syscall.SO_RCVTIMEO, &syscall.Timeval{Usec: 200_000})
+	syscall.SetsockoptTimeval(fd, syscall.SOL_SOCKET, syscall.SO_RCVTIMEO, &syscall.Timeval{Usec: 200_000}) //nolint:errcheck // best-effort; a failure here just means the reader relies on ctx cancellation instead
 
 	srcIP := target.Self.To4()
 

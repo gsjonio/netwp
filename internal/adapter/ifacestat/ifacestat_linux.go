@@ -27,7 +27,7 @@ func (r Reader) Counters() (core.NetCounters, error) {
 	if err != nil {
 		return core.NetCounters{}, err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // read-only fd, best-effort cleanup
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {

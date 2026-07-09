@@ -20,7 +20,7 @@ func DefaultGateway() net.IP {
 	if err != nil {
 		return nil
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // read-only fd, best-effort cleanup
 
 	scanner := bufio.NewScanner(f)
 	scanner.Scan() // header line

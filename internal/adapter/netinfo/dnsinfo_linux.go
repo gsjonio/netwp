@@ -21,7 +21,7 @@ func dnsServers(ifaceName string) []string {
 	if err != nil {
 		return nil
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // read-only fd, best-effort cleanup
 
 	var servers []string
 	scanner := bufio.NewScanner(f)
