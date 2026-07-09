@@ -47,7 +47,8 @@ func (d *Discovery) Run(ctx context.Context, target Network) ([]Device, error) {
 			defer wg.Done()
 			dev := &devices[i]
 			skipProbe := dev.IP.Equal(target.Self) ||
-				(target.Gateway != nil && dev.IP.Equal(target.Gateway))
+				(target.Gateway != nil && dev.IP.Equal(target.Gateway)) ||
+				IsLocalMAC(dev.MAC, target.LocalMACs)
 
 			var ports []int
 			var inner sync.WaitGroup
@@ -68,7 +69,7 @@ func (d *Discovery) Run(ctx context.Context, target Network) ([]Device, error) {
 			dev.Alias = d.aliases.Alias(dev.MAC)
 			inner.Wait()
 			dev.Ports = ports
-			dev.Class = Classify(*dev, target.Gateway, target.Self, ports)
+			dev.Class = Classify(*dev, target.Gateway, target.Self, ports, target.LocalMACs)
 		}(i)
 	}
 	wg.Wait()

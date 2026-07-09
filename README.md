@@ -142,6 +142,11 @@ netwp ports 192.168.1.20                       # open ports + RTT for one device
 - The Wi-Fi channel suggestion is a simple congestion count over the visible
   APs, not an RF planner: it does not account for signal strength, DFS
   restrictions, or regulatory rules.
+- If this machine has more than one interface up (e.g. Ethernet and Wi-Fi
+  connected at once), every one of them is recognized as "This device" by
+  MAC, not just the one used to pick the scan's subnet. Otherwise a
+  second NIC would show up as an unexplained extra "Computer" with your own
+  hostname.
 - A device join is flagged "unknown" in the activity log only when its MAC
   has no alias set. Aliasing a device marks it as recognized for future joins.
 - When reverse DNS returns nothing, hostname resolution falls back to a

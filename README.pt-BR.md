@@ -141,6 +141,11 @@ netwp ports 192.168.1.20                   # portas abertas + RTT de um disposit
 - A sugestão de canal WiFi é uma contagem simples de congestionamento sobre os
   APs visíveis, não um planejador de RF: não considera intensidade de sinal,
   restrições de DFS nem regras regulatórias.
+- Se esta máquina tem mais de uma interface ativa (ex.: Ethernet e WiFi
+  conectados ao mesmo tempo), todas elas são reconhecidas como "This device"
+  pelo MAC, não só a que foi usada para escolher a sub-rede do scan. Sem
+  isso, a segunda placa apareceria como um "Computer" extra inexplicado com
+  o seu próprio hostname.
 - Uma entrada só é marcada como "unknown" no log de atividade quando o MAC não
   tem apelido definido. Apelidar um dispositivo o marca como reconhecido nas
   próximas entradas.

@@ -18,7 +18,34 @@ func LocalNetwork() (core.Network, error) {
 	if err != nil {
 		return core.Network{}, err
 	}
-	return core.Network{Self: ipnet.IP.To4(), CIDR: ipnet, Gateway: DefaultGateway()}, nil
+	return core.Network{
+		Self:      ipnet.IP.To4(),
+		CIDR:      ipnet,
+		Gateway:   DefaultGateway(),
+		LocalMACs: localMACs(),
+	}, nil
+}
+
+// localMACs collects the hardware address of every up, non-loopback
+// interface on this machine, not just the one activeInterface picked for
+// Self/CIDR. A machine with both Ethernet and Wi-Fi connected at once shows
+// up as two separate devices in a scan; this lets Classify recognize the
+// second one as "this device" too, by MAC instead of by IP.
+func localMACs() []net.HardwareAddr {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil
+	}
+	var macs []net.HardwareAddr
+	for _, ifi := range ifaces {
+		if ifi.Flags&net.FlagUp == 0 || ifi.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		if len(ifi.HardwareAddr) > 0 {
+			macs = append(macs, ifi.HardwareAddr)
+		}
+	}
+	return macs
 }
 
 // activeInterface returns the first active, non-loopback interface carrying

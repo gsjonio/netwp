@@ -31,8 +31,27 @@ func TestClassify(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		if got := Classify(c.dev, gw, self, c.ports); got != c.want {
+		if got := Classify(c.dev, gw, self, c.ports, nil); got != c.want {
 			t.Errorf("%s: got %v, want %v", c.name, got, c.want)
 		}
+	}
+}
+
+// TestClassifyLocalMAC covers the multi-homed case: a second interface (e.g.
+// Wi-Fi alongside Ethernet) gets a different IP than Self, so it can only be
+// recognized as "this device" by MAC.
+func TestClassifyLocalMAC(t *testing.T) {
+	self := net.ParseIP("192.168.0.10").To4()
+	otherNIC := net.HardwareAddr{0x28, 0x0c, 0x50, 0xf4, 0x11, 0x9f}
+	dev := Device{IP: net.ParseIP("192.168.0.50").To4(), MAC: otherNIC}
+
+	if got := Classify(dev, nil, self, nil, []net.HardwareAddr{otherNIC}); got != ClassThisDevice {
+		t.Errorf("got %v, want ClassThisDevice for a MAC matching one of our own interfaces", got)
+	}
+
+	unrelated := net.HardwareAddr{1, 2, 3, 4, 5, 6}
+	dev2 := Device{IP: net.ParseIP("192.168.0.51").To4(), MAC: unrelated}
+	if got := Classify(dev2, nil, self, nil, []net.HardwareAddr{otherNIC}); got == ClassThisDevice {
+		t.Errorf("got ClassThisDevice for an unrelated MAC, want no false positive")
 	}
 }

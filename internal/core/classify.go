@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"net"
 	"strings"
 )
@@ -58,8 +59,11 @@ const (
 // ponytail: pure heuristic, deliberately conservative — identity signals (self,
 // gateway) win, then port fingerprints, then a vendor-keyword fallback. Wrong
 // guesses fall back to Unknown rather than asserting nonsense.
-func Classify(d Device, gateway, self net.IP, openPorts []int) DeviceClass {
+func Classify(d Device, gateway, self net.IP, openPorts []int, localMACs []net.HardwareAddr) DeviceClass {
 	if self != nil && d.IP.Equal(self) {
+		return ClassThisDevice
+	}
+	if IsLocalMAC(d.MAC, localMACs) {
 		return ClassThisDevice
 	}
 	if gateway != nil && d.IP.Equal(gateway) {
@@ -92,6 +96,22 @@ func Classify(d Device, gateway, self net.IP, openPorts []int) DeviceClass {
 // classFromVendor maps distinctive OUI vendors to a likely class. Ambiguous
 // vendors (e.g. Apple, Samsung — could be phone, PC or TV) stay Unknown so a
 // port fingerprint or nothing decides instead of a coin flip.
+// IsLocalMAC reports whether mac belongs to one of this machine's own
+// interfaces (e.g. Ethernet and Wi-Fi both connected at once show up as two
+// separate devices in a scan; this recognizes the second one as "us" too,
+// since its IP won't match Network.Self).
+func IsLocalMAC(mac net.HardwareAddr, localMACs []net.HardwareAddr) bool {
+	if len(mac) == 0 {
+		return false
+	}
+	for _, local := range localMACs {
+		if bytes.Equal(mac, local) {
+			return true
+		}
+	}
+	return false
+}
+
 func classFromVendor(vendor string) DeviceClass {
 	v := strings.ToLower(vendor)
 	switch {
