@@ -222,16 +222,20 @@ func runSpeedtest() error {
 	ctx, cancel := context.WithTimeout(context.Background(), speedtestTimeout)
 	defer cancel()
 
+	tester := httpspeed.New()
 	var result core.BandwidthResult
 	var err error
 	err = withSpinner("running speed test", func() error {
-		result, err = core.NewSpeedtest(httpspeed.New()).Run(ctx)
+		result, err = core.NewSpeedtest(tester).Run(ctx)
 		return err
 	})
 	if err != nil {
 		return err
 	}
 	tui.RenderBandwidth(os.Stdout, result)
+	if colo := tester.Colo(ctx); colo != "" {
+		fmt.Printf("via Cloudflare edge: %s (nearest of ~300, picked automatically)\n", colo)
+	}
 	return nil
 }
 

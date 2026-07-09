@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -44,6 +45,34 @@ func (t Tester) Download(ctx context.Context, size int64) (time.Duration, error)
 		return 0, err
 	}
 	return time.Since(start), nil
+}
+
+// Colo returns the three-letter code of the Cloudflare datacenter that
+// answered (e.g. "GRU" for São Paulo), or "" if it can't be determined.
+// speed.cloudflare.com is anycast: the same URL always routes to whichever of
+// Cloudflare's ~300 edges is closest, so this exists to make that concrete
+// instead of asserting it — hits Cloudflare's public trace endpoint, which
+// every Cloudflare-proxied hostname serves.
+func (t Tester) Colo(ctx context.Context) string {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.BaseURL+"/cdn-cgi/trace", nil)
+	if err != nil {
+		return ""
+	}
+	resp, err := t.Client.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(string(body), "\n") {
+		if colo, ok := strings.CutPrefix(line, "colo="); ok {
+			return strings.TrimSpace(colo)
+		}
+	}
+	return ""
 }
 
 // Upload sends size bytes and reports how long the transfer took.

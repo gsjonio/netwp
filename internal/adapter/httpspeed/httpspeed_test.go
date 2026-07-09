@@ -69,6 +69,32 @@ func TestUpload(t *testing.T) {
 	}
 }
 
+func TestColo(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/cdn-cgi/trace", func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "fl=123abc\nh=speed.cloudflare.com\ncolo=GRU\nip=203.0.113.1\n")
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	tester := Tester{Client: srv.Client(), BaseURL: srv.URL}
+
+	if got := tester.Colo(context.Background()); got != "GRU" {
+		t.Errorf("Colo() = %q, want GRU", got)
+	}
+}
+
+func TestColoMissing(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "not a trace response")
+	}))
+	t.Cleanup(srv.Close)
+	tester := Tester{Client: srv.Client(), BaseURL: srv.URL}
+
+	if got := tester.Colo(context.Background()); got != "" {
+		t.Errorf("Colo() = %q, want empty for a response with no colo= line", got)
+	}
+}
+
 func TestDownloadServerError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)

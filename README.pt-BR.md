@@ -119,7 +119,12 @@ netwp ports 192.168.1.20                   # portas abertas + RTT de um disposit
   só escaneia de novo se der miss, então apelidar logo após um scan é instantâneo.
   Passe um MAC no lugar do IP para não tocar a rede.
 - O teste de banda usa o endpoint público `speed.cloudflare.com`: sem chave
-  de API, sem servidor próprio.
+  de API, sem servidor próprio. Diferente da lista de servidores do
+  Speedtest.net, não tem um passo explícito de "escolher o servidor mais
+  próximo": o endpoint é anycast, então a mesma URL sempre roteia pro edge
+  mais próximo entre os ~300 da Cloudflare. O `netwp speedtest` mostra qual
+  respondeu (ex.: "via Cloudflare edge: GRU"), então isso é verificável, não
+  só uma alegação.
 - `iface static`/`iface dhcp` chamam o `netsh` e exigem terminal
   administrador no Windows. Sempre pedem que você digite "yes" antes de
   mexer na configuração de verdade; não existe flag `--yes` para pular isso.

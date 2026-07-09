@@ -121,7 +121,11 @@ netwp ports 192.168.1.20                       # open ports + RTT for one device
   (`lastscan.json`) and only re-scans on a miss, so aliasing right after a
   scan is instant. Pass a MAC instead of an IP to skip the network entirely.
 - The bandwidth test uses Cloudflare's public `speed.cloudflare.com`
-  endpoint: no API key, no self-hosted server.
+  endpoint: no API key, no self-hosted server. Unlike Speedtest.net's server
+  list, there's no explicit "pick the nearest server" step: the endpoint is
+  anycast, so the same URL always routes to whichever of Cloudflare's ~300
+  edges is closest to you. `netwp speedtest` prints which one answered (e.g.
+  "via Cloudflare edge: GRU") so that's verifiable, not just asserted.
 - `iface static`/`iface dhcp` shell out to `netsh` and need an elevated
   (admin) terminal on Windows. They always ask for a typed "yes" before
   touching the real configuration; there's no `--yes` flag to skip it.
