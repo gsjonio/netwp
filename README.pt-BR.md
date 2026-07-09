@@ -114,70 +114,61 @@ netwp ports 192.168.1.20                   # portas abertas + RTT de um disposit
 
 ## Notas
 
-- Os fabricantes vêm do registro IEEE MA-L completo, comprimido e embutido no
-  binário (`internal/adapter/oui/data`). Atualize com o comando em `oui.go`.
-- Varredura ativa pode ser vista como intrusiva em redes gerenciadas/corporativas.
-  Escaneie apenas redes suas ou autorizadas.
-- Os apelidos ficam em JSON em `<pasta-de-config-do-usuário>/netwp/aliases.json`,
-  chaveados por MAC, então o apelido persiste mesmo quando o DHCP troca o IP do
-  aparelho. O arquivo é texto puro e pode ser editado à mão.
-- `alias set <ip>` resolve o MAC pelo cache do último scan (`lastscan.json`) e
-  só escaneia de novo se der miss, então apelidar logo após um scan é instantâneo.
-  Passe um MAC no lugar do IP para não tocar a rede.
-- O teste de banda usa o endpoint público `speed.cloudflare.com`: sem chave
-  de API, sem servidor próprio. Diferente da lista de servidores do
-  Speedtest.net, não tem um passo explícito de "escolher o servidor mais
-  próximo": o endpoint é anycast, então a mesma URL sempre roteia pro edge
-  mais próximo entre os ~300 da Cloudflare. O `netwp speedtest` mostra qual
-  respondeu (ex.: "via Cloudflare edge: GRU"), então isso é verificável, não
-  só uma alegação.
-- `iface static`/`iface dhcp` chamam o `netsh` e exigem terminal
-  administrador no Windows. Sempre pedem que você digite "yes" antes de
-  mexer na configuração de verdade; não existe flag `--yes` para pular isso.
-  Verificado em hardware real numa sessão elevada, incluindo um nome de
-  interface com espaço ("Ethernet 2") — um risco sinalizado e agora
-  confirmado como não sendo problema. Ainda não implementado no Linux.
-- O painel de WiFi do dashboard lê o `netsh wlan` (aceita rótulos em inglês e
-  português). Verificado em hardware real nos dois estados: desconectado e
-  conectado (SSID/BSSID/canal/sinal/taxa Rx-Tx da própria conexão). Os
-  rótulos em inglês ainda são só fixture, testá-los exige uma instalação
-  Windows em locale inglês. Numa máquina só-cabo o painel mostra
-  "disconnected".
-- O scanner Linux (ARP cru via `AF_PACKET`) exige `CAP_NET_RAW` (root, ou
-  `setcap cap_net_raw+ep` no binário). O CI compila, roda `go vet` e a suíte
-  de testes nativamente em Ubuntu a cada push. Além disso, ele já enviou e
-  recebeu um request/reply ARP de verdade num kernel Linux real (WSL2
-  Ubuntu), descobrindo e classificando o gateway corretamente. Esse teste
-  foi na rede NAT padrão do WSL2, um domínio de broadcast diferente da LAN
-  física, então a visibilidade completa dos dispositivos da rede em Linux
-  (ou WSL2 em modo mirrored) ainda não foi confirmada. Windows continua
-  sendo a plataforma primária, mais verificada.
-- O RTT vem de um ICMP echo real por dispositivo: `IcmpSendEcho` (iphlpapi) no
-  Windows, sem exigir admin; o binário `ping` do sistema nas outras
-  plataformas. Um dispositivo que responde ARP mas não ICMP (com firewall)
-  aparece online sem RTT.
-- A sugestão de canal WiFi é uma contagem simples de congestionamento sobre os
-  APs visíveis, não um planejador de RF: não considera intensidade de sinal,
-  restrições de DFS nem regras regulatórias.
-- Se esta máquina tem mais de uma interface ativa (ex.: Ethernet e WiFi
-  conectados ao mesmo tempo), todas elas são reconhecidas como "This device"
-  pelo MAC, não só a que foi usada para escolher a sub-rede do scan. Sem
-  isso, a segunda placa apareceria como um "Computer" extra inexplicado com
-  o seu próprio hostname.
-- Uma entrada só é marcada como "unknown" no log de atividade quando o MAC não
-  tem apelido definido. Apelidar um dispositivo o marca como reconhecido nas
-  próximas entradas.
-- Quando o DNS reverso não retorna nada, a resolução de hostname cai para uma
-  consulta reversa de mDNS e uma consulta NetBIOS NBSTAT, disputadas entre si
-  com orçamento de 400ms cada. Nenhuma das duas é garantida: um dispositivo
-  sem responder Bonjour/Avahi e sem suporte a NetBIOS (muitos celulares, a
-  maioria das máquinas Linux sem avahi) continua sem hostname. Verificado em
-  hardware real na rede do autor, incluindo um dispositivo cujo nome mDNS
-  configurado é literalmente "none".
-- `netwp ports <ip>` sonda um único dispositivo diretamente em vez de rodar
-  uma varredura completa: as mesmas portas TCP conhecidas usadas na
-  classificação, reportadas individualmente com nome, mais um RTT ICMP
-  fresco. Não há histórico de portas entre execuções, só o estado atual.
+Veja [SECURITY.md](SECURITY.md) pra segurança da varredura e como reportar
+uma vulnerabilidade.
+
+### Dados & armazenamento
+
+- Os fabricantes vêm do registro IEEE MA-L completo, comprimido e embutido
+  no binário (`internal/adapter/oui/data`). Atualize com o comando em
+  `oui.go`.
+- Os apelidos ficam em `<pasta-de-config-do-usuário>/netwp/aliases.json`,
+  chaveados por MAC, então o apelido sobrevive a uma troca de IP pelo DHCP.
+  Texto puro, seguro de editar à mão.
+- `alias set <ip>` resolve o MAC pelo cache do último scan
+  (`lastscan.json`), então apelidar logo após um scan é instantâneo. Passe
+  um MAC no lugar do IP para não tocar a rede.
+
+### Suporte por plataforma
+
+- **Windows** é a plataforma primária, mais verificada: scan ARP via
+  `SendARP`, ICMP via `IcmpSendEcho`, nenhum dos dois exige admin.
+  `iface static`/`iface dhcp` exigem terminal elevado e sempre pedem um
+  "yes" digitado; verificado de ponta a ponta em hardware real.
+- **Linux** funciona mas é menos testado em campo: o scanner ARP cru
+  (`AF_PACKET`) exige `CAP_NET_RAW` e já rodou de verdade num kernel Linux
+  (WSL2), mas só contra a rede NAT padrão do WSL2, não uma LAN física
+  completa. `iface static`/`dhcp` não está implementado no Linux. O CI
+  compila e testa nativamente em Ubuntu a cada push.
+- O painel de WiFi do dashboard aceita rótulos em inglês e português do
+  `netsh wlan`; só os rótulos em português são verificados contra saída ao
+  vivo.
+
+### Como algumas coisas funcionam
+
+- A resolução de hostname tenta DNS reverso primeiro, depois cai para mDNS
+  e NetBIOS (400ms cada). Nenhum dos fallbacks é garantido: um dispositivo
+  sem responder Bonjour/Avahi nem suporte a NetBIOS simplesmente não mostra
+  nome.
+- O RTT é um ICMP echo real por dispositivo; um que responde ARP mas não
+  ICMP (com firewall) aparece online sem RTT.
+- A sugestão de canal WiFi é uma contagem simples de congestionamento sobre
+  os APs visíveis, não um planejador de RF: sem sinal, DFS ou regras
+  regulatórias.
+- Uma máquina com mais de uma interface ativa (ex.: Ethernet e WiFi ao
+  mesmo tempo) é reconhecida como "This device" em todas elas, não só na
+  interface usada pra escolher a sub-rede do scan.
+- O teste de banda usa o `speed.cloudflare.com` anycast, que roteia
+  automaticamente pro edge mais próximo entre os ~300 da Cloudflare; o
+  `netwp speedtest` mostra qual respondeu (ex.: "via Cloudflare edge: GRU").
+- `netwp ports <ip>` sonda um único dispositivo diretamente (mesmas portas
+  usadas na classificação, reportadas individualmente) em vez de um scan
+  completo. Sem histórico de portas entre execuções, só o estado atual.
+- Uma entrada só é marcada como "unknown" no log de atividade quando o MAC
+  não tem apelido definido.
+
+Quer contribuir? Veja [CONTRIBUTING.md](CONTRIBUTING.md). Este projeto
+segue o [Código de Conduta](CODE_OF_CONDUCT.md).
 
 ## Licença
 

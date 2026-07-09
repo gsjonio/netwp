@@ -115,68 +115,58 @@ netwp ports 192.168.1.20                       # open ports + RTT for one device
 
 ## Notes
 
-- Vendor names come from the full IEEE MA-L registry, gzipped and embedded in
-  the binary (`internal/adapter/oui/data`). Refresh it with the command in
-  `oui.go`.
-- Active scanning may be flagged as intrusive on managed/corporate networks.
-  Only scan networks you own or are authorized to.
-- Device aliases are stored as JSON in `<user-config-dir>/netwp/aliases.json`,
-  keyed by MAC so a nickname sticks even when DHCP hands the device a new IP.
-  The file is plain text and safe to edit by hand.
+See [SECURITY.md](SECURITY.md) for scanning safety and reporting a
+vulnerability.
+
+### Data & storage
+
+- Vendor names come from the full IEEE MA-L registry, gzipped and embedded
+  in the binary (`internal/adapter/oui/data`). Refresh it with the command
+  in `oui.go`.
+- Device aliases live in `<user-config-dir>/netwp/aliases.json`, keyed by
+  MAC so a nickname survives a DHCP-assigned IP change. Plain text, safe to
+  edit by hand.
 - `alias set <ip>` resolves the MAC from the last scan's cache
-  (`lastscan.json`) and only re-scans on a miss, so aliasing right after a
-  scan is instant. Pass a MAC instead of an IP to skip the network entirely.
-- The bandwidth test uses Cloudflare's public `speed.cloudflare.com`
-  endpoint: no API key, no self-hosted server. Unlike Speedtest.net's server
-  list, there's no explicit "pick the nearest server" step: the endpoint is
-  anycast, so the same URL always routes to whichever of Cloudflare's ~300
-  edges is closest to you. `netwp speedtest` prints which one answered (e.g.
-  "via Cloudflare edge: GRU") so that's verifiable, not just asserted.
-- `iface static`/`iface dhcp` shell out to `netsh` and need an elevated
-  (admin) terminal on Windows. They always ask for a typed "yes" before
-  touching the real configuration; there's no `--yes` flag to skip it.
-  Verified on real hardware in an elevated session, including an interface
-  name with a space ("Ethernet 2") — a risk flagged and now confirmed fine.
-  Not implemented on Linux yet.
-- The dashboard's Wi-Fi panel reads `netsh wlan` (English and Portuguese
-  labels supported). Verified on real hardware in both states: disconnected,
-  and connected (SSID/BSSID/channel/signal/Rx-Tx rate of your own
-  association). The English labels are still fixture-only, since testing
-  them needs an English-locale Windows install. On a wired-only host the
-  panel shows "disconnected".
-- The Linux scanner (raw ARP over `AF_PACKET`) needs `CAP_NET_RAW` (root, or
-  `setcap cap_net_raw+ep` on the binary). CI builds, vets, and runs the test
-  suite natively on Ubuntu on every push. Beyond that, it has now sent and
-  received a real ARP request/reply on a real Linux kernel (WSL2 Ubuntu),
-  correctly discovering and classifying the gateway. That run was on WSL2's
-  default NAT network, a different broadcast domain than the physical LAN,
-  so full home-network device visibility on Linux (or WSL2 in mirrored
-  networking mode) is still unconfirmed. Windows remains the primary,
-  most-verified platform.
-- RTT comes from a real ICMP echo per device: `IcmpSendEcho` (iphlpapi) on
-  Windows, no admin required; the system `ping` binary elsewhere. A device
-  that answers ARP but not ICMP (firewalled) shows online with no RTT.
-- The Wi-Fi channel suggestion is a simple congestion count over the visible
-  APs, not an RF planner: it does not account for signal strength, DFS
-  restrictions, or regulatory rules.
-- If this machine has more than one interface up (e.g. Ethernet and Wi-Fi
-  connected at once), every one of them is recognized as "This device" by
-  MAC, not just the one used to pick the scan's subnet. Otherwise a
-  second NIC would show up as an unexplained extra "Computer" with your own
-  hostname.
+  (`lastscan.json`), so aliasing right after a scan is instant. Pass a MAC
+  instead of an IP to skip the network entirely.
+
+### Platform support
+
+- **Windows** is the primary, most-verified platform: ARP scan via
+  `SendARP`, ICMP via `IcmpSendEcho` — neither needs admin rights. `iface
+  static`/`iface dhcp` do need an elevated terminal and always ask for a
+  typed "yes"; verified end-to-end on real hardware.
+- **Linux** support works but is less battle-tested: the raw-ARP scanner
+  (`AF_PACKET`) needs `CAP_NET_RAW` and has been run for real on a Linux
+  kernel (WSL2), but only against WSL2's default NAT network, not a full
+  physical LAN. `iface static`/`dhcp` isn't implemented on Linux. CI builds
+  and tests natively on Ubuntu every push.
+- The dashboard's Wi-Fi panel supports English and Portuguese `netsh wlan`
+  output; only the Portuguese labels are verified against live output.
+
+### How some things work
+
+- Hostname resolution tries reverse DNS first, then falls back to mDNS and
+  NetBIOS (400ms each). Neither fallback is guaranteed — a device with
+  neither a Bonjour/Avahi responder nor NetBIOS support just shows no name.
+- RTT is a real ICMP echo per device; a device that answers ARP but not
+  ICMP (firewalled) shows online with no RTT.
+- The Wi-Fi channel suggestion is a simple congestion count over visible
+  APs, not an RF planner — no signal strength, DFS, or regulatory rules.
+- A machine with more than one active interface (e.g. Ethernet and Wi-Fi at
+  once) is recognized as "This device" on every one of them, not just the
+  interface used to pick the scan's subnet.
+- The speed test hits Cloudflare's anycast `speed.cloudflare.com`, which
+  auto-routes to the nearest of their ~300 edges; `netwp speedtest` prints
+  which one answered (e.g. "via Cloudflare edge: GRU").
+- `netwp ports <ip>` re-probes one device directly (same ports used for
+  classification, reported individually) instead of a full scan. No
+  port-history across runs, just the current state.
 - A device join is flagged "unknown" in the activity log only when its MAC
-  has no alias set. Aliasing a device marks it as recognized for future joins.
-- When reverse DNS returns nothing, hostname resolution falls back to a
-  multicast-DNS reverse lookup and a NetBIOS NBSTAT query, raced against each
-  other with a 400ms budget each. Neither is guaranteed: a device with no
-  Bonjour/Avahi responder and no NetBIOS support (many phones, most Linux
-  boxes without avahi) still shows no hostname. Verified against real
-  hardware on the author's LAN, including one device that turned out to
-  report "none" as its own mDNS name.
-- `netwp ports <ip>` re-probes a single device directly instead of running a
-  full network scan: the same well-known TCP ports used for classification,
-  reported individually with names, plus a fresh ICMP RTT. There is no
-  port-history tracking across runs, just the current state.
+  has no alias set.
+
+Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md). This project
+follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
