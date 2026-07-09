@@ -1,10 +1,14 @@
 # netwp
 
-🇧🇷 [Português](README.pt-BR.md)
+🇺🇸 English · 🇧🇷 [Português](README.pt-BR.md)
 
 [![CI](https://github.com/gsjonio/netwp/actions/workflows/ci.yml/badge.svg)](https://github.com/gsjonio/netwp/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/gsjonio/netwp)](https://goreportcard.com/report/github.com/gsjonio/netwp)
+[![Go version](https://img.shields.io/github/go-mod/go-version/gsjonio/netwp)](go.mod)
+[![Release](https://img.shields.io/github/v/release/gsjonio/netwp)](https://github.com/gsjonio/netwp/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/gsjonio/netwp)](LICENSE)
 
-**netwp** stands for *Internet / Rede Well Played* ("rede" is Portuguese for network).
+**netwp** — *Internet / Rede Well Played* ("rede" is Portuguese for network).
 
 A terminal network manager written in Go: active local-network device discovery
 (ARP), live monitoring, a full dashboard, bandwidth testing, and interface
