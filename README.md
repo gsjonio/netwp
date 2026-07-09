@@ -3,6 +3,7 @@
 🇺🇸 English · 🇧🇷 [Português](README.pt-BR.md)
 
 [![CI](https://github.com/gsjonio/netwp/actions/workflows/ci.yml/badge.svg)](https://github.com/gsjonio/netwp/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/gsjonio/netwp/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/gsjonio/netwp/actions/workflows/github-code-scanning/codeql)
 [![Go version](https://img.shields.io/github/go-mod/go-version/gsjonio/netwp)](go.mod)
 [![Release](https://img.shields.io/github/v/release/gsjonio/netwp)](https://github.com/gsjonio/netwp/releases/latest)
 [![License: MIT](https://img.shields.io/github/license/gsjonio/netwp)](LICENSE)
