@@ -33,7 +33,7 @@ func mdnsReverseLookup(ip net.IP, timeout time.Duration) string {
 	if err != nil {
 		return ""
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // best-effort cleanup
 
 	dst, err := net.ResolveUDPAddr("udp4", mdnsAddr)
 	if err != nil {
@@ -46,7 +46,7 @@ func mdnsReverseLookup(ip net.IP, timeout time.Duration) string {
 	deadline := time.Now().Add(timeout)
 	buf := make([]byte, 2048)
 	for {
-		conn.SetReadDeadline(deadline)
+		conn.SetReadDeadline(deadline) //nolint:errcheck // ReadFromUDP below fails the same way if this did
 		n, _, err := conn.ReadFromUDP(buf)
 		if err != nil {
 			return "" // timeout: nobody answered in time

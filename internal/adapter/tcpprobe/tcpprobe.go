@@ -42,7 +42,7 @@ func (p Prober) OpenPorts(ctx context.Context, ip net.IP) []int {
 			if err != nil {
 				return
 			}
-			conn.Close()
+			conn.Close() //nolint:errcheck // just probing whether the port accepts a connection
 			mu.Lock()
 			open = append(open, port)
 			mu.Unlock()

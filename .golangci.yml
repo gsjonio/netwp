@@ -1,0 +1,19 @@
+version: "2"
+linters:
+  settings:
+    errcheck:
+      exclude-functions:
+        - (io.Closer).Close
+        - (net.Conn).Write
+        - (net.Conn).SetReadDeadline
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - io.Copy
+        - io.WriteString
+        - (io.Writer).Write
+        - (*testing.common).Helper
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck

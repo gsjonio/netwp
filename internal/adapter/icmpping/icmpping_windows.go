@@ -39,7 +39,7 @@ func (Pinger) Ping(ip net.IP, timeout time.Duration) (time.Duration, bool) {
 	if handle == 0 || handle == invalidHandle {
 		return 0, false
 	}
-	defer procIcmpClose.Call(handle)
+	defer procIcmpClose.Call(handle) //nolint:errcheck // best-effort cleanup
 
 	req := []byte("netwp-icmp-echo-request-padding!") // 32 bytes of payload
 	// Reply buffer: ICMP_ECHO_REPLY header + our payload + 8 bytes of slack, as

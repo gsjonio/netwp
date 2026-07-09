@@ -18,7 +18,7 @@ func netbiosLookup(ip net.IP, timeout time.Duration) string {
 	if err != nil {
 		return ""
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // best-effort cleanup
 
 	if _, err := conn.Write(nbstatQuery()); err != nil {
 		return ""

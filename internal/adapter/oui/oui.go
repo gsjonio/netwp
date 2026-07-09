@@ -41,7 +41,7 @@ func load() {
 	if err != nil {
 		return // ponytail: embedded data is trusted; leave table empty on failure
 	}
-	defer gz.Close()
+	defer gz.Close() //nolint:errcheck // best-effort cleanup, reading from an in-memory buffer
 
 	r := csv.NewReader(gz)
 	r.FieldsPerRecord = -1 // organization address column count varies
