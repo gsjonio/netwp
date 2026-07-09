@@ -140,12 +140,15 @@ netwp ports 192.168.1.20                       # open ports + RTT for one device
   association). The English labels are still fixture-only, since testing
   them needs an English-locale Windows install. On a wired-only host the
   panel shows "disconnected".
-- **Linux support is experimental.** The scanner (raw ARP over `AF_PACKET`)
-  needs `CAP_NET_RAW` (root, or `setcap cap_net_raw+ep` on the binary). CI
-  builds, vets, and runs the test suite natively on Ubuntu on every push, so
-  it compiles correctly and the OS-agnostic tests pass on real Linux, but
-  the ARP scanner itself has never sent a packet on real Linux hardware.
-  Windows is the primary, verified platform.
+- The Linux scanner (raw ARP over `AF_PACKET`) needs `CAP_NET_RAW` (root, or
+  `setcap cap_net_raw+ep` on the binary). CI builds, vets, and runs the test
+  suite natively on Ubuntu on every push. Beyond that, it has now sent and
+  received a real ARP request/reply on a real Linux kernel (WSL2 Ubuntu),
+  correctly discovering and classifying the gateway. That run was on WSL2's
+  default NAT network, a different broadcast domain than the physical LAN,
+  so full home-network device visibility on Linux (or WSL2 in mirrored
+  networking mode) is still unconfirmed. Windows remains the primary,
+  most-verified platform.
 - RTT comes from a real ICMP echo per device: `IcmpSendEcho` (iphlpapi) on
   Windows, no admin required; the system `ping` binary elsewhere. A device
   that answers ARP but not ICMP (firewalled) shows online with no RTT.
