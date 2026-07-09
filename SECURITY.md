@@ -39,5 +39,5 @@ features are inherently sensitive:
 netwp depends only on the Go standard library plus
 [bubbletea](https://github.com/charmbracelet/bubbletea) and
 [lipgloss](https://github.com/charmbracelet/lipgloss) for the terminal UI.
-Dependency updates are reviewed manually; there's no automated dependency
-bot configured yet.
+[Dependabot](.github/dependabot.yml) opens a weekly PR for Go module and
+GitHub Actions updates; CodeQL and CI must pass before any of them merge.
