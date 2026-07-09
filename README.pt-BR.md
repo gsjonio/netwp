@@ -8,6 +8,15 @@ Gerenciador de rede via terminal escrito em Go: descoberta ativa de dispositivos
 na rede local (ARP), monitoramento ao vivo, dashboard completo, teste de banda e
 inspeção de interface. Windows primeiro, portável para Linux.
 
+## Sumário
+
+- [Status](#status)
+- [Arquitetura](#arquitetura)
+- [Instalação](#instalação)
+- [Uso](#uso)
+- [Notas](#notas)
+- [Licença](#licença)
+
 ## Status
 
 - [x] Núcleo de descoberta (ARP scan, hostname, fabricante por OUI, palpite de classe)
@@ -38,24 +47,33 @@ internal/adapter arpscan · netinfo · oui (tocam o SO)
 internal/tui     saída em tabela legível
 ```
 
-## Compilar e executar
+## Instalação
 
-Requer Go 1.22+.
+Requer Go 1.24+.
+
+### Instalação rápida (sem clonar)
+
+O `go install` baixa o módulo, compila e coloca o binário em
+`$(go env GOPATH)\bin`. Ponha essa pasta no PATH e chame como `netwp` de
+qualquer terminal (o Windows resolve o `.exe` sozinho):
 
 ```powershell
+go install github.com/gsjonio/netwp/cmd/netwp@latest
+netwp
+```
+
+Prefira travar numa release específica em vez de `@latest` para builds
+reprodutíveis, ex.: `go install github.com/gsjonio/netwp/cmd/netwp@v0.1.0`.
+
+### Compilar a partir do código-fonte
+
+Clone o repositório se quiser ler ou alterar o código, cross-compilar, ou
+rodar a suíte de testes:
+
+```powershell
+git clone https://github.com/gsjonio/netwp.git
+cd netwp
 go build -o netwp.exe ./cmd/netwp
-.\netwp.exe            # varredura única (padrão), com RTT por dispositivo
-.\netwp.exe scan --json # mesma varredura, saída JSON no stdout
-.\netwp.exe monitor   # TUI ao vivo: dispositivos entrando/saindo em tempo real (q sai)
-.\netwp.exe dashboard # dashboard completo: wifi + banda ao vivo + speedtest + dispositivos
-.\netwp.exe speedtest # teste de download/upload
-.\netwp.exe iface     # config de IP da interface ativa
-.\netwp.exe iface static 192.168.1.50/24 192.168.1.1 8.8.8.8  # define IP estático (pede confirmação)
-.\netwp.exe iface dhcp                                        # volta para DHCP (pede confirmação)
-.\netwp.exe alias set 192.168.1.20 "TV da Sala"  # apelida um dispositivo (por IP ou MAC)
-.\netwp.exe alias ls                             # lista os apelidos
-.\netwp.exe alias rm 192.168.1.20                # remove um apelido
-.\netwp.exe ports 192.168.1.20                   # portas abertas + RTT de um dispositivo
 go test ./...
 ```
 
@@ -66,23 +84,25 @@ Para um binário menor, remova a tabela de símbolos e o DWARF
 go build -ldflags "-s -w" -o netwp.exe ./cmd/netwp
 ```
 
+`go install -ldflags "-s -w" ./cmd/netwp` (rodando de dentro do repositório
+clonado) faz a mesma coisa, direto para `$(go env GOPATH)\bin`.
+
 O scanner Windows usa a API `SendARP`: **não exige admin nem Npcap**.
 
-### Instalar como `netwp`
-
-O `go install` coloca o binário em `$(go env GOPATH)\bin`. Com essa pasta no
-PATH, você chama como `netwp` de qualquer terminal (o Windows resolve o `.exe`
-sozinho):
+## Uso
 
 ```powershell
-go install -ldflags "-s -w" ./cmd/netwp   # -ldflags opcional, só para um binário menor
-netwp             # varredura
-netwp scan --json # varredura, saída JSON
-netwp monitor     # monitor ao vivo
-netwp dashboard   # dashboard completo
-netwp speedtest   # teste de banda
-netwp iface       # config de IP da interface
-netwp alias set 192.168.1.20 "TV da Sala"  # apelida um dispositivo
+netwp             # varredura única (padrão), com RTT por dispositivo
+netwp scan --json # mesma varredura, saída JSON no stdout
+netwp monitor     # TUI ao vivo: dispositivos entrando/saindo em tempo real (q sai)
+netwp dashboard   # dashboard completo: wifi + banda ao vivo + speedtest + dispositivos
+netwp speedtest   # teste de download/upload
+netwp iface       # config de IP da interface ativa
+netwp iface static 192.168.1.50/24 192.168.1.1 8.8.8.8  # define IP estático (pede confirmação)
+netwp iface dhcp                                        # volta para DHCP (pede confirmação)
+netwp alias set 192.168.1.20 "TV da Sala"  # apelida um dispositivo (por IP ou MAC)
+netwp alias ls                             # lista os apelidos
+netwp alias rm 192.168.1.20                # remove um apelido
 netwp ports 192.168.1.20                   # portas abertas + RTT de um dispositivo
 ```
 

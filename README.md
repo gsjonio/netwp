@@ -8,6 +8,15 @@ A terminal network manager written in Go: active local-network device discovery
 (ARP), live monitoring, a full dashboard, bandwidth testing, and interface
 inspection. Windows-first, portable to Linux.
 
+## Table of Contents
+
+- [Status](#status)
+- [Architecture](#architecture)
+- [Install](#install)
+- [Usage](#usage)
+- [Notes](#notes)
+- [License](#license)
+
 ## Status
 
 - [x] Device discovery core (ARP scan, hostname, vendor by OUI, device-class guess)
@@ -38,24 +47,33 @@ internal/adapter arpscan · netinfo · oui (touch the OS)
 internal/tui     legible table output
 ```
 
-## Build & Run
+## Install
 
-Requires Go 1.22+.
+Requires Go 1.24+.
+
+### Quick install (no clone needed)
+
+`go install` fetches the module, builds it, and drops the binary in
+`$(go env GOPATH)\bin`. Put that folder on your PATH and call it as `netwp`
+from any terminal (Windows resolves the `.exe` automatically):
 
 ```powershell
+go install github.com/gsjonio/netwp/cmd/netwp@latest
+netwp
+```
+
+Pin a specific release instead of `@latest` if you want reproducible builds,
+e.g. `go install github.com/gsjonio/netwp/cmd/netwp@v0.1.0`.
+
+### Build from source
+
+Clone the repo if you want to read or change the code, cross-compile, or run
+the test suite:
+
+```powershell
+git clone https://github.com/gsjonio/netwp.git
+cd netwp
 go build -o netwp.exe ./cmd/netwp
-.\netwp.exe            # one-shot scan (default), with per-device RTT
-.\netwp.exe scan --json # same scan, machine-readable JSON on stdout
-.\netwp.exe monitor   # live TUI: devices joining/leaving in real time (q to quit)
-.\netwp.exe dashboard # full dashboard: wifi + live bandwidth + speedtest + devices
-.\netwp.exe speedtest # download/upload throughput
-.\netwp.exe iface     # active interface's IP config
-.\netwp.exe iface static 192.168.1.50/24 192.168.1.1 8.8.8.8  # set a static address (asks to confirm)
-.\netwp.exe iface dhcp                                        # switch back to DHCP (asks to confirm)
-.\netwp.exe alias set 192.168.1.20 "Living Room TV"  # nickname a device (by IP or MAC)
-.\netwp.exe alias ls                                 # list nicknames
-.\netwp.exe alias rm 192.168.1.20                    # remove a nickname
-.\netwp.exe ports 192.168.1.20                       # open ports + RTT for one device
 go test ./...
 ```
 
@@ -66,24 +84,26 @@ For a smaller binary, strip the symbol table and DWARF info
 go build -ldflags "-s -w" -o netwp.exe ./cmd/netwp
 ```
 
+`go install -ldflags "-s -w" ./cmd/netwp` (run from inside the cloned repo)
+does the same, straight into `$(go env GOPATH)\bin`.
+
 The Windows scanner uses the `SendARP` API: **no admin rights and no Npcap
 required**.
 
-### Install as `netwp`
-
-`go install` drops the binary in `$(go env GOPATH)\bin`. With that folder on
-your PATH you can call it as `netwp` from any terminal (Windows resolves the
-`.exe` automatically):
+## Usage
 
 ```powershell
-go install -ldflags "-s -w" ./cmd/netwp   # -ldflags optional, just for a smaller binary
-netwp             # scan
-netwp scan --json # scan, JSON output
-netwp monitor     # live monitor
-netwp dashboard   # full dashboard
-netwp speedtest   # bandwidth test
-netwp iface       # interface IP config
-netwp alias set 192.168.1.20 "Living Room TV"  # nickname a device
+netwp             # one-shot scan (default), with per-device RTT
+netwp scan --json # same scan, machine-readable JSON on stdout
+netwp monitor     # live TUI: devices joining/leaving in real time (q to quit)
+netwp dashboard   # full dashboard: wifi + live bandwidth + speedtest + devices
+netwp speedtest   # download/upload throughput
+netwp iface       # active interface's IP config
+netwp iface static 192.168.1.50/24 192.168.1.1 8.8.8.8  # set a static address (asks to confirm)
+netwp iface dhcp                                        # switch back to DHCP (asks to confirm)
+netwp alias set 192.168.1.20 "Living Room TV"  # nickname a device (by IP or MAC)
+netwp alias ls                                 # list nicknames
+netwp alias rm 192.168.1.20                    # remove a nickname
 netwp ports 192.168.1.20                       # open ports + RTT for one device
 ```
 
