@@ -92,10 +92,10 @@ func TestParseNBStatName(t *testing.T) {
 	msg = binary.BigEndian.AppendUint16(msg, 1)
 	msg = binary.BigEndian.AppendUint32(msg, 0) // TTL
 
-	rdata := []byte{1} // NUM_NAMES
+	rdata := []byte{1}                                  // NUM_NAMES
 	rdata = append(rdata, []byte("MYPC           ")...) // 15 bytes, space-padded
-	rdata = append(rdata, 0x00)                          // suffix (workstation)
-	rdata = append(rdata, 0x04, 0x00)                    // flags
+	rdata = append(rdata, 0x00)                         // suffix (workstation)
+	rdata = append(rdata, 0x04, 0x00)                   // flags
 	msg = binary.BigEndian.AppendUint16(msg, uint16(len(rdata)))
 	msg = append(msg, rdata...)
 

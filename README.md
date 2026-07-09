@@ -2,6 +2,8 @@
 
 🇧🇷 [Português](README.pt-BR.md)
 
+[![CI](https://github.com/gsjonio/netwp/actions/workflows/ci.yml/badge.svg)](https://github.com/gsjonio/netwp/actions/workflows/ci.yml)
+
 **netwp** stands for *Internet / Rede Well Played* ("rede" is Portuguese for network).
 
 A terminal network manager written in Go: active local-network device discovery
@@ -136,10 +138,12 @@ netwp ports 192.168.1.20                       # open ports + RTT for one device
   association). The English labels are still fixture-only, since testing
   them needs an English-locale Windows install. On a wired-only host the
   panel shows "disconnected".
-- The Linux scanner (raw ARP over `AF_PACKET`) needs `CAP_NET_RAW` (root, or
-  `setcap cap_net_raw+ep` on the binary). It was written and cross-compiled
-  (`GOOS=linux`) from a Windows dev machine and has not been run against
-  real Linux hardware yet.
+- **Linux support is experimental.** The scanner (raw ARP over `AF_PACKET`)
+  needs `CAP_NET_RAW` (root, or `setcap cap_net_raw+ep` on the binary). CI
+  builds, vets, and runs the test suite natively on Ubuntu on every push, so
+  it compiles correctly and the OS-agnostic tests pass on real Linux, but
+  the ARP scanner itself has never sent a packet on real Linux hardware.
+  Windows is the primary, verified platform.
 - RTT comes from a real ICMP echo per device: `IcmpSendEcho` (iphlpapi) on
   Windows, no admin required; the system `ping` binary elsewhere. A device
   that answers ARP but not ICMP (firewalled) shows online with no RTT.
