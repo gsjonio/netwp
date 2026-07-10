@@ -64,15 +64,27 @@ type dashModel struct {
 	downHist   []float64
 	wifiInfo   core.WiFiInfo
 	wifiErr    error
+	wifiHist   []float64
 	result     core.BandwidthResult
 	speedAt    time.Time
 	speedErr   error
+	speedHist  []float64
 	netLatency time.Duration
 	netUp      bool
+	netHist    []float64
 	lastScan   time.Time
 	log        []string
 	width      int
 	height     int
+}
+
+// pushHist appends v to hist, trimmed to the last histLen samples.
+func pushHist(hist []float64, v float64) []float64 {
+	hist = append(hist, v)
+	if len(hist) > histLen {
+		hist = hist[len(hist)-histLen:]
+	}
+	return hist
 }
 
 type (
@@ -156,16 +168,16 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case sampleMsg:
 		m.rate = m.meter.Update(msg.c, time.Now())
-		m.downHist = append(m.downHist, m.rate.DownBps)
-		if len(m.downHist) > histLen {
-			m.downHist = m.downHist[len(m.downHist)-histLen:]
-		}
+		m.downHist = pushHist(m.downHist, m.rate.DownBps)
 		return m, tick(dashSampleEvery, sampleTickMsg{})
 	case sampleTickMsg:
 		return m, m.readSample
 
 	case wifiMsg:
 		m.wifiInfo, m.wifiErr = msg.info, msg.err
+		if msg.err == nil && msg.info.Connected {
+			m.wifiHist = pushHist(m.wifiHist, float64(msg.info.SignalPercent))
+		}
 		return m, tick(dashWifiEvery, wifiTickMsg{})
 	case wifiTickMsg:
 		return m, m.readWifi
@@ -184,12 +196,18 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case speedMsg:
 		m.result, m.speedAt, m.speedErr = msg.result, msg.at, msg.err
+		if msg.err == nil {
+			m.speedHist = pushHist(m.speedHist, msg.result.DownloadMbps)
+		}
 		return m, tick(dashSpeedEvery, speedTickMsg{})
 	case speedTickMsg:
 		return m, m.runSpeed
 
 	case pingMsg:
 		m.netLatency, m.netUp = msg.rtt, msg.ok
+		if msg.ok {
+			m.netHist = pushHist(m.netHist, float64(msg.rtt.Microseconds())/1000)
+		}
 		return m, tick(dashPingEvery, pingTickMsg{})
 	case pingTickMsg:
 		return m, m.readPing
@@ -256,9 +274,9 @@ func lineCount(s string) int { return strings.Count(s, "\n") + 1 }
 func (m dashModel) renderHeader(width int) string {
 	title := styTitle.Render("netwp dashboard")
 	clock := time.Now().Format("15:04:05")
-	left := fmt.Sprintf("%s   %s · IP %s · GW %s · net %s · up %s",
+	left := fmt.Sprintf("%s   %s · IP %s · GW %s · net %s %s · up %s",
 		title, m.info.Name, m.info.IP, ipOr(m.info.Gateway, "?"),
-		netStyle(m.netUp).Render(rttText(m.netLatency, m.netUp)), uptime(m.start))
+		netStyle(m.netUp).Render(rttText(m.netLatency, m.netUp)), sparkline(m.netHist), uptime(m.start))
 	gap := width - lipgloss.Width(left) - len(clock) - 2
 	if gap < 1 {
 		gap = 1
@@ -286,7 +304,7 @@ func (m dashModel) renderWifi() string {
 	}
 	lines := []string{
 		styAlias.Render(w.SSID),
-		"signal   " + signalStyle(w.SignalPercent).Render(sig),
+		"signal   " + signalStyle(w.SignalPercent).Render(sig) + " " + sparkline(m.wifiHist),
 		fmt.Sprintf("channel  %d  %s  %s", w.Channel, w.Band, channelHint),
 		fmt.Sprintf("rate     %d/%d Mbps", w.RxRateMbps, w.TxRateMbps),
 		fmt.Sprintf("nearby   %d APs · %d on ch %d", len(w.Nearby), w.SameChannelCount(), w.Channel),
@@ -315,6 +333,7 @@ func (m dashModel) renderSpeed() string {
 	return strings.Join([]string{
 		fmt.Sprintf("down  %s", styOnline.Render(fmt.Sprintf("%.1f Mbps", m.result.DownloadMbps))),
 		fmt.Sprintf("up    %s", styHead.Render(fmt.Sprintf("%.1f Mbps", m.result.UploadMbps))),
+		sparkline(m.speedHist),
 		styOffline.Render("at " + m.speedAt.Format("15:04:05")),
 		styOffline.Render(fmt.Sprintf("next in %s", next)),
 	}, "\n")

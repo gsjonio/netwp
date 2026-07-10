@@ -18,15 +18,19 @@ func TestDashboardViewSmoke(t *testing.T) {
 	}, time.Now())
 
 	m := dashModel{
-		tracker:  tracker,
-		info:     core.InterfaceInfo{Name: "Ethernet", IP: net.IPv4(192, 168, 1, 10), Gateway: net.IPv4(192, 168, 1, 1)},
-		start:    time.Now().Add(-90 * time.Second),
-		rate:     core.Rate{DownBps: 125000, UpBps: 25000, TotalRx: 1_130_000_000, TotalTx: 243_000_000},
-		downHist: []float64{0, 100, 500, 1000, 800, 1200},
-		wifiInfo: core.WiFiInfo{Connected: true, SSID: "HomeNet", SignalPercent: 47, Channel: 149, Band: "5 GHz", RxRateMbps: 270, TxRateMbps: 270},
-		result:   core.BandwidthResult{DownloadMbps: 2.13, UploadMbps: 6.5},
-		speedAt:  time.Now(),
-		width:    112,
+		tracker:   tracker,
+		info:      core.InterfaceInfo{Name: "Ethernet", IP: net.IPv4(192, 168, 1, 10), Gateway: net.IPv4(192, 168, 1, 1)},
+		start:     time.Now().Add(-90 * time.Second),
+		rate:      core.Rate{DownBps: 125000, UpBps: 25000, TotalRx: 1_130_000_000, TotalTx: 243_000_000},
+		downHist:  []float64{0, 100, 500, 1000, 800, 1200},
+		wifiInfo:  core.WiFiInfo{Connected: true, SSID: "HomeNet", SignalPercent: 47, Channel: 149, Band: "5 GHz", RxRateMbps: 270, TxRateMbps: 270},
+		wifiHist:  []float64{40, 42, 45, 47},
+		result:    core.BandwidthResult{DownloadMbps: 2.13, UploadMbps: 6.5},
+		speedHist: []float64{1.8, 2.0, 2.13},
+		speedAt:   time.Now(),
+		netUp:     true,
+		netHist:   []float64{8, 10, 9, 11},
+		width:     112,
 	}
 
 	out := m.View()
@@ -70,6 +74,19 @@ func TestDashboardTruncatesDevicesToFitHeight(t *testing.T) {
 	}
 	if !strings.Contains(out, "showing") {
 		t.Error("expected the device panel title to note truncation")
+	}
+}
+
+func TestPushHistTrimsToLimit(t *testing.T) {
+	var hist []float64
+	for i := 0; i < histLen+10; i++ {
+		hist = pushHist(hist, float64(i))
+	}
+	if len(hist) != histLen {
+		t.Fatalf("len(hist) = %d, want %d", len(hist), histLen)
+	}
+	if want := float64(histLen + 9); hist[len(hist)-1] != want {
+		t.Errorf("last sample = %v, want %v (oldest samples should be dropped, not newest)", hist[len(hist)-1], want)
 	}
 }
 
