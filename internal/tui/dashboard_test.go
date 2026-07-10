@@ -105,6 +105,48 @@ func TestClassSummaryEmpty(t *testing.T) {
 	}
 }
 
+// TestDashboardStacksPanelsOnNarrowTerminal checks the three top panels
+// (WI-FI/BANDWIDTH/SPEEDTEST) stack vertically instead of sitting side by
+// side once the terminal is too narrow for three ~22-column panels --
+// below dashNarrowCols they used to wrap mid-word instead.
+func TestDashboardStacksPanelsOnNarrowTerminal(t *testing.T) {
+	m := dashModel{tracker: core.NewTracker(30 * time.Second), width: 70}
+	out := m.View()
+
+	// Stacked: each panel's own top border line appears on its own line,
+	// nothing to its right. Side-by-side output would instead show all
+	// three top borders concatenated on a single line.
+	lines := strings.Split(out, "\n")
+	borders := 0
+	for _, line := range lines {
+		if strings.Count(line, "╭") == 1 && strings.Count(line, "╮") == 1 {
+			borders++
+		}
+	}
+	if borders < 3 {
+		t.Errorf("expected at least 3 lines with exactly one panel's top border (stacked layout), got %d\n%s", borders, out)
+	}
+	for _, want := range []string{"WI-FI", "BANDWIDTH", "SPEEDTEST"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("narrow view missing panel %q", want)
+		}
+	}
+}
+
+// TestDashboardKeepsPanelsSideBySideWhenWide is the contrast case: at or
+// above dashNarrowCols, the three top panels' borders must land on the same
+// line, confirming the width check actually branches both ways.
+func TestDashboardKeepsPanelsSideBySideWhenWide(t *testing.T) {
+	m := dashModel{tracker: core.NewTracker(30 * time.Second), width: dashDefaultCols}
+	out := m.View()
+	for _, line := range strings.Split(out, "\n") {
+		if strings.Count(line, "╭") == 3 {
+			return // found the joined top-border line -- side by side, as expected
+		}
+	}
+	t.Errorf("expected a line with all three panels' top borders side by side (wide layout), got:\n%s", out)
+}
+
 func TestSparklineRange(t *testing.T) {
 	if _, _, ok := sparklineRange(nil); ok {
 		t.Error("sparklineRange(nil) ok = true, want false")

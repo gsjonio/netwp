@@ -26,6 +26,7 @@ const (
 	dashSpeedBudget = 40 * time.Second
 	dashPingTarget  = "8.8.8.8" // internet-latency probe target
 	dashDefaultCols = 112
+	dashNarrowCols  = 90 // below this, the three top panels stack instead of sitting side by side
 	histLen         = 24
 )
 
@@ -218,17 +219,28 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m dashModel) View() string {
 	width := m.width
-	if width < 60 {
-		width = dashDefaultCols
+	if width <= 0 {
+		width = dashDefaultCols // no WindowSizeMsg yet
 	}
 
 	header := m.renderHeader(width)
-	colW := (width - 4) / 3
-	top := lipgloss.JoinHorizontal(lipgloss.Top,
-		panel("WI-FI", m.renderWifi(), colW),
-		panel("BANDWIDTH", m.renderBandwidth(), colW),
-		panel("SPEEDTEST", m.renderSpeed(), colW),
-	)
+	var top string
+	if width < dashNarrowCols {
+		// Too narrow for three ~22-column panels side by side (they'd wrap
+		// mid-word); stack them instead, each using the full width.
+		top = lipgloss.JoinVertical(lipgloss.Left,
+			panel("WI-FI", m.renderWifi(), width-2),
+			panel("BANDWIDTH", m.renderBandwidth(), width-2),
+			panel("SPEEDTEST", m.renderSpeed(), width-2),
+		)
+	} else {
+		colW := (width - 4) / 3
+		top = lipgloss.JoinHorizontal(lipgloss.Top,
+			panel("WI-FI", m.renderWifi(), colW),
+			panel("BANDWIDTH", m.renderBandwidth(), colW),
+			panel("SPEEDTEST", m.renderSpeed(), colW),
+		)
+	}
 	footer := styOffline.Render("r rescan · q quit")
 
 	var activity string
