@@ -101,6 +101,18 @@ does the same, straight into `$(go env GOPATH)\bin`.
 The Windows scanner uses the `SendARP` API: **no admin rights and no Npcap
 required**.
 
+### Updating
+
+Check what you have with `netwp version`, then update the same way you
+installed:
+
+- **Quick install:** re-run `go install github.com/gsjonio/netwp/cmd/netwp@latest`
+  (or the specific tag you want). It overwrites the old binary.
+- **Build from source:** `git pull` then rebuild (`go build`/`go install`).
+- **Prebuilt binary:** download the new one from the
+  [Releases page](https://github.com/gsjonio/netwp/releases/latest) and
+  replace the old file. There's no self-update mechanism.
+
 ## Usage
 
 ```powershell
@@ -117,6 +129,7 @@ netwp alias set 192.168.1.20 "Living Room TV"  # nickname a device (by IP or MAC
 netwp alias ls                                 # list nicknames
 netwp alias rm 192.168.1.20                    # remove a nickname
 netwp ports 192.168.1.20                       # open ports + RTT for one device
+netwp version                                  # installed version
 ```
 
 ## Notes

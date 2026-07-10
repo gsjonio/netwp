@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -69,6 +70,9 @@ func main() {
 	case "", "help", "-h", "--help":
 		printUsage(os.Stdout)
 		return
+	case "version", "--version":
+		printVersion(os.Stdout)
+		return
 	case "scan", "--json": // --json is a scan flag, not its own subcommand
 		err = runScan()
 	case "monitor":
@@ -115,10 +119,49 @@ Commands:
   alias ls                                        list nicknames
   alias rm <ip-or-mac>                            remove a nickname
   ports <ip>                                      open ports + RTT for one device
+  version                                         show the installed version
   help                                            show this help
 
 Run "netwp scan" to see the devices on your network.
 `)
+}
+
+// printVersion reports the version embedded by `go install module@vX.Y.Z`,
+// or falls back to the VCS commit `go build` embeds automatically (Go
+// 1.18+) when built from a local source tree instead of a tagged module.
+func printVersion(w io.Writer) {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		fmt.Fprintln(w, "netwp (unknown version)")
+		return
+	}
+	if v := info.Main.Version; v != "" && v != "(devel)" {
+		fmt.Fprintf(w, "netwp %s\n", v)
+		return
+	}
+
+	rev := vcsSetting(info, "vcs.revision")
+	if rev == "" {
+		fmt.Fprintln(w, "netwp (devel)")
+		return
+	}
+	if len(rev) > 12 {
+		rev = rev[:12]
+	}
+	dirty := ""
+	if vcsSetting(info, "vcs.modified") == "true" {
+		dirty = "-dirty"
+	}
+	fmt.Fprintf(w, "netwp (devel, commit %s%s)\n", rev, dirty)
+}
+
+func vcsSetting(info *debug.BuildInfo, key string) string {
+	for _, s := range info.Settings {
+		if s.Key == key {
+			return s.Value
+		}
+	}
+	return ""
 }
 
 // buildDiscovery assembles the discovery use case from its platform adapters.

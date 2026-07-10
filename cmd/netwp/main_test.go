@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"net"
+	"runtime/debug"
 	"strings"
 	"testing"
 )
@@ -11,10 +12,38 @@ func TestPrintUsageListsCommands(t *testing.T) {
 	var buf bytes.Buffer
 	printUsage(&buf)
 	out := buf.String()
-	for _, want := range []string{"scan", "monitor", "dashboard", "speedtest", "iface", "alias", "ports", "help"} {
+	for _, want := range []string{"scan", "monitor", "dashboard", "speedtest", "iface", "alias", "ports", "version", "help"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("usage output missing command %q:\n%s", want, out)
 		}
+	}
+}
+
+func TestVcsSetting(t *testing.T) {
+	info := &debug.BuildInfo{Settings: []debug.BuildSetting{
+		{Key: "vcs.revision", Value: "abc123def456"},
+		{Key: "vcs.modified", Value: "true"},
+	}}
+	if got := vcsSetting(info, "vcs.revision"); got != "abc123def456" {
+		t.Errorf("vcs.revision = %q", got)
+	}
+	if got := vcsSetting(info, "vcs.modified"); got != "true" {
+		t.Errorf("vcs.modified = %q", got)
+	}
+	if got := vcsSetting(info, "missing"); got != "" {
+		t.Errorf("missing key = %q, want empty", got)
+	}
+}
+
+func TestPrintVersionRuns(t *testing.T) {
+	// Exercises whichever of the two paths applies to the running test
+	// binary's own build info (Go auto-embeds a pseudo-version from VCS
+	// tags even for a plain `go build`/`go test`, not just `go install
+	// pkg@vX`, so which branch actually runs depends on the checkout).
+	var buf bytes.Buffer
+	printVersion(&buf)
+	if !strings.HasPrefix(buf.String(), "netwp ") {
+		t.Errorf("printVersion() = %q, want it to start with \"netwp \"", buf.String())
 	}
 }
 

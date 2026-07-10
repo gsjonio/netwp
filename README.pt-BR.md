@@ -100,6 +100,18 @@ clonado) faz a mesma coisa, direto para `$(go env GOPATH)\bin`.
 
 O scanner Windows usa a API `SendARP`: **não exige admin nem Npcap**.
 
+### Atualizando
+
+Confira o que você tem com `netwp version`, depois atualize do mesmo jeito
+que instalou:
+
+- **Instalação rápida:** rode de novo `go install github.com/gsjonio/netwp/cmd/netwp@latest`
+  (ou a tag específica que quiser). Sobrescreve o binário antigo.
+- **Compilado do código-fonte:** `git pull` e recompile (`go build`/`go install`).
+- **Binário pronto:** baixe o novo na
+  [página de Releases](https://github.com/gsjonio/netwp/releases/latest) e
+  substitua o arquivo antigo. Não tem mecanismo de auto-atualização.
+
 ## Uso
 
 ```powershell
@@ -116,6 +128,7 @@ netwp alias set 192.168.1.20 "TV da Sala"  # apelida um dispositivo (por IP ou M
 netwp alias ls                             # lista os apelidos
 netwp alias rm 192.168.1.20                # remove um apelido
 netwp ports 192.168.1.20                   # portas abertas + RTT de um dispositivo
+netwp version                              # versão instalada
 ```
 
 ## Notas
