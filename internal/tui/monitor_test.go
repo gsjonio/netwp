@@ -76,6 +76,30 @@ func TestTruncateToHeight(t *testing.T) {
 	}
 }
 
+// TestBandwidthLine cannot assert color (see TestPortsCellText's comment on
+// why), only text/absence: disabled when reader is nil, present with rates
+// when set, and mentioning the threshold once it's crossed.
+func TestBandwidthLine(t *testing.T) {
+	m := monitorModel{}
+	if got := m.bandwidthLine(); got != "" {
+		t.Errorf("bandwidthLine() with nil reader = %q, want empty", got)
+	}
+
+	m = monitorModel{reader: fakeCounterReader{}, rate: core.Rate{DownBps: 2_000_000, UpBps: 500_000}}
+	if got := m.bandwidthLine(); !strings.Contains(got, "Mbps") {
+		t.Errorf("bandwidthLine() = %q, want it to mention Mbps", got)
+	}
+
+	m.alertDown = 5_000_000 // above the 2,000,000 DownBps above: alert should fire
+	if got := m.bandwidthLine(); !strings.Contains(got, "below") {
+		t.Errorf("bandwidthLine() over threshold = %q, want it to mention the alert", got)
+	}
+}
+
+type fakeCounterReader struct{}
+
+func (fakeCounterReader) Counters() (core.NetCounters, error) { return core.NetCounters{}, nil }
+
 func TestHasSensitivePort(t *testing.T) {
 	cases := []struct {
 		ports []int

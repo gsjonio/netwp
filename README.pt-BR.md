@@ -147,7 +147,7 @@ internal/tui     saída em tabela legível
 | --- | --- |
 | *(nenhum)* / `help` / `-h` / `--help` | Mostra a ajuda |
 | `scan` / `scan --json` | Varredura única, com RTT por dispositivo; `--json` pra saída legível por máquina |
-| `monitor` | TUI ao vivo: dispositivos entrando/saindo em tempo real (`q` sai) |
+| `monitor` / `monitor --alert-down=<taxa>` | TUI ao vivo: dispositivos entrando/saindo em tempo real (`q` sai); `--alert-down` avisa sobre queda na taxa de download, ex.: `--alert-down=50Mbps` |
 | `dashboard` | Dashboard completo: WiFi + banda ao vivo + speedtest + dispositivos |
 | `speedtest` | Teste de download/upload |
 | `iface` | Inspeciona o IP da interface ativa |
@@ -232,6 +232,10 @@ uma vulnerabilidade.
   de fora, já que nenhum dos dois diz nada sobre a rede.
 - Uma entrada só é marcada como "unknown" no log de atividade quando o MAC
   não tem apelido definido.
+- `netwp monitor --alert-down=<taxa>` (ex.: `50Mbps`, `1.5Gbps`) amostra a
+  banda da interface ativa a cada segundo e destaca a linha quando a taxa de
+  download cai abaixo desse limiar. Sem a flag, o monitor se comporta
+  exatamente como antes, sem nenhuma linha de banda.
 
 Quer contribuir? Veja [CONTRIBUTING.md](CONTRIBUTING.md). Este projeto
 segue o [Código de Conduta](CODE_OF_CONDUCT.md).

@@ -91,6 +91,50 @@ func TestParseStaticArgsNoDNS(t *testing.T) {
 	}
 }
 
+func TestParseRate(t *testing.T) {
+	cases := []struct {
+		in   string
+		want float64
+	}{
+		{"50Mbps", 50e6 / 8},
+		{"1.5Gbps", 1.5e9 / 8},
+		{"200Kbps", 200e3 / 8},
+		{"800bps", 100},
+	}
+	for _, c := range cases {
+		got, err := parseRate(c.in)
+		if err != nil {
+			t.Errorf("parseRate(%q): unexpected error: %v", c.in, err)
+		}
+		if got != c.want {
+			t.Errorf("parseRate(%q) = %v, want %v", c.in, got, c.want)
+		}
+	}
+}
+
+func TestParseRateInvalid(t *testing.T) {
+	for _, in := range []string{"", "50", "fastMbps"} {
+		if _, err := parseRate(in); err == nil {
+			t.Errorf("parseRate(%q): expected error, got nil", in)
+		}
+	}
+}
+
+func TestParseAlertFlag(t *testing.T) {
+	got, err := parseAlertFlag([]string{"--alert-down=50Mbps"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if want := 50e6 / 8; got != want {
+		t.Errorf("parseAlertFlag = %v, want %v", got, want)
+	}
+
+	got, err = parseAlertFlag(nil)
+	if err != nil || got != 0 {
+		t.Errorf("parseAlertFlag(nil) = (%v, %v), want (0, nil)", got, err)
+	}
+}
+
 func TestParseStaticArgsInvalid(t *testing.T) {
 	cases := [][]string{
 		{},

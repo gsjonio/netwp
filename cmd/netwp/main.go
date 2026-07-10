@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -442,13 +443,59 @@ func confirm(action string) bool {
 	return strings.TrimSpace(line) == "yes"
 }
 
+// parseRate parses a bits-per-second rate like "50Mbps" or "1.5Gbps" into
+// bytes/sec (what core.Rate/RateMeter work in). Longest suffix first, since
+// "50Mbps" also ends in "bps".
+func parseRate(s string) (float64, error) {
+	units := []struct {
+		suffix string
+		scale  float64
+	}{
+		{"Gbps", 1e9}, {"Mbps", 1e6}, {"Kbps", 1e3}, {"bps", 1},
+	}
+	for _, u := range units {
+		if strings.HasSuffix(s, u.suffix) {
+			n, err := strconv.ParseFloat(strings.TrimSuffix(s, u.suffix), 64)
+			if err != nil {
+				return 0, fmt.Errorf("invalid rate %q: %w", s, err)
+			}
+			return n * u.scale / 8, nil // bits/sec -> bytes/sec
+		}
+	}
+	return 0, fmt.Errorf("invalid rate %q: expected a suffix like Mbps, Kbps, Gbps, bps", s)
+}
+
+// parseAlertFlag reads "--alert-down=<rate>" out of the monitor subcommand's
+// arguments. Returns 0 (alert disabled) when the flag isn't present.
+func parseAlertFlag(args []string) (float64, error) {
+	for _, a := range args {
+		if v, ok := strings.CutPrefix(a, "--alert-down="); ok {
+			return parseRate(v)
+		}
+	}
+	return 0, nil
+}
+
 func runMonitor() error {
 	discovery, network, err := discoveryContext()
 	if err != nil {
 		return err
 	}
 	tracker := core.NewTracker(offlineAfter)
-	return tui.RunMonitor(discovery, tracker, network, monitorEvery, monitorScanBudget)
+
+	alertDown, err := parseAlertFlag(os.Args[2:])
+	if err != nil {
+		return err
+	}
+	var reader core.CounterReader
+	if alertDown > 0 {
+		info, err := netinfo.Interface{}.Inspect()
+		if err != nil {
+			return err
+		}
+		reader = ifacestat.New(info.Name)
+	}
+	return tui.RunMonitor(discovery, tracker, network, monitorEvery, monitorScanBudget, reader, alertDown)
 }
 
 func runDashboard() error {

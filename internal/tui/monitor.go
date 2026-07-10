@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	logLimit    = 8                      // recent-activity lines kept on screen
-	spinnerRate = 120 * time.Millisecond // spinner frame cadence
+	logLimit           = 8                      // recent-activity lines kept on screen
+	spinnerRate        = 120 * time.Millisecond // spinner frame cadence
+	monitorSampleEvery = 1 * time.Second        // bandwidth sample cadence, when enabled
 )
 
 var (
@@ -32,13 +33,21 @@ var (
 // RunMonitor starts the live monitoring UI and blocks until the user quits.
 // interval is the gap between scans; scanBudget bounds how long each scan may
 // run (kept separate: a scan can legitimately take longer than the interval).
-func RunMonitor(discovery *core.Discovery, tracker *core.Tracker, network core.Network, interval, scanBudget time.Duration) error {
+//
+// reader and alertDown together enable an optional bandwidth alert: pass a
+// nil reader (or alertDown <= 0) to leave monitor exactly as it was before
+// this existed, with no bandwidth line at all.
+func RunMonitor(discovery *core.Discovery, tracker *core.Tracker, network core.Network, interval, scanBudget time.Duration,
+	reader core.CounterReader, alertDown float64) error {
 	m := monitorModel{
 		discovery:  discovery,
 		tracker:    tracker,
 		network:    network,
 		interval:   interval,
 		scanBudget: scanBudget,
+		reader:     reader,
+		alertDown:  alertDown,
+		meter:      &core.RateMeter{},
 		scanning:   true,
 		scanStart:  time.Now(),
 	}
@@ -52,6 +61,10 @@ type monitorModel struct {
 	network    core.Network
 	interval   time.Duration
 	scanBudget time.Duration
+	reader     core.CounterReader // nil disables bandwidth sampling/alerting entirely
+	alertDown  float64            // bytes/sec threshold; <= 0 disables the alert
+	meter      *core.RateMeter
+	rate       core.Rate
 
 	log       []string
 	lastScan  time.Time
@@ -72,11 +85,21 @@ type rescanMsg struct{}
 
 type spinnerMsg struct{}
 
+type monitorSampleMsg struct{ c core.NetCounters }
+
+type monitorSampleTickMsg struct{}
+
 func spinnerTick() tea.Cmd {
 	return tea.Tick(spinnerRate, func(time.Time) tea.Msg { return spinnerMsg{} })
 }
 
-func (m monitorModel) Init() tea.Cmd { return tea.Batch(m.scanNow, spinnerTick()) }
+func (m monitorModel) Init() tea.Cmd {
+	cmds := []tea.Cmd{m.scanNow, spinnerTick()}
+	if m.reader != nil {
+		cmds = append(cmds, m.readSample)
+	}
+	return tea.Batch(cmds...)
+}
 
 // scanNow runs one discovery pass off the UI goroutine (it is a tea.Cmd).
 func (m monitorModel) scanNow() tea.Msg {
@@ -84,6 +107,16 @@ func (m monitorModel) scanNow() tea.Msg {
 	defer cancel()
 	devices, err := m.discovery.Run(ctx, m.network)
 	return scanDoneMsg{devices: devices, at: time.Now(), err: err}
+}
+
+// readSample is only ever called when m.reader != nil (the bandwidth alert
+// is enabled) -- see Init and the monitorSampleTickMsg case in Update.
+func (m monitorModel) readSample() tea.Msg {
+	c, err := m.reader.Counters()
+	if err != nil {
+		return monitorSampleMsg{} // a failed read just yields a zero sample this tick
+	}
+	return monitorSampleMsg{c: c}
 }
 
 func (m monitorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -127,8 +160,29 @@ func (m monitorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.scanStart = time.Now()
 			return m, m.scanNow
 		}
+
+	case monitorSampleMsg:
+		m.rate = m.meter.Update(msg.c, time.Now())
+		return m, tick(monitorSampleEvery, monitorSampleTickMsg{})
+
+	case monitorSampleTickMsg:
+		return m, m.readSample
 	}
 	return m, nil
+}
+
+// bandwidthLine renders the current down/up rate, highlighted when the
+// download rate has dropped below alertDown. Empty when bandwidth sampling
+// is disabled (reader == nil).
+func (m monitorModel) bandwidthLine() string {
+	if m.reader == nil {
+		return ""
+	}
+	line := fmt.Sprintf("↓ %s   ↑ %s", rateStr(m.rate.DownBps), rateStr(m.rate.UpBps))
+	if m.alertDown > 0 && m.rate.DownBps < m.alertDown {
+		return styWarn.Render(fmt.Sprintf("⚠ download below %s — %s", rateStr(m.alertDown), line))
+	}
+	return line
 }
 
 func (m monitorModel) View() string {
@@ -156,17 +210,21 @@ func (m monitorModel) View() string {
 		state = styOffline.Render(fmt.Sprintf("idle · next in %s", time.Until(m.lastScan.Add(m.interval)).Round(time.Second)))
 	}
 	footer := state + styOffline.Render("   ·   r rescan   ·   q quit")
+	bwLine := m.bandwidthLine()
 
 	// Trim the device table to whatever vertical room is left, so the
 	// footer never scrolls off screen on a short terminal. Fixed overhead:
 	// summary line + blank, the table's own border/header/separator/border
 	// (4, independent of row count), the blank line after it, the activity
-	// block (if any) plus its trailing blank, an error line (if any), and
-	// the footer itself.
+	// block (if any) plus its trailing blank, an error line (if any), the
+	// bandwidth line (if any) plus its trailing blank, and the footer itself.
 	if m.height > 0 {
 		used := lineCount(summary) + 1 + 4 + 1 + lineCount(footer)
 		if activity != "" {
 			used += lineCount(activity) + 1
+		}
+		if bwLine != "" {
+			used += lineCount(bwLine) + 1
 		}
 		if m.err != nil {
 			used++
@@ -185,6 +243,9 @@ func (m monitorModel) View() string {
 	b.WriteString("\n\n")
 	if activity != "" {
 		b.WriteString(activity + "\n\n")
+	}
+	if bwLine != "" {
+		b.WriteString(bwLine + "\n\n")
 	}
 	if m.err != nil {
 		b.WriteString(styOffline.Render("error: "+m.err.Error()) + "\n")

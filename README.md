@@ -144,7 +144,7 @@ internal/tui     legible table output
 | --- | --- |
 | *(none)* / `help` / `-h` / `--help` | Print usage |
 | `scan` / `scan --json` | One-shot scan, with per-device RTT; `--json` for machine-readable output |
-| `monitor` | Live TUI: devices joining/leaving in real time (`q` to quit) |
+| `monitor` / `monitor --alert-down=<rate>` | Live TUI: devices joining/leaving in real time (`q` to quit); `--alert-down` flags a download rate drop, e.g. `--alert-down=50Mbps` |
 | `dashboard` | Full dashboard: Wi-Fi + live bandwidth + speedtest + devices |
 | `speedtest` | Download/upload throughput |
 | `iface` | Inspect the active interface's IP config |
@@ -226,6 +226,10 @@ vulnerability.
   out, since neither says anything about the network.
 - A device join is flagged "unknown" in the activity log only when its MAC
   has no alias set.
+- `netwp monitor --alert-down=<rate>` (e.g. `50Mbps`, `1.5Gbps`) samples the
+  active interface's throughput once a second and highlights the line when
+  the download rate drops below that threshold. Omit the flag and monitor
+  behaves exactly as before, with no bandwidth line at all.
 
 Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md). This project
 follows the [Code of Conduct](CODE_OF_CONDUCT.md).
