@@ -40,6 +40,8 @@ inspeção de interface. Windows primeiro, portável para Linux.
 - [x] Exportação JSON (`netwp scan --json`)
 - [x] Fallback de hostname via mDNS/NetBIOS quando o DNS reverso não retorna nada
 - [x] Detalhe de portas por dispositivo (`netwp ports <ip>`)
+- [x] Portas abertas na tabela, com as sensíveis (SSH/SMB/RDP) destacadas
+- [x] Auto-atualização (`netwp update`) e versão instalada (`netwp version`)
 
 ## Arquitetura
 
@@ -195,6 +197,14 @@ uma vulnerabilidade.
 - `netwp ports <ip>` sonda um único dispositivo diretamente (mesmas portas
   usadas na classificação, reportadas individualmente) em vez de um scan
   completo. Sem histórico de portas entre execuções, só o estado atual.
+- A coluna PORTS da tabela reaproveita as portas que a sonda de classificação
+  já coleta, então não custa varredura extra. SSH (22), SMB (445) e RDP
+  (3389) aparecem em vermelho: expostas numa rede doméstica, normalmente não
+  são intencionais. Os nomes das portas ficam um nível abaixo, no
+  `netwp ports <ip>`.
+- O painel DEVICES do dashboard mostra um resumo por classe do que está online
+  (ex.: "2 Media · 1 Router"). "This device" e hosts não classificados ficam
+  de fora, já que nenhum dos dois diz nada sobre a rede.
 - Uma entrada só é marcada como "unknown" no log de atividade quando o MAC
   não tem apelido definido.
 

@@ -40,6 +40,8 @@ inspection. Windows-first, portable to Linux.
 - [x] JSON export (`netwp scan --json`)
 - [x] Hostname fallback via mDNS/NetBIOS when reverse DNS has nothing
 - [x] Per-device port detail (`netwp ports <ip>`)
+- [x] Open ports in the device table, with sensitive ones (SSH/SMB/RDP) flagged
+- [x] Self-update (`netwp update`) and version reporting (`netwp version`)
 
 ## Architecture
 
@@ -192,6 +194,13 @@ vulnerability.
 - `netwp ports <ip>` re-probes one device directly (same ports used for
   classification, reported individually) instead of a full scan. No
   port-history across runs, just the current state.
+- The device table's PORTS column reuses the ports the classification probe
+  already collects, so it costs no extra scanning. SSH (22), SMB (445) and
+  RDP (3389) render in red: exposed on a home network they are usually
+  unintentional. Port names are one level down, via `netwp ports <ip>`.
+- The dashboard's DEVICES panel shows a per-class breakdown of what's online
+  (e.g. "2 Media · 1 Router"). "This device" and unclassified hosts are left
+  out, since neither says anything about the network.
 - A device join is flagged "unknown" in the activity log only when its MAC
   has no alias set.
 
