@@ -77,6 +77,31 @@ func TestDashboardTruncatesDevicesToFitHeight(t *testing.T) {
 	}
 }
 
+func TestClassSummary(t *testing.T) {
+	devices := []core.TrackedDevice{
+		{Device: core.Device{Class: core.ClassRouter}, Online: true},
+		{Device: core.Device{Class: core.ClassMedia}, Online: true},
+		{Device: core.Device{Class: core.ClassMedia}, Online: true},
+		{Device: core.Device{Class: core.ClassThisDevice}, Online: true}, // skipped
+		{Device: core.Device{Class: core.ClassUnknown}, Online: true},    // skipped
+		{Device: core.Device{Class: core.ClassIoT}, Online: false},       // offline: not counted
+	}
+	got := classSummary(devices)
+	if want := "2 Media · 1 Router"; got != want {
+		t.Errorf("classSummary() = %q, want %q", got, want)
+	}
+}
+
+func TestClassSummaryEmpty(t *testing.T) {
+	devices := []core.TrackedDevice{
+		{Device: core.Device{Class: core.ClassThisDevice}, Online: true},
+		{Device: core.Device{Class: core.ClassUnknown}, Online: true},
+	}
+	if got := classSummary(devices); got != "" {
+		t.Errorf("classSummary() = %q, want empty (only skippable classes online)", got)
+	}
+}
+
 func TestPushHistTrimsToLimit(t *testing.T) {
 	var hist []float64
 	for i := 0; i < histLen+10; i++ {

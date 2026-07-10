@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sort"
 	"strings"
 	"time"
 
@@ -243,6 +244,7 @@ func (m dashModel) View() string {
 			online++
 		}
 	}
+	allDevices := devices
 	devTitle := fmt.Sprintf("DEVICES · %d online / %d known", online, total)
 
 	// Trim the device table to whatever vertical room is left, so the footer
@@ -259,6 +261,9 @@ func (m dashModel) View() string {
 			devTitle = fmt.Sprintf("DEVICES · %d online / %d known (showing %d)", online, total, budget)
 		}
 	}
+	if summary := classSummary(allDevices); summary != "" {
+		devTitle += " · " + summary
+	}
 	devBody := renderMonitorTable(devices, m.lastScan)
 
 	parts := []string{header, top}
@@ -270,6 +275,41 @@ func (m dashModel) View() string {
 }
 
 func lineCount(s string) int { return strings.Count(s, "\n") + 1 }
+
+// classSummary returns a compact breakdown of online devices by class, e.g.
+// "2 Router · 1 IoT", sorted by count descending. ClassUnknown and
+// ClassThisDevice are skipped: neither tells you anything about what's on
+// your network. Empty when nothing is left to summarize.
+func classSummary(devices []core.TrackedDevice) string {
+	counts := map[core.DeviceClass]int{}
+	for _, d := range devices {
+		if d.Online {
+			counts[d.Class]++
+		}
+	}
+	type entry struct {
+		class core.DeviceClass
+		n     int
+	}
+	var entries []entry
+	for c, n := range counts {
+		if c == core.ClassUnknown || c == core.ClassThisDevice {
+			continue
+		}
+		entries = append(entries, entry{c, n})
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].n != entries[j].n {
+			return entries[i].n > entries[j].n
+		}
+		return entries[i].class < entries[j].class // stable order for equal counts
+	})
+	parts := make([]string, len(entries))
+	for i, e := range entries {
+		parts[i] = fmt.Sprintf("%d %s", e.n, e.class)
+	}
+	return strings.Join(parts, " · ")
+}
 
 func (m dashModel) renderHeader(width int) string {
 	title := styTitle.Render("netwp dashboard")
