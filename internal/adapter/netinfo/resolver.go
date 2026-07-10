@@ -10,7 +10,11 @@ import (
 // DNSResolver resolves hostnames via reverse DNS. Implements core.HostResolver.
 type DNSResolver struct{}
 
-const lookupTimeout = 2 * time.Second
+// lookupTimeout caps a single reverse-DNS query. Kept modest because this
+// runs before the mDNS/NetBIOS fallback (namelookup.Resolver): a resolver
+// that won't answer for RFC1918 reverse zones should fail fast and let the
+// fallback try, not stall the whole per-device enrichment for seconds.
+const lookupTimeout = 1 * time.Second
 
 // Hostname returns the first PTR name for ip, or "" if none resolves.
 //
