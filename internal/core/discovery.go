@@ -73,7 +73,7 @@ func (d *Discovery) Run(ctx context.Context, target Network) ([]Device, error) {
 			inner.Add(1)
 			go func() {
 				defer inner.Done()
-				dev.RTT, dev.Reachable = d.pinger.Ping(dev.IP, pingTimeout)
+				dev.RTT, dev.TTL, dev.Reachable = d.pinger.Ping(dev.IP, pingTimeout)
 			}()
 			dev.Hostname = d.names.Hostname(dev.IP)
 			dev.Vendor = d.vendors.Vendor(dev.MAC)

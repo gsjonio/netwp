@@ -143,7 +143,9 @@ func (m dashModel) runSpeed() tea.Msg {
 }
 
 func (m dashModel) readPing() tea.Msg {
-	rtt, ok := m.pinger.Ping(net.ParseIP(dashPingTarget), 800*time.Millisecond)
+	// TTL is a LAN-device fingerprinting hint; irrelevant for a fixed
+	// internet target like 8.8.8.8, so it's discarded here.
+	rtt, _, ok := m.pinger.Ping(net.ParseIP(dashPingTarget), 800*time.Millisecond)
 	return pingMsg{rtt: rtt, ok: ok}
 }
 
@@ -280,11 +282,23 @@ func (m dashModel) View() string {
 	}
 	devBody := renderMonitorTable(devices, m.lastScan)
 
+	// The table sizes itself to its own content (more columns over time --
+	// PORTS and TTL both landed after this panel's width was fixed at
+	// width-2). If it now needs more room than that, let the panel grow to
+	// fit instead of forcing lipgloss to wrap an already-bordered table:
+	// that mangles the box-drawing characters, and doubles every row's line
+	// count, which is worse than a panel occasionally wider than the other
+	// three above it.
+	devPanelWidth := width - 2
+	if bw := lipgloss.Width(devBody); bw > devPanelWidth {
+		devPanelWidth = bw
+	}
+
 	parts := []string{header, top}
 	if activity != "" {
 		parts = append(parts, activity)
 	}
-	parts = append(parts, panel(devTitle, devBody, width-2), footer)
+	parts = append(parts, panel(devTitle, devBody, devPanelWidth+2), footer)
 	return strings.Join(parts, "\n")
 }
 

@@ -34,8 +34,8 @@ func (f fakeAlias) Alias(mac net.HardwareAddr) string {
 
 type fakePinger struct{}
 
-func (fakePinger) Ping(net.IP, time.Duration) (time.Duration, bool) {
-	return 3 * time.Millisecond, true
+func (fakePinger) Ping(net.IP, time.Duration) (time.Duration, int, bool) {
+	return 3 * time.Millisecond, 64, true
 }
 
 // recordingProber notes which IPs were probed and reports a fixed open-port
@@ -146,7 +146,7 @@ func TestDiscoverySkipsSelfAndGatewayProbe(t *testing.T) {
 	if got := byIP[self.String()].Alias; got != "" {
 		t.Errorf("self should have no alias, got %q", got)
 	}
-	if d := byIP[other.String()]; !d.Reachable || d.RTT != 3*time.Millisecond {
-		t.Errorf("ping enrichment missing: reachable=%v rtt=%v", d.Reachable, d.RTT)
+	if d := byIP[other.String()]; !d.Reachable || d.RTT != 3*time.Millisecond || d.TTL != 64 {
+		t.Errorf("ping enrichment missing: reachable=%v rtt=%v ttl=%v", d.Reachable, d.RTT, d.TTL)
 	}
 }

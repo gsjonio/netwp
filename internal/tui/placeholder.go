@@ -100,6 +100,36 @@ func rttQualityOf(rtt time.Duration, reachable bool) rttQuality {
 	}
 }
 
+// ttlHint returns a coarse OS-family guess from an ICMP reply's TTL. Devices
+// found by ARP are 0-1 hops away, so the observed TTL should sit very close
+// to the sender's original default: Linux/Android/macOS/iOS commonly send
+// 64, Windows 128, and some network gear 255.
+//
+// Not fed into core.Classify: TTL alone can't tell a Raspberry Pi from a
+// Linux desktop from an Android phone -- it's shown for the user to
+// interpret, not asserted as a device kind.
+func ttlHint(ttl int) string {
+	switch {
+	case ttl == 0:
+		return ""
+	case ttl > 128:
+		return "network gear"
+	case ttl > 64:
+		return "Windows"
+	default:
+		return "Linux"
+	}
+}
+
+// TTLText renders a TTL with its OS-family hint (e.g. "64 (Linux)"), or the
+// placeholder when unavailable. Exported so `netwp ports` can reuse it.
+func TTLText(ttl int) string {
+	if ttl == 0 {
+		return dash
+	}
+	return fmt.Sprintf("%d (%s)", ttl, ttlHint(ttl))
+}
+
 // portsText renders a device's open ports as a compact comma-separated list
 // (e.g. "80,443"), or the placeholder when none were found/probed. Full
 // per-port names are one level down, via `netwp ports <ip>`.

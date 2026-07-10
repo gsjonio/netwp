@@ -29,15 +29,24 @@ type Pinger struct{}
 
 func New() Pinger { return Pinger{} }
 
-// Ping sends one ICMP echo to ip and returns the round-trip time.
-func (Pinger) Ping(ip net.IP, timeout time.Duration) (time.Duration, bool) {
+// icmpTTLOffset is where IP_OPTION_INFORMATION.Ttl lands inside
+// ICMP_ECHO_REPLY on 64-bit Windows: Address(4) + Status(4) + RoundTripTime(4)
+// + DataSize(2) + Reserved(2) + Data pointer(8, 64-bit) = 24, then Ttl is the
+// option struct's first byte.
+//
+// Verified live: the machine running netwp (Windows) reported TTL 128, its
+// router (embedded Linux) reported 64, matching their real OS families.
+const icmpTTLOffset = 24
+
+// Ping sends one ICMP echo to ip and returns the round-trip time and TTL.
+func (Pinger) Ping(ip net.IP, timeout time.Duration) (time.Duration, int, bool) {
 	ip4 := ip.To4()
 	if ip4 == nil {
-		return 0, false
+		return 0, 0, false
 	}
 	handle, _, _ := procIcmpCreate.Call()
 	if handle == 0 || handle == invalidHandle {
-		return 0, false
+		return 0, 0, false
 	}
 	defer procIcmpClose.Call(handle) //nolint:errcheck // best-effort cleanup
 
@@ -63,12 +72,13 @@ func (Pinger) Ping(ip net.IP, timeout time.Duration) (time.Duration, bool) {
 		uintptr(ms),
 	)
 	if n == 0 {
-		return 0, false
+		return 0, 0, false
 	}
 	// ICMP_ECHO_REPLY: Address[0:4], Status[4:8], RoundTripTime[8:12] (all ULONG).
 	if status := binary.LittleEndian.Uint32(reply[4:8]); status != 0 {
-		return 0, false // not IP_SUCCESS
+		return 0, 0, false // not IP_SUCCESS
 	}
 	rttMs := binary.LittleEndian.Uint32(reply[8:12])
-	return time.Duration(rttMs) * time.Millisecond, true
+	ttl := int(reply[icmpTTLOffset])
+	return time.Duration(rttMs) * time.Millisecond, ttl, true
 }

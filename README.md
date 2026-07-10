@@ -28,8 +28,9 @@ inspection. Windows-first, portable to Linux.
 
 **Discovery & monitoring** — active ARP scan with hostname (reverse DNS, then
 mDNS/NetBIOS fallback), vendor by OUI, device-class guess, per-device RTT and
-open-port detail (sensitive ones like SSH/SMB/RDP flagged), all continuously
-tracked in a live TUI with new-device alerts.
+TTL (with an OS-family hint) and open-port detail (sensitive ones like
+SSH/SMB/RDP flagged), all continuously tracked in a live TUI with new-device
+alerts.
 
 **Dashboard** — Wi-Fi, real-time bandwidth, speedtest and devices in one live
 view, with Wi-Fi channel recommendations from nearby AP congestion.
@@ -150,7 +151,7 @@ internal/tui     legible table output
 | `iface static <ip>/<bits> <gw> [dns...]` | Set a static address (asks to confirm) |
 | `iface dhcp` | Switch back to DHCP (asks to confirm) |
 | `alias set <ip\|mac> <name>` / `ls` / `rm <ip\|mac>` | Nickname a device / list / remove |
-| `ports <ip>` | Open ports + RTT for one device |
+| `ports <ip>` | Open ports + RTT + TTL for one device |
 | `version` | Installed version |
 | `update` | Update to the latest version (needs Go) |
 
@@ -200,6 +201,12 @@ vulnerability.
   tier: green under 20ms, neutral under 100ms, red beyond that -- these are
   LAN thresholds, so "red" still means fast by internet standards, just
   worth a second look on your own network.
+- The same ICMP echo also reports TTL, shown with a coarse OS-family guess
+  (Linux/Android/macOS commonly send 64, Windows 128, some network gear
+  255) since a device found by ARP is 0-1 hops away, so its TTL should sit
+  right at its OS's default. It's informational only, not fed into the
+  device-class guess: TTL alone can't tell a Raspberry Pi from a Linux
+  desktop from an Android phone.
 - The Wi-Fi channel suggestion is a simple congestion count over visible
   APs, not an RF planner — no signal strength, DFS, or regulatory rules.
 - A machine with more than one active interface (e.g. Ethernet and Wi-Fi at

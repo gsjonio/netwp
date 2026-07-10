@@ -312,6 +312,7 @@ func runPorts() error {
 
 	var open []int
 	var rtt time.Duration
+	var ttl int
 	var reachable bool
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -321,12 +322,12 @@ func runPorts() error {
 	}()
 	go func() {
 		defer wg.Done()
-		rtt, reachable = icmpping.New().Ping(ip, 500*time.Millisecond)
+		rtt, ttl, reachable = icmpping.New().Ping(ip, 500*time.Millisecond)
 	}()
 	wg.Wait()
 
 	if reachable {
-		fmt.Printf("%s: reachable, RTT %s\n", ip, rtt.Round(time.Millisecond))
+		fmt.Printf("%s: reachable, RTT %s, TTL %s\n", ip, rtt.Round(time.Millisecond), tui.TTLText(ttl))
 	} else {
 		fmt.Printf("%s: no ICMP reply\n", ip)
 	}

@@ -116,6 +116,35 @@ func TestVendorTextDash(t *testing.T) {
 	}
 }
 
+func TestTtlHint(t *testing.T) {
+	cases := []struct {
+		ttl  int
+		want string
+	}{
+		{0, ""},
+		{64, "Linux"},
+		{60, "Linux"},
+		{128, "Windows"},
+		{100, "Windows"},
+		{255, "network gear"},
+		{200, "network gear"},
+	}
+	for _, c := range cases {
+		if got := ttlHint(c.ttl); got != c.want {
+			t.Errorf("ttlHint(%d) = %q, want %q", c.ttl, got, c.want)
+		}
+	}
+}
+
+func TestTTLText(t *testing.T) {
+	if got := TTLText(0); got != dash {
+		t.Errorf("TTLText(0) = %q, want %q", got, dash)
+	}
+	if got := TTLText(64); got != "64 (Linux)" {
+		t.Errorf("TTLText(64) = %q, want \"64 (Linux)\"", got)
+	}
+}
+
 func TestPortsText(t *testing.T) {
 	if got := portsText(nil); got != dash {
 		t.Errorf("portsText(nil) = %q, want %q", got, dash)

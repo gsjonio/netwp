@@ -19,6 +19,7 @@ type deviceJSON struct {
 	Vendor    string   `json:"vendor,omitempty"`
 	Class     string   `json:"class"`
 	RTTMillis *float64 `json:"rtt_ms,omitempty"`
+	TTL       int      `json:"ttl,omitempty"`
 	Reachable bool     `json:"reachable"`
 	Online    bool     `json:"online"`
 	Ports     []int    `json:"ports,omitempty"`
@@ -35,6 +36,7 @@ func RenderDevicesJSON(w io.Writer, devices []core.Device) error {
 			Hostname:  d.Hostname,
 			Vendor:    d.Vendor,
 			Class:     d.Class.String(),
+			TTL:       d.TTL,
 			Reachable: d.Reachable,
 			Online:    d.Online,
 			Ports:     d.Ports,

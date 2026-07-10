@@ -218,14 +218,14 @@ func renderMonitorTable(devices []core.TrackedDevice, ref time.Time) string {
 			}
 			return lipgloss.NewStyle().Padding(0, 1)
 		}).
-		Headers("", "IP", "ALIAS", "RTT", "CLASS", "MAC", "HOSTNAME", "VENDOR", "PORTS", "LAST SEEN")
+		Headers("", "IP", "ALIAS", "RTT", "TTL", "CLASS", "MAC", "HOSTNAME", "VENDOR", "PORTS", "LAST SEEN")
 
 	for _, d := range devices {
 		dot := styOffline.Render("○")
 		if d.Online {
 			dot = styOnline.Render("●")
 		}
-		t.Row(dot, d.IP.String(), aliasText(d.Alias), rttCellText(d.RTT, d.Reachable), classLabel(d.Class), macText(d.MAC), orDash(d.Hostname), vendorText(d.Vendor), portsCellText(d.Ports), lastSeen(d, ref))
+		t.Row(dot, d.IP.String(), aliasText(d.Alias), rttCellText(d.RTT, d.Reachable), TTLText(d.TTL), classLabel(d.Class), macText(d.MAC), orDash(d.Hostname), vendorText(d.Vendor), portsCellText(d.Ports), lastSeen(d, ref))
 	}
 	return t.String()
 }

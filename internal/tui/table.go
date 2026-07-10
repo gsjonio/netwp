@@ -48,7 +48,7 @@ func RenderDevices(w io.Writer, devices []core.Device) {
 	})
 
 	header := []cell{
-		{"STATUS", colorBold}, {"IP", colorBold}, {"ALIAS", colorBold}, {"RTT", colorBold},
+		{"STATUS", colorBold}, {"IP", colorBold}, {"ALIAS", colorBold}, {"RTT", colorBold}, {"TTL", colorBold},
 		{"MAC", colorBold}, {"CLASS", colorBold}, {"HOSTNAME", colorBold}, {"VENDOR", colorBold}, {"PORTS", colorBold},
 	}
 	rows := make([][]cell, 0, len(devices))
@@ -58,6 +58,7 @@ func RenderDevices(w io.Writer, devices []core.Device) {
 			{d.IP.String(), ""},
 			aliasCell(d.Alias),
 			rttCell(d.RTT, d.Reachable),
+			dashCell(TTLText(d.TTL)),
 			macCell(d.MAC),
 			classCell(d.Class),
 			textCell(d.Hostname),

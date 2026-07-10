@@ -28,9 +28,9 @@ inspeção de interface. Windows primeiro, portável para Linux.
 
 **Descoberta & monitoramento** — varredura ARP ativa com hostname (DNS
 reverso, depois fallback mDNS/NetBIOS), fabricante por OUI, palpite de classe,
-RTT por dispositivo e detalhe de portas abertas (as sensíveis como SSH/SMB/RDP
-destacadas), tudo acompanhado continuamente numa TUI ao vivo com alerta de
-dispositivo novo.
+RTT e TTL por dispositivo (com palpite de família de SO) e detalhe de portas
+abertas (as sensíveis como SSH/SMB/RDP destacadas), tudo acompanhado
+continuamente numa TUI ao vivo com alerta de dispositivo novo.
 
 **Dashboard** — WiFi, banda em tempo real, speedtest e dispositivos numa única
 tela ao vivo, com recomendação de canal WiFi por congestionamento de APs
@@ -154,7 +154,7 @@ internal/tui     saída em tabela legível
 | `iface static <ip>/<bits> <gw> [dns...]` | Define IP estático (pede confirmação) |
 | `iface dhcp` | Volta para DHCP (pede confirmação) |
 | `alias set <ip\|mac> <nome>` / `ls` / `rm <ip\|mac>` | Apelida um dispositivo / lista / remove |
-| `ports <ip>` | Portas abertas + RTT de um dispositivo |
+| `ports <ip>` | Portas abertas + RTT + TTL de um dispositivo |
 | `version` | Versão instalada |
 | `update` | Atualiza pra última versão (precisa do Go) |
 
@@ -205,6 +205,13 @@ uma vulnerabilidade.
   faixa: verde abaixo de 20ms, neutro abaixo de 100ms, vermelho acima disso
   — são faixas pensadas pra LAN, então "vermelho" ainda é rápido pelos
   padrões de internet, só vale uma segunda olhada na sua própria rede.
+- O mesmo ICMP echo também traz o TTL, mostrado com um palpite grosseiro de
+  família de SO (Linux/Android/macOS costumam mandar 64, Windows 128,
+  alguns equipamentos de rede 255), já que um dispositivo achado por ARP
+  está a 0-1 saltos de distância, então o TTL dele deve bater bem próximo
+  do padrão do próprio SO. É só informativo, não entra no palpite de classe
+  do dispositivo: só o TTL não dá pra distinguir um Raspberry Pi de um
+  desktop Linux de um celular Android.
 - A sugestão de canal WiFi é uma contagem simples de congestionamento sobre
   os APs visíveis, não um planejador de RF: sem sinal, DFS ou regras
   regulatórias.

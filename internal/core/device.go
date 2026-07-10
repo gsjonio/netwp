@@ -17,6 +17,7 @@ type Device struct {
 	Vendor    string           // Manufacturer, resolved from the MAC's OUI prefix
 	Class     DeviceClass      // Best-effort guess at what kind of device this is
 	RTT       time.Duration    // ICMP round-trip time; 0 with Reachable false if no reply
+	TTL       int              // ICMP reply TTL, a coarse OS-family hint; 0 if unavailable
 	Reachable bool             // Answered an ICMP echo during enrichment
 	Online    bool             // Answered the active probe during this scan
 	Ports     []int            // Open TCP ports found by the classification probe; nil if not probed

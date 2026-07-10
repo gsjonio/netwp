@@ -36,10 +36,11 @@ type Prober interface {
 	OpenPorts(ctx context.Context, ip net.IP) []int
 }
 
-// Pinger measures ICMP round-trip time to a host. ok is false on timeout or
-// error (host unreachable), in which case the duration is meaningless.
+// Pinger measures ICMP round-trip time (and TTL, when the platform reports
+// one) to a host. ok is false on timeout or error (host unreachable), in
+// which case rtt and ttl are meaningless. ttl is 0 when unavailable.
 type Pinger interface {
-	Ping(ip net.IP, timeout time.Duration) (rtt time.Duration, ok bool)
+	Ping(ip net.IP, timeout time.Duration) (rtt time.Duration, ttl int, ok bool)
 }
 
 // InterfaceInspector reads the active network interface's IP configuration.
