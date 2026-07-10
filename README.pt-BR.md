@@ -17,31 +17,32 @@ inspeção de interface. Windows primeiro, portável para Linux.
 
 ## Sumário
 
-- [Status](#status)
+- [Features](#features)
 - [Instalação](#instalação)
 - [Arquitetura](#arquitetura)
 - [Uso](#uso)
 - [Notas](#notas)
 - [Licença](#licença)
 
-## Status
+## Features
 
-- [x] Núcleo de descoberta (ARP scan, hostname, fabricante por OUI, palpite de classe)
-- [x] Monitoramento contínuo (entrada/saída), TUI ao vivo
-- [x] Teste de banda
-- [x] Inspeção de IP da interface (somente leitura)
-- [x] Configuração de IP da interface (estático/DHCP, só Windows)
-- [x] Adapter Linux (ARP cru via AF_PACKET, gateway, DNS)
-- [x] Apelidos persistentes de dispositivos (chaveados por MAC)
-- [x] Dashboard ao vivo (WiFi, banda em tempo real, speedtest, dispositivos)
-- [x] Latência por dispositivo (RTT) e latência da internet, ICMP nativo (sem admin)
-- [x] Recomendação de canal WiFi por congestionamento de APs vizinhos
-- [x] Alerta de dispositivo novo (entrada de MAC não reconhecido no monitor/dashboard)
-- [x] Exportação JSON (`netwp scan --json`)
-- [x] Fallback de hostname via mDNS/NetBIOS quando o DNS reverso não retorna nada
-- [x] Detalhe de portas por dispositivo (`netwp ports <ip>`)
-- [x] Portas abertas na tabela, com as sensíveis (SSH/SMB/RDP) destacadas
-- [x] Auto-atualização (`netwp update`) e versão instalada (`netwp version`)
+**Descoberta & monitoramento** — varredura ARP ativa com hostname (DNS
+reverso, depois fallback mDNS/NetBIOS), fabricante por OUI, palpite de classe,
+RTT por dispositivo e detalhe de portas abertas (as sensíveis como SSH/SMB/RDP
+destacadas), tudo acompanhado continuamente numa TUI ao vivo com alerta de
+dispositivo novo.
+
+**Dashboard** — WiFi, banda em tempo real, speedtest e dispositivos numa única
+tela ao vivo, com recomendação de canal WiFi por congestionamento de APs
+vizinhos.
+
+**Configuração de interface & rede** — inspeção de IP somente leitura em
+qualquer plataforma; configuração estático/DHCP no Windows. Suporte a Linux
+via ARP cru (`AF_PACKET`).
+
+**Persistência & ferramentas** — apelidos de dispositivo que sobrevivem a
+trocas de IP pelo DHCP, exportação JSON (`netwp scan --json`), e
+auto-atualização (`netwp update` / `netwp version`).
 
 ## Instalação
 

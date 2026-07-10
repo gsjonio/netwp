@@ -17,31 +17,29 @@ inspection. Windows-first, portable to Linux.
 
 ## Table of Contents
 
-- [Status](#status)
+- [Features](#features)
 - [Install](#install)
 - [Architecture](#architecture)
 - [Usage](#usage)
 - [Notes](#notes)
 - [License](#license)
 
-## Status
+## Features
 
-- [x] Device discovery core (ARP scan, hostname, vendor by OUI, device-class guess)
-- [x] Continuous monitoring (join/leave), live TUI
-- [x] Bandwidth test
-- [x] Interface IP inspect (read-only)
-- [x] Interface IP configure (static/DHCP, Windows only)
-- [x] Linux adapter (AF_PACKET raw ARP, gateway, DNS)
-- [x] Persistent device aliases (nicknames, keyed by MAC)
-- [x] Live dashboard (Wi-Fi, real-time bandwidth, speedtest, devices)
-- [x] Per-device latency (RTT) and internet latency, native ICMP (no admin)
-- [x] Wi-Fi channel recommendation from nearby AP congestion
-- [x] New-device alerts (unrecognized MAC joins flagged in monitor/dashboard)
-- [x] JSON export (`netwp scan --json`)
-- [x] Hostname fallback via mDNS/NetBIOS when reverse DNS has nothing
-- [x] Per-device port detail (`netwp ports <ip>`)
-- [x] Open ports in the device table, with sensitive ones (SSH/SMB/RDP) flagged
-- [x] Self-update (`netwp update`) and version reporting (`netwp version`)
+**Discovery & monitoring** — active ARP scan with hostname (reverse DNS, then
+mDNS/NetBIOS fallback), vendor by OUI, device-class guess, per-device RTT and
+open-port detail (sensitive ones like SSH/SMB/RDP flagged), all continuously
+tracked in a live TUI with new-device alerts.
+
+**Dashboard** — Wi-Fi, real-time bandwidth, speedtest and devices in one live
+view, with Wi-Fi channel recommendations from nearby AP congestion.
+
+**Interface & network config** — read-only IP inspection everywhere; static/DHCP
+configuration on Windows. Linux support via raw ARP (`AF_PACKET`).
+
+**Persistence & tooling** — device aliases that survive DHCP IP changes, JSON
+export (`netwp scan --json`), and self-update (`netwp update` / `netwp
+version`).
 
 ## Install
 
