@@ -44,6 +44,21 @@ func TestRenderAlignment(t *testing.T) {
 	}
 }
 
+// TestPortsCellColorsSensitivePorts checks portsCell (the raw-ANSI table.go
+// renderer, unlike lipgloss-based portsCellText) actually applies colorWarn
+// when a sensitive port is present, and leaves an ordinary port list plain.
+func TestPortsCellColorsSensitivePorts(t *testing.T) {
+	if got := portsCell([]int{80, 443}); got.color != "" {
+		t.Errorf("portsCell([80,443]).color = %q, want no color", got.color)
+	}
+	if got := portsCell([]int{22, 80}); got.color != colorWarn {
+		t.Errorf("portsCell([22,80]).color = %q, want colorWarn (sensitive port present)", got.color)
+	}
+	if got := portsCell(nil); got.color != colorDim {
+		t.Errorf("portsCell(nil).color = %q, want colorDim (placeholder dash)", got.color)
+	}
+}
+
 func TestPortsText(t *testing.T) {
 	if got := portsText(nil); got != dash {
 		t.Errorf("portsText(nil) = %q, want %q", got, dash)

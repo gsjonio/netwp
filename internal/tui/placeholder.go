@@ -62,3 +62,19 @@ func portsText(ports []int) string {
 	}
 	return strings.Join(strs, ",")
 }
+
+// sensitiveTCPPorts flags open ports worth a visual nudge: remote-access and
+// file-sharing services (SSH, SMB, RDP) whose exposure on a home network is
+// usually unintentional. A display concern, not domain classification, so
+// it's kept local to tui even though it overlaps core's classification list.
+var sensitiveTCPPorts = map[int]bool{22: true, 445: true, 3389: true}
+
+// hasSensitivePort reports whether ports includes one worth flagging.
+func hasSensitivePort(ports []int) bool {
+	for _, p := range ports {
+		if sensitiveTCPPorts[p] {
+			return true
+		}
+	}
+	return false
+}

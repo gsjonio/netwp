@@ -25,6 +25,7 @@ const (
 	colorCyan  = "\x1b[36m"
 	colorDim   = "\x1b[90m"
 	colorBold  = "\x1b[1m"
+	colorWarn  = "\x1b[31m"
 )
 
 const columnGap = "  "
@@ -60,7 +61,7 @@ func RenderDevices(w io.Writer, devices []core.Device) {
 			classCell(d.Class),
 			textCell(d.Hostname),
 			textCell(d.Vendor),
-			dashCell(portsText(d.Ports)),
+			portsCell(d.Ports),
 		})
 	}
 
@@ -106,6 +107,20 @@ func statusCell(online bool) cell {
 func macCell(m net.HardwareAddr) cell   { return dashCell(macText(m)) }
 func textCell(s string) cell            { return dashCell(orDash(s)) }
 func classCell(c core.DeviceClass) cell { return dashCell(classLabel(c)) }
+
+// portsCell highlights the ports list when it includes a sensitive one (SSH,
+// SMB, RDP), so an unintentionally exposed service catches the eye instead of
+// blending in with the rest of the row.
+func portsCell(ports []int) cell {
+	text := portsText(ports)
+	if text == dash {
+		return cell{dash, colorDim}
+	}
+	if hasSensitivePort(ports) {
+		return cell{text, colorWarn}
+	}
+	return cell{text, ""}
+}
 
 // dashCell dims the placeholder glyph while leaving real values uncoloured, so
 // the "—" for a missing value reads as absent rather than as data.

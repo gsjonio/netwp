@@ -181,7 +181,7 @@ func renderMonitorTable(devices []core.TrackedDevice, ref time.Time) string {
 		if d.Online {
 			dot = styOnline.Render("●")
 		}
-		t.Row(dot, d.IP.String(), aliasText(d.Alias), rttText(d.RTT, d.Reachable), classLabel(d.Class), macText(d.MAC), orDash(d.Hostname), orDash(d.Vendor), portsText(d.Ports), lastSeen(d, ref))
+		t.Row(dot, d.IP.String(), aliasText(d.Alias), rttText(d.RTT, d.Reachable), classLabel(d.Class), macText(d.MAC), orDash(d.Hostname), orDash(d.Vendor), portsCellText(d.Ports), lastSeen(d, ref))
 	}
 	return t.String()
 }
@@ -212,6 +212,16 @@ func aliasText(alias string) string {
 		return dash
 	}
 	return styAlias.Render(alias)
+}
+
+// portsCellText renders the PORTS cell, highlighted when a sensitive port
+// (SSH, SMB, RDP) is open, so it catches the eye against the rest of the row.
+func portsCellText(ports []int) string {
+	text := portsText(ports)
+	if hasSensitivePort(ports) {
+		return styWarn.Render(text)
+	}
+	return text
 }
 
 func lastSeen(d core.TrackedDevice, ref time.Time) string {

@@ -28,3 +28,36 @@ func TestMonitorViewSmoke(t *testing.T) {
 		}
 	}
 }
+
+func TestHasSensitivePort(t *testing.T) {
+	cases := []struct {
+		ports []int
+		want  bool
+	}{
+		{nil, false},
+		{[]int{80, 443}, false},
+		{[]int{22}, true},
+		{[]int{445}, true},
+		{[]int{3389}, true},
+		{[]int{80, 3389, 8009}, true},
+	}
+	for _, c := range cases {
+		if got := hasSensitivePort(c.ports); got != c.want {
+			t.Errorf("hasSensitivePort(%v) = %v, want %v", c.ports, got, c.want)
+		}
+	}
+}
+
+// TestPortsCellText only checks the text survives the styWarn wrapping
+// intact. It cannot assert that a sensitive port is actually rendered in
+// color: lipgloss disables color output outside a real terminal, so
+// styWarn.Render is a no-op passthrough under `go test` regardless of input
+// (same reason aliasText/styAlias has no color assertion in this package).
+func TestPortsCellText(t *testing.T) {
+	if got := portsCellText([]int{80, 443}); !strings.Contains(got, "80,443") {
+		t.Errorf("portsCellText([80,443]) = %q, want it to contain \"80,443\"", got)
+	}
+	if got := portsCellText([]int{22}); !strings.Contains(got, "22") {
+		t.Errorf("portsCellText([22]) = %q, want it to contain \"22\"", got)
+	}
+}
