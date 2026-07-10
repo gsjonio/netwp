@@ -80,13 +80,18 @@ func (t *Tracker) Observe(scanned []Device, now time.Time) []Event {
 	return events
 }
 
-// Devices returns the tracked devices sorted by IP address.
+// Devices returns the tracked devices, online ones first, sorted by IP
+// address within each group. On a network with many departed devices,
+// interleaving them by IP buries what's actually there among dimmed rows.
 func (t *Tracker) Devices() []TrackedDevice {
 	out := make([]TrackedDevice, 0, len(t.devices))
 	for _, td := range t.devices {
 		out = append(out, *td)
 	}
 	sort.Slice(out, func(i, j int) bool {
+		if out[i].Online != out[j].Online {
+			return out[i].Online
+		}
 		return bytes.Compare(out[i].IP.To4(), out[j].IP.To4()) < 0
 	})
 	return out
