@@ -100,8 +100,22 @@ go build -ldflags "-s -w" -o netwp.exe ./cmd/netwp
 `go install -ldflags "-s -w" ./cmd/netwp` (run from inside the cloned repo)
 does the same, straight into `$(go env GOPATH)\bin`.
 
-The Windows scanner uses the `SendARP` API: **no admin rights and no Npcap
-required**.
+### Privileges by command
+
+| Command | Windows | Linux |
+| --- | --- | --- |
+| `scan` · `monitor` · `dashboard` | no privilege needed | needs `CAP_NET_RAW` |
+| `ports` · `speedtest` · `alias` · `version` · `update` | no privilege needed | no privilege needed |
+| `iface` (inspect only) | no privilege needed | no privilege needed |
+| `iface static` / `iface dhcp` | needs an elevated terminal | not implemented |
+
+Windows uses the `SendARP`/`IcmpSendEcho` APIs for `scan`, so the read-only
+commands never need admin. On Linux, grant the raw-ARP scanner capability
+once instead of running as root every time:
+
+```bash
+sudo setcap cap_net_raw+ep $(which netwp)
+```
 
 ### Updating
 
