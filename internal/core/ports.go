@@ -43,6 +43,13 @@ type Pinger interface {
 	Ping(ip net.IP, timeout time.Duration) (rtt time.Duration, ttl int, ok bool)
 }
 
+// EventLogger persists a presence-change Event for later review (`netwp
+// events`). Best-effort: callers ignore its error, the same way scancache
+// writes are best-effort.
+type EventLogger interface {
+	Log(e Event) error
+}
+
 // InterfaceInspector reads the active network interface's IP configuration.
 type InterfaceInspector interface {
 	Inspect() (InterfaceInfo, error)

@@ -37,8 +37,11 @@ var (
 // reader and alertDown together enable an optional bandwidth alert: pass a
 // nil reader (or alertDown <= 0) to leave monitor exactly as it was before
 // this existed, with no bandwidth line at all.
+//
+// logger, if non-nil, persists every join/leave event for later review via
+// `netwp events`.
 func RunMonitor(discovery *core.Discovery, tracker *core.Tracker, network core.Network, interval, scanBudget time.Duration,
-	reader core.CounterReader, alertDown float64) error {
+	reader core.CounterReader, alertDown float64, logger core.EventLogger) error {
 	m := monitorModel{
 		discovery:  discovery,
 		tracker:    tracker,
@@ -47,6 +50,7 @@ func RunMonitor(discovery *core.Discovery, tracker *core.Tracker, network core.N
 		scanBudget: scanBudget,
 		reader:     reader,
 		alertDown:  alertDown,
+		logger:     logger,
 		meter:      &core.RateMeter{},
 		scanning:   true,
 		scanStart:  time.Now(),
@@ -63,6 +67,7 @@ type monitorModel struct {
 	scanBudget time.Duration
 	reader     core.CounterReader // nil disables bandwidth sampling/alerting entirely
 	alertDown  float64            // bytes/sec threshold; <= 0 disables the alert
+	logger     core.EventLogger   // nil disables event persistence
 	meter      *core.RateMeter
 	rate       core.Rate
 
@@ -147,6 +152,9 @@ func (m monitorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err == nil {
 			for _, e := range m.tracker.Observe(msg.devices, msg.at) {
 				m.log = append(m.log, formatEvent(e))
+				if m.logger != nil {
+					_ = m.logger.Log(e)
+				}
 			}
 			if len(m.log) > logLimit {
 				m.log = m.log[len(m.log)-logLimit:]

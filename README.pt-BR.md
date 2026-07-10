@@ -155,6 +155,7 @@ internal/tui     saída em tabela legível
 | `iface dhcp` | Volta para DHCP (pede confirmação) |
 | `alias set <ip\|mac> <nome>` / `ls` / `rm <ip\|mac>` | Apelida um dispositivo / lista / remove |
 | `ports <ip>` | Portas abertas + RTT + TTL de um dispositivo |
+| `events [n]` | Mostra os últimos n eventos de entrada/saída (padrão 20) |
 | `version` | Versão instalada |
 | `update` | Atualiza pra última versão (precisa do Go) |
 
@@ -242,6 +243,10 @@ uma vulnerabilidade.
   respondido por um MAC diferente (possível sequestro de endereço), e um MAC
   visto em mais de um IP na mesma varredura. A comparação usa o mesmo cache
   `lastscan.json` que o `alias set <ip>` já aproveita.
+- `netwp monitor` e `netwp dashboard` gravam cada evento de entrada/saída em
+  `<pasta-de-config-do-usuário>/netwp/events.jsonl`. `netwp events [n]`
+  mostra os últimos n (padrão 20). Só acrescenta, sem rotação: um log
+  corrido pra consulta depois, não um banco de dados pra query.
 
 Quer contribuir? Veja [CONTRIBUTING.md](CONTRIBUTING.md). Este projeto
 segue o [Código de Conduta](CODE_OF_CONDUCT.md).

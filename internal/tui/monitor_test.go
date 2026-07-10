@@ -100,6 +100,30 @@ type fakeCounterReader struct{}
 
 func (fakeCounterReader) Counters() (core.NetCounters, error) { return core.NetCounters{}, nil }
 
+type fakeEventLogger struct{ events []core.Event }
+
+func (f *fakeEventLogger) Log(e core.Event) error {
+	f.events = append(f.events, e)
+	return nil
+}
+
+// TestMonitorLogsEventsToLogger checks scanDoneMsg forwards every tracker
+// event to the logger, when one is set (nil logger is the default, tested
+// implicitly by every other test in this file not setting one and not panicking).
+func TestMonitorLogsEventsToLogger(t *testing.T) {
+	tr := core.NewTracker(30 * time.Second)
+	logger := &fakeEventLogger{}
+	_, cidr, _ := net.ParseCIDR("192.168.1.0/24")
+	m := monitorModel{tracker: tr, network: core.Network{CIDR: cidr}, interval: 10 * time.Second, logger: logger}
+
+	mac, _ := net.ParseMAC("aa:bb:cc:dd:ee:ff")
+	m.Update(scanDoneMsg{devices: []core.Device{{IP: net.IPv4(192, 168, 1, 5), MAC: mac}}, at: time.Now()})
+
+	if len(logger.events) != 1 || logger.events[0].Kind != core.Joined {
+		t.Errorf("logger.events = %+v, want one Joined event", logger.events)
+	}
+}
+
 func TestHasSensitivePort(t *testing.T) {
 	cases := []struct {
 		ports []int

@@ -19,6 +19,7 @@ import (
 
 	"github.com/gsjonio/netwp/internal/adapter/aliasstore"
 	"github.com/gsjonio/netwp/internal/adapter/arpscan"
+	"github.com/gsjonio/netwp/internal/adapter/eventlog"
 	"github.com/gsjonio/netwp/internal/adapter/httpspeed"
 	"github.com/gsjonio/netwp/internal/adapter/icmpping"
 	"github.com/gsjonio/netwp/internal/adapter/ifacestat"
@@ -91,6 +92,8 @@ func main() {
 		err = runDashboard()
 	case "ports":
 		err = runPorts()
+	case "events":
+		err = runEvents()
 	default:
 		fmt.Fprintf(os.Stderr, "netwp: unknown command %q\n\n", command)
 		printUsage(os.Stderr)
@@ -124,6 +127,7 @@ Commands:
   alias ls                                        list nicknames
   alias rm <ip-or-mac>                            remove a nickname
   ports <ip>                                      open ports + RTT for one device
+  events [n]                                      show the last n join/leave events (default 20)
   version                                         show the installed version
   update                                          update to the latest version (needs the Go toolchain)
   help                                            show this help
@@ -513,6 +517,17 @@ func parseAlertFlag(args []string) (float64, error) {
 	return 0, nil
 }
 
+// defaultEventLogger builds the events.jsonl logger for monitor/dashboard.
+// Returns nil (persistence disabled) if the config directory can't be
+// resolved -- the same best-effort posture as scancache's writes.
+func defaultEventLogger() core.EventLogger {
+	path, err := eventlog.DefaultPath()
+	if err != nil {
+		return nil
+	}
+	return eventlog.New(path)
+}
+
 func runMonitor() error {
 	discovery, network, err := discoveryContext()
 	if err != nil {
@@ -532,7 +547,7 @@ func runMonitor() error {
 		}
 		reader = ifacestat.New(info.Name)
 	}
-	return tui.RunMonitor(discovery, tracker, network, monitorEvery, monitorScanBudget, reader, alertDown)
+	return tui.RunMonitor(discovery, tracker, network, monitorEvery, monitorScanBudget, reader, alertDown, defaultEventLogger())
 }
 
 func runDashboard() error {
@@ -547,7 +562,41 @@ func runDashboard() error {
 	tracker := core.NewTracker(offlineAfter)
 	reader := ifacestat.New(info.Name)
 	speed := core.NewSpeedtest(httpspeed.New())
-	return tui.RunDashboard(discovery, tracker, network, info, reader, wifi.New(), speed, icmpping.New())
+	return tui.RunDashboard(discovery, tracker, network, info, reader, wifi.New(), speed, icmpping.New(), defaultEventLogger())
+}
+
+// runEvents prints the last n recorded presence-change events (newest last),
+// n defaulting to 20. Usage: netwp events [n]
+func runEvents() error {
+	n := 20
+	if args := os.Args[2:]; len(args) > 0 {
+		v, err := strconv.Atoi(args[0])
+		if err != nil || v <= 0 {
+			return fmt.Errorf("invalid count %q: expected a positive integer", args[0])
+		}
+		n = v
+	}
+
+	path, err := eventlog.DefaultPath()
+	if err != nil {
+		return err
+	}
+	entries, err := eventlog.Tail(path, n)
+	if err != nil {
+		return err
+	}
+	if len(entries) == 0 {
+		fmt.Println("no events recorded yet. Run `netwp monitor` or `netwp dashboard` to start logging.")
+		return nil
+	}
+	for _, e := range entries {
+		name := e.Name
+		if name == "" {
+			name = e.IP
+		}
+		fmt.Printf("%s  %-6s %s (%s)\n", e.At.Local().Format("2006-01-02 15:04:05"), e.Kind, name, e.IP)
+	}
+	return nil
 }
 
 // runAlias dispatches the alias subcommands: set, ls, rm.

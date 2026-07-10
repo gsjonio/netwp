@@ -152,6 +152,7 @@ internal/tui     legible table output
 | `iface dhcp` | Switch back to DHCP (asks to confirm) |
 | `alias set <ip\|mac> <name>` / `ls` / `rm <ip\|mac>` | Nickname a device / list / remove |
 | `ports <ip>` | Open ports + RTT + TTL for one device |
+| `events [n]` | Print the last n join/leave events (default 20) |
 | `version` | Installed version |
 | `update` | Update to the latest version (needs Go) |
 
@@ -236,6 +237,10 @@ vulnerability.
   now answered by a different MAC (possible address takeover), and a MAC
   seen at more than one IP in the same scan. The comparison snapshot is the
   same `lastscan.json` cache `alias set <ip>` already uses.
+- `netwp monitor` and `netwp dashboard` append every join/leave event to
+  `<user-config-dir>/netwp/events.jsonl`. `netwp events [n]` prints the last
+  n (default 20). Append-only, no rotation: a running log for later review,
+  not a queryable database.
 
 Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md). This project
 follows the [Code of Conduct](CODE_OF_CONDUCT.md).

@@ -30,9 +30,12 @@ const (
 	histLen         = 24
 )
 
-// RunDashboard starts the composite live dashboard and blocks until the user quits.
+// RunDashboard starts the composite live dashboard and blocks until the user
+// quits. logger, if non-nil, persists every join/leave event for later
+// review via `netwp events`.
 func RunDashboard(discovery *core.Discovery, tracker *core.Tracker, network core.Network,
-	info core.InterfaceInfo, reader core.CounterReader, wifi core.WiFiInspector, speed *core.Speedtest, pinger core.Pinger) error {
+	info core.InterfaceInfo, reader core.CounterReader, wifi core.WiFiInspector, speed *core.Speedtest, pinger core.Pinger,
+	logger core.EventLogger) error {
 	m := dashModel{
 		discovery: discovery,
 		tracker:   tracker,
@@ -42,6 +45,7 @@ func RunDashboard(discovery *core.Discovery, tracker *core.Tracker, network core
 		wifi:      wifi,
 		speed:     speed,
 		pinger:    pinger,
+		logger:    logger,
 		meter:     &core.RateMeter{},
 		start:     time.Now(),
 		width:     dashDefaultCols,
@@ -59,6 +63,7 @@ type dashModel struct {
 	wifi      core.WiFiInspector
 	speed     *core.Speedtest
 	pinger    core.Pinger
+	logger    core.EventLogger // nil disables event persistence
 	meter     *core.RateMeter
 
 	start      time.Time
@@ -190,6 +195,9 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lastScan = msg.at
 		for _, e := range m.tracker.Observe(msg.devices, msg.at) {
 			m.log = append(m.log, formatEvent(e))
+			if m.logger != nil {
+				_ = m.logger.Log(e)
+			}
 		}
 		if len(m.log) > logLimit {
 			m.log = m.log[len(m.log)-logLimit:]
