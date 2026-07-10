@@ -74,7 +74,7 @@ func main() {
 		printVersion(os.Stdout)
 		return
 	case "scan", "--json": // --json is a scan flag, not its own subcommand
-		err = runScan()
+		err = runScan(hasArg("--json"))
 	case "monitor":
 		err = runMonitor()
 	case "speedtest":
@@ -155,6 +155,18 @@ func printVersion(w io.Writer) {
 	fmt.Fprintf(w, "netwp (devel, commit %s%s)\n", rev, dirty)
 }
 
+// hasArg reports whether flag appears anywhere in the CLI arguments. The
+// single place that interprets a flag, so subcommand funcs take their
+// options as plain parameters instead of reaching back into os.Args.
+func hasArg(flag string) bool {
+	for _, a := range os.Args[1:] {
+		if a == flag {
+			return true
+		}
+	}
+	return false
+}
+
 func vcsSetting(info *debug.BuildInfo, key string) string {
 	for _, s := range info.Settings {
 		if s.Key == key {
@@ -178,14 +190,7 @@ func openAliasStore() (*aliasstore.Store, error) {
 	return aliasstore.Open(path)
 }
 
-func runScan() error {
-	asJSON := false
-	for _, a := range os.Args[1:] {
-		if a == "--json" {
-			asJSON = true
-		}
-	}
-
+func runScan(asJSON bool) error {
 	network, err := netinfo.LocalNetwork()
 	if err != nil {
 		return err
