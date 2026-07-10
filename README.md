@@ -141,22 +141,24 @@ Otherwise, update the same way you installed:
 
 ## Usage
 
+| Command | What it does |
+| --- | --- |
+| *(none)* / `help` / `-h` / `--help` | Print usage |
+| `scan` / `scan --json` | One-shot scan, with per-device RTT; `--json` for machine-readable output |
+| `monitor` | Live TUI: devices joining/leaving in real time (`q` to quit) |
+| `dashboard` | Full dashboard: Wi-Fi + live bandwidth + speedtest + devices |
+| `speedtest` | Download/upload throughput |
+| `iface` | Inspect the active interface's IP config |
+| `iface static <ip>/<bits> <gw> [dns...]` | Set a static address (asks to confirm) |
+| `iface dhcp` | Switch back to DHCP (asks to confirm) |
+| `alias set <ip\|mac> <name>` / `ls` / `rm <ip\|mac>` | Nickname a device / list / remove |
+| `ports <ip>` | Open ports + RTT for one device |
+| `version` | Installed version |
+| `update` | Update to the latest version (needs Go) |
+
 ```powershell
-netwp             # no arguments: prints usage/help (same as netwp help / --help)
-netwp scan        # one-shot scan, with per-device RTT
-netwp scan --json # same scan, machine-readable JSON on stdout
-netwp monitor     # live TUI: devices joining/leaving in real time (q to quit)
-netwp dashboard   # full dashboard: wifi + live bandwidth + speedtest + devices
-netwp speedtest   # download/upload throughput
-netwp iface       # active interface's IP config
-netwp iface static 192.168.1.50/24 192.168.1.1 8.8.8.8  # set a static address (asks to confirm)
-netwp iface dhcp                                        # switch back to DHCP (asks to confirm)
-netwp alias set 192.168.1.20 "Living Room TV"  # nickname a device (by IP or MAC)
-netwp alias ls                                 # list nicknames
-netwp alias rm 192.168.1.20                    # remove a nickname
-netwp ports 192.168.1.20                       # open ports + RTT for one device
-netwp version                                  # installed version
-netwp update                                   # update to the latest version (needs Go)
+netwp scan --json | ConvertFrom-Json | Where-Object reachable
+netwp alias set 192.168.1.20 "Living Room TV"
 ```
 
 ## Notes
