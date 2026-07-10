@@ -103,7 +103,8 @@ O scanner Windows usa a API `SendARP`: **não exige admin nem Npcap**.
 ## Uso
 
 ```powershell
-netwp             # varredura única (padrão), com RTT por dispositivo
+netwp             # sem argumentos: mostra ajuda/uso (igual a netwp help / --help)
+netwp scan        # varredura única, com RTT por dispositivo
 netwp scan --json # mesma varredura, saída JSON no stdout
 netwp monitor     # TUI ao vivo: dispositivos entrando/saindo em tempo real (q sai)
 netwp dashboard   # dashboard completo: wifi + banda ao vivo + speedtest + dispositivos

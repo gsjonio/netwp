@@ -104,7 +104,8 @@ required**.
 ## Usage
 
 ```powershell
-netwp             # one-shot scan (default), with per-device RTT
+netwp             # no arguments: prints usage/help (same as netwp help / --help)
+netwp scan        # one-shot scan, with per-device RTT
 netwp scan --json # same scan, machine-readable JSON on stdout
 netwp monitor     # live TUI: devices joining/leaving in real time (q to quit)
 netwp dashboard   # full dashboard: wifi + live bandwidth + speedtest + devices

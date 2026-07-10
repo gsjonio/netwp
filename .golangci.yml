@@ -6,6 +6,7 @@ linters:
         - (io.Closer).Close
         - (net.Conn).Write
         - (net.Conn).SetReadDeadline
+        - fmt.Fprint
         - fmt.Fprintf
         - fmt.Fprintln
         - io.Copy

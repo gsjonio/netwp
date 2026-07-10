@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -65,7 +66,10 @@ func main() {
 
 	var err error
 	switch command {
-	case "", "scan", "--json": // --json is a scan flag, not its own subcommand
+	case "", "help", "-h", "--help":
+		printUsage(os.Stdout)
+		return
+	case "scan", "--json": // --json is a scan flag, not its own subcommand
 		err = runScan()
 	case "monitor":
 		err = runMonitor()
@@ -80,12 +84,41 @@ func main() {
 	case "ports":
 		err = runPorts()
 	default:
-		err = fmt.Errorf("unknown command %q (use: scan [--json] | monitor | speedtest | iface | alias | dashboard | ports)", command)
+		fmt.Fprintf(os.Stderr, "netwp: unknown command %q\n\n", command)
+		printUsage(os.Stderr)
+		os.Exit(1)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "netwp:", err)
 		os.Exit(1)
 	}
+}
+
+// printUsage lists every subcommand with a one-line description, in the
+// style of standard CLIs (git, docker): running netwp with no arguments (or
+// help/-h/--help) shows this instead of taking any action.
+func printUsage(w io.Writer) {
+	fmt.Fprint(w, `netwp - terminal network manager (ARP scan, monitor, dashboard, bandwidth, interface config)
+
+Usage:
+  netwp <command> [arguments]
+
+Commands:
+  scan [--json]                                  one-shot ARP scan of the local network, with per-device RTT
+  monitor                                         live TUI: devices joining/leaving in real time (q to quit)
+  dashboard                                       full dashboard: wifi + live bandwidth + speedtest + devices
+  speedtest                                       download/upload throughput test
+  iface                                           inspect the active interface's IP config
+  iface static <ip>/<bits> <gateway> [dns...]     set a static IP (asks to confirm)
+  iface dhcp                                      switch back to DHCP (asks to confirm)
+  alias set <ip-or-mac> <name>                    nickname a device
+  alias ls                                        list nicknames
+  alias rm <ip-or-mac>                            remove a nickname
+  ports <ip>                                      open ports + RTT for one device
+  help                                            show this help
+
+Run "netwp scan" to see the devices on your network.
+`)
 }
 
 // buildDiscovery assembles the discovery use case from its platform adapters.

@@ -1,9 +1,22 @@
 package main
 
 import (
+	"bytes"
 	"net"
+	"strings"
 	"testing"
 )
+
+func TestPrintUsageListsCommands(t *testing.T) {
+	var buf bytes.Buffer
+	printUsage(&buf)
+	out := buf.String()
+	for _, want := range []string{"scan", "monitor", "dashboard", "speedtest", "iface", "alias", "ports", "help"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("usage output missing command %q:\n%s", want, out)
+		}
+	}
+}
 
 func TestParseStaticArgs(t *testing.T) {
 	cfg, err := parseStaticArgs([]string{"192.168.1.50/24", "192.168.1.1", "8.8.8.8", "1.1.1.1"})
