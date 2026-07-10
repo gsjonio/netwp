@@ -18,8 +18,8 @@ inspection. Windows-first, portable to Linux.
 ## Table of Contents
 
 - [Status](#status)
-- [Architecture](#architecture)
 - [Install](#install)
+- [Architecture](#architecture)
 - [Usage](#usage)
 - [Notes](#notes)
 - [License](#license)
@@ -42,19 +42,6 @@ inspection. Windows-first, portable to Linux.
 - [x] Per-device port detail (`netwp ports <ip>`)
 - [x] Open ports in the device table, with sensitive ones (SSH/SMB/RDP) flagged
 - [x] Self-update (`netwp update`) and version reporting (`netwp version`)
-
-## Architecture
-
-Hexagonal (Ports & Adapters). The `core` package is pure domain + use cases and
-never imports OS/network code; adapters implement its ports and are selected at
-build time via Go build tags.
-
-```text
-cmd/netwp        composition root
-internal/core    domain + ports + use cases (pure)
-internal/adapter arpscan · netinfo · oui (touch the OS)
-internal/tui     legible table output
-```
 
 ## Install
 
@@ -138,6 +125,19 @@ Otherwise, update the same way you installed:
 - **Prebuilt binary:** download the new one from the
   [Releases page](https://github.com/gsjonio/netwp/releases/latest) and
   replace the old file. There's no self-update mechanism for this path.
+
+## Architecture
+
+Hexagonal (Ports & Adapters). The `core` package is pure domain + use cases and
+never imports OS/network code; adapters implement its ports and are selected at
+build time via Go build tags.
+
+```text
+cmd/netwp        composition root
+internal/core    domain + ports + use cases (pure)
+internal/adapter arpscan · netinfo · oui (touch the OS)
+internal/tui     legible table output
+```
 
 ## Usage
 

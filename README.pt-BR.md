@@ -18,8 +18,8 @@ inspeção de interface. Windows primeiro, portável para Linux.
 ## Sumário
 
 - [Status](#status)
-- [Arquitetura](#arquitetura)
 - [Instalação](#instalação)
+- [Arquitetura](#arquitetura)
 - [Uso](#uso)
 - [Notas](#notas)
 - [Licença](#licença)
@@ -42,19 +42,6 @@ inspeção de interface. Windows primeiro, portável para Linux.
 - [x] Detalhe de portas por dispositivo (`netwp ports <ip>`)
 - [x] Portas abertas na tabela, com as sensíveis (SSH/SMB/RDP) destacadas
 - [x] Auto-atualização (`netwp update`) e versão instalada (`netwp version`)
-
-## Arquitetura
-
-Hexagonal (Ports & Adapters). O pacote `core` é domínio puro + casos de uso e
-nunca importa código de SO/rede; os adapters implementam as portas e são
-escolhidos em tempo de compilação por build tags.
-
-```text
-cmd/netwp        raiz de composição
-internal/core    domínio + portas + casos de uso (puro)
-internal/adapter arpscan · netinfo · oui (tocam o SO)
-internal/tui     saída em tabela legível
-```
 
 ## Instalação
 
@@ -139,6 +126,19 @@ Fora isso, atualize do mesmo jeito que instalou:
   [página de Releases](https://github.com/gsjonio/netwp/releases/latest) e
   substitua o arquivo antigo. Não tem mecanismo de auto-atualização por esse
   caminho.
+
+## Arquitetura
+
+Hexagonal (Ports & Adapters). O pacote `core` é domínio puro + casos de uso e
+nunca importa código de SO/rede; os adapters implementam as portas e são
+escolhidos em tempo de compilação por build tags.
+
+```text
+cmd/netwp        raiz de composição
+internal/core    domínio + portas + casos de uso (puro)
+internal/adapter arpscan · netinfo · oui (tocam o SO)
+internal/tui     saída em tabela legível
+```
 
 ## Uso
 
