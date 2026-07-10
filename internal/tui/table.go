@@ -14,6 +14,7 @@ import (
 	"net"
 	"sort"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/gsjonio/netwp/internal/core"
@@ -56,7 +57,7 @@ func RenderDevices(w io.Writer, devices []core.Device) {
 			statusCell(d.Online),
 			{d.IP.String(), ""},
 			aliasCell(d.Alias),
-			dashCell(rttText(d.RTT, d.Reachable)),
+			rttCell(d.RTT, d.Reachable),
 			macCell(d.MAC),
 			classCell(d.Class),
 			textCell(d.Hostname),
@@ -107,6 +108,23 @@ func statusCell(online bool) cell {
 func macCell(m net.HardwareAddr) cell   { return dashCell(macText(m)) }
 func textCell(s string) cell            { return dashCell(orDash(s)) }
 func classCell(c core.DeviceClass) cell { return dashCell(classLabel(c)) }
+
+// rttCell colors round-trip time by quality tier: green under 20ms, bold
+// neutral under 100ms, red beyond that -- otherwise every RTT reads with the
+// same visual weight and a struggling device doesn't stand out.
+func rttCell(rtt time.Duration, reachable bool) cell {
+	text := rttText(rtt, reachable)
+	switch rttQualityOf(rtt, reachable) {
+	case rttGood:
+		return cell{text, colorGreen}
+	case rttMedium:
+		return cell{text, colorBold}
+	case rttBad:
+		return cell{text, colorWarn}
+	default:
+		return cell{dash, colorDim}
+	}
+}
 
 // portsCell highlights the ports list when it includes a sensitive one (SSH,
 // SMB, RDP), so an unintentionally exposed service catches the eye instead of

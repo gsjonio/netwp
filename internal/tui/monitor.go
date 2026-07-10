@@ -181,7 +181,7 @@ func renderMonitorTable(devices []core.TrackedDevice, ref time.Time) string {
 		if d.Online {
 			dot = styOnline.Render("●")
 		}
-		t.Row(dot, d.IP.String(), aliasText(d.Alias), rttText(d.RTT, d.Reachable), classLabel(d.Class), macText(d.MAC), orDash(d.Hostname), orDash(d.Vendor), portsCellText(d.Ports), lastSeen(d, ref))
+		t.Row(dot, d.IP.String(), aliasText(d.Alias), rttCellText(d.RTT, d.Reachable), classLabel(d.Class), macText(d.MAC), orDash(d.Hostname), orDash(d.Vendor), portsCellText(d.Ports), lastSeen(d, ref))
 	}
 	return t.String()
 }
@@ -212,6 +212,22 @@ func aliasText(alias string) string {
 		return dash
 	}
 	return styAlias.Render(alias)
+}
+
+// rttCellText colors round-trip time by quality tier, mirroring rttCell's
+// thresholds (green good, bold neutral medium, red bad).
+func rttCellText(rtt time.Duration, reachable bool) string {
+	text := rttText(rtt, reachable)
+	switch rttQualityOf(rtt, reachable) {
+	case rttGood:
+		return styOnline.Render(text)
+	case rttMedium:
+		return styHead.Render(text)
+	case rttBad:
+		return styWarn.Render(text)
+	default:
+		return text
+	}
 }
 
 // portsCellText renders the PORTS cell, highlighted when a sensitive port

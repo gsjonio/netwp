@@ -49,6 +49,34 @@ func rttText(rtt time.Duration, reachable bool) string {
 	return fmt.Sprintf("%dms", rtt.Milliseconds())
 }
 
+// rttQuality buckets round-trip time into a coarse tier for coloring.
+type rttQuality int
+
+const (
+	rttUnknown rttQuality = iota // unreachable, or RTT not measured
+	rttGood
+	rttMedium
+	rttBad
+)
+
+// rttQualityOf classifies rtt for LAN traffic: even "bad" here (>=100ms) is
+// fast by internet standards, but on your own network it usually means
+// congestion, a weak Wi-Fi link, or a struggling device -- worth a second
+// look. Single source of truth for both table renderers' color thresholds.
+func rttQualityOf(rtt time.Duration, reachable bool) rttQuality {
+	if !reachable {
+		return rttUnknown
+	}
+	switch {
+	case rtt < 20*time.Millisecond:
+		return rttGood
+	case rtt < 100*time.Millisecond:
+		return rttMedium
+	default:
+		return rttBad
+	}
+}
+
 // portsText renders a device's open ports as a compact comma-separated list
 // (e.g. "80,443"), or the placeholder when none were found/probed. Full
 // per-port names are one level down, via `netwp ports <ip>`.

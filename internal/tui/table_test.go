@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 	"unicode/utf8"
 
 	"github.com/gsjonio/netwp/internal/core"
@@ -56,6 +57,42 @@ func TestPortsCellColorsSensitivePorts(t *testing.T) {
 	}
 	if got := portsCell(nil); got.color != colorDim {
 		t.Errorf("portsCell(nil).color = %q, want colorDim (placeholder dash)", got.color)
+	}
+}
+
+func TestRttQualityOf(t *testing.T) {
+	cases := []struct {
+		rtt       time.Duration
+		reachable bool
+		want      rttQuality
+	}{
+		{0, false, rttUnknown},
+		{0, true, rttGood},
+		{19 * time.Millisecond, true, rttGood},
+		{20 * time.Millisecond, true, rttMedium},
+		{99 * time.Millisecond, true, rttMedium},
+		{100 * time.Millisecond, true, rttBad},
+		{500 * time.Millisecond, true, rttBad},
+	}
+	for _, c := range cases {
+		if got := rttQualityOf(c.rtt, c.reachable); got != c.want {
+			t.Errorf("rttQualityOf(%v, %v) = %v, want %v", c.rtt, c.reachable, got, c.want)
+		}
+	}
+}
+
+func TestRttCellColors(t *testing.T) {
+	if got := rttCell(5*time.Millisecond, true); got.color != colorGreen {
+		t.Errorf("rttCell(5ms).color = %q, want colorGreen", got.color)
+	}
+	if got := rttCell(50*time.Millisecond, true); got.color != colorBold {
+		t.Errorf("rttCell(50ms).color = %q, want colorBold", got.color)
+	}
+	if got := rttCell(200*time.Millisecond, true); got.color != colorWarn {
+		t.Errorf("rttCell(200ms).color = %q, want colorWarn", got.color)
+	}
+	if got := rttCell(0, false); got.color != colorDim || got.text != dash {
+		t.Errorf("rttCell(unreachable) = %+v, want dimmed placeholder", got)
 	}
 }
 
