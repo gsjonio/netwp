@@ -21,6 +21,29 @@ func orDash(s string) string {
 	return s
 }
 
+// vendorMaxLen bounds the VENDOR column: OUI registry names run past 40
+// characters for some manufacturers (full legal entity names), and one such
+// row would otherwise stretch the whole table.
+const vendorMaxLen = 22
+
+// truncate shortens s to at most n runes, appending "…" if it was cut.
+func truncate(s string, n int) string {
+	r := []rune(s)
+	if len(r) <= n {
+		return s
+	}
+	if n <= 1 {
+		return "…"
+	}
+	return string(r[:n-1]) + "…"
+}
+
+// vendorText renders a vendor name, truncated to vendorMaxLen, or the
+// placeholder when absent.
+func vendorText(s string) string {
+	return truncate(orDash(s), vendorMaxLen)
+}
+
 // macText renders a MAC, or the placeholder when it is absent.
 func macText(m net.HardwareAddr) string {
 	if len(m) == 0 {

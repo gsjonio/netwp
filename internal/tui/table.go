@@ -61,7 +61,7 @@ func RenderDevices(w io.Writer, devices []core.Device) {
 			macCell(d.MAC),
 			classCell(d.Class),
 			textCell(d.Hostname),
-			textCell(d.Vendor),
+			dashCell(vendorText(d.Vendor)),
 			portsCell(d.Ports),
 		})
 	}

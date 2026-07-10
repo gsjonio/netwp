@@ -181,7 +181,7 @@ func renderMonitorTable(devices []core.TrackedDevice, ref time.Time) string {
 		if d.Online {
 			dot = styOnline.Render("●")
 		}
-		t.Row(dot, d.IP.String(), aliasText(d.Alias), rttCellText(d.RTT, d.Reachable), classLabel(d.Class), macText(d.MAC), orDash(d.Hostname), orDash(d.Vendor), portsCellText(d.Ports), lastSeen(d, ref))
+		t.Row(dot, d.IP.String(), aliasText(d.Alias), rttCellText(d.RTT, d.Reachable), classLabel(d.Class), macText(d.MAC), orDash(d.Hostname), vendorText(d.Vendor), portsCellText(d.Ports), lastSeen(d, ref))
 	}
 	return t.String()
 }

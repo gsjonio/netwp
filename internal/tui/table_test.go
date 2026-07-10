@@ -96,6 +96,26 @@ func TestRttCellColors(t *testing.T) {
 	}
 }
 
+func TestTruncate(t *testing.T) {
+	if got := truncate("short", 22); got != "short" {
+		t.Errorf("truncate(short) = %q, want unchanged", got)
+	}
+	long := "CLOUD NETWORK TECHNOLOGY SINGAPORE PTE. LTD."
+	got := truncate(long, 22)
+	if r := []rune(got); len(r) != 22 {
+		t.Errorf("truncate(long, 22) has %d runes, want 22: %q", len(r), got)
+	}
+	if !strings.HasSuffix(got, "…") {
+		t.Errorf("truncate(long, 22) = %q, want it to end in an ellipsis", got)
+	}
+}
+
+func TestVendorTextDash(t *testing.T) {
+	if got := vendorText(""); got != dash {
+		t.Errorf("vendorText(\"\") = %q, want %q", got, dash)
+	}
+}
+
 func TestPortsText(t *testing.T) {
 	if got := portsText(nil); got != dash {
 		t.Errorf("portsText(nil) = %q, want %q", got, dash)
