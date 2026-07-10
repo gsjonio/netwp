@@ -6,7 +6,15 @@ import (
 	"time"
 )
 
-const pingTimeout = 500 * time.Millisecond
+const (
+	pingTimeout = 500 * time.Millisecond
+	// enrichConcurrency caps how many devices are enriched at once. Each
+	// enriched device holds several concurrent sockets (a TCP probe per
+	// well-known port, an ICMP ping, and mDNS/NetBIOS lookups), so an
+	// unbounded fan-out on a busy LAN could approach the process file-
+	// descriptor limit. 32 devices in flight keeps that in the low hundreds.
+	enrichConcurrency = 32
+)
 
 // Discovery is the device-discovery use case. It orchestrates a scan and then
 // enriches each result with hostname, vendor, class and round-trip time. It
@@ -41,10 +49,13 @@ func (d *Discovery) Run(ctx context.Context, target Network) ([]Device, error) {
 	// scan results into enrichment as they arrive would overlap both phases;
 	// worth it only once ranges grow past a /24.
 	var wg sync.WaitGroup
+	sem := make(chan struct{}, enrichConcurrency)
 	for i := range devices {
 		wg.Add(1)
+		sem <- struct{}{} // block once enrichConcurrency devices are in flight
 		go func(i int) {
 			defer wg.Done()
+			defer func() { <-sem }()
 			dev := &devices[i]
 			skipProbe := dev.IP.Equal(target.Self) ||
 				(target.Gateway != nil && dev.IP.Equal(target.Gateway)) ||

@@ -53,6 +53,48 @@ func (p *recordingProber) OpenPorts(_ context.Context, ip net.IP) []int {
 	return p.ports
 }
 
+// concurrencyResolver tracks the peak number of overlapping Hostname calls.
+// Hostname runs on the per-device enrichment goroutine for the whole time
+// that device is being enriched, so its peak concurrency is the enrichment
+// fan-out width.
+type concurrencyResolver struct {
+	mu       sync.Mutex
+	cur, max int
+}
+
+func (c *concurrencyResolver) Hostname(net.IP) string {
+	c.mu.Lock()
+	c.cur++
+	if c.cur > c.max {
+		c.max = c.cur
+	}
+	c.mu.Unlock()
+	time.Sleep(2 * time.Millisecond)
+	c.mu.Lock()
+	c.cur--
+	c.mu.Unlock()
+	return ""
+}
+
+func TestDiscoveryBoundsEnrichmentConcurrency(t *testing.T) {
+	var devs []Device
+	for i := 0; i < 100; i++ {
+		devs = append(devs, Device{IP: net.IPv4(10, 0, 0, byte(i)), MAC: net.HardwareAddr{1, 2, 3, 4, 5, byte(i)}})
+	}
+	res := &concurrencyResolver{}
+	d := NewDiscovery(fakeScanner{devices: devs}, res, fakeVendor{}, &recordingProber{}, fakeAlias{}, fakePinger{})
+
+	if _, err := d.Run(context.Background(), Network{}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if res.max > enrichConcurrency {
+		t.Errorf("peak enrichment concurrency = %d, want <= %d (fan-out must be bounded)", res.max, enrichConcurrency)
+	}
+	if res.max < 2 {
+		t.Errorf("peak concurrency = %d, expected the work to actually overlap", res.max)
+	}
+}
+
 func TestDiscoverySkipsSelfAndGatewayProbe(t *testing.T) {
 	self := net.IPv4(192, 168, 1, 10)
 	gateway := net.IPv4(192, 168, 1, 1)
