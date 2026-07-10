@@ -38,6 +38,22 @@ If you're adding a new capability, ask: does this belong in `core` as a new
 port + use case (if it's domain logic), or in an adapter (if it talks to
 the OS/network)? Keep that boundary intact.
 
+## Implementation notes
+
+Mechanics worth knowing before touching these paths (the README covers what
+they mean for a user; this is how they work):
+
+- **Hostname fallback** (`internal/adapter/namelookup`): reverse DNS runs
+  first; on a miss, an mDNS query and a NetBIOS query are raced against each
+  other, each bounded to 400ms, first non-empty answer wins. Neither is
+  guaranteed — a device with no Bonjour/Avahi responder and no NetBIOS
+  support just returns nothing.
+- **Classification probe** (`internal/adapter/tcpprobe`): the small,
+  deliberately-fixed set of well-known ports it checks is also what feeds
+  `core.Classify` and what the device table's PORTS column displays. There
+  is exactly one probe per device per scan; the column costs nothing extra
+  because it reuses that result instead of triggering a second sweep.
+
 ## Before opening a PR
 
 - [ ] `go build ./...`, `go vet ./...`, and `go test ./...` all pass.

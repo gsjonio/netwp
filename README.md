@@ -192,9 +192,9 @@ vulnerability.
 
 ### How some things work
 
-- Hostname resolution tries reverse DNS first, then falls back to mDNS and
-  NetBIOS (400ms each). Neither fallback is guaranteed — a device with
-  neither a Bonjour/Avahi responder nor NetBIOS support just shows no name.
+- Hostname resolution falls back to mDNS/NetBIOS when reverse DNS has
+  nothing, on a best-effort basis — some devices still won't show a name.
+  Fallback mechanics are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - RTT is a real ICMP echo per device; a device that answers ARP but not
   ICMP (firewalled) shows online with no RTT.
 - The Wi-Fi channel suggestion is a simple congestion count over visible
@@ -208,10 +208,9 @@ vulnerability.
 - `netwp ports <ip>` re-probes one device directly (same ports used for
   classification, reported individually) instead of a full scan. No
   port-history across runs, just the current state.
-- The device table's PORTS column reuses the ports the classification probe
-  already collects, so it costs no extra scanning. SSH (22), SMB (445) and
-  RDP (3389) render in red: exposed on a home network they are usually
-  unintentional. Port names are one level down, via `netwp ports <ip>`.
+- The device table's PORTS column flags SSH (22), SMB (445) and RDP (3389)
+  in red: exposed on a home network they are usually unintentional. Port
+  names are one level down, via `netwp ports <ip>`.
 - The dashboard's DEVICES panel shows a per-class breakdown of what's online
   (e.g. "2 Media · 1 Router"). "This device" and unclassified hosts are left
   out, since neither says anything about the network.

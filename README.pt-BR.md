@@ -197,10 +197,9 @@ uma vulnerabilidade.
 
 ### Como algumas coisas funcionam
 
-- A resolução de hostname tenta DNS reverso primeiro, depois cai para mDNS
-  e NetBIOS (400ms cada). Nenhum dos fallbacks é garantido: um dispositivo
-  sem responder Bonjour/Avahi nem suporte a NetBIOS simplesmente não mostra
-  nome.
+- A resolução de hostname cai para mDNS/NetBIOS quando o DNS reverso não
+  retorna nada, como melhor esforço — alguns dispositivos continuam sem
+  nome. O mecanismo do fallback está no [CONTRIBUTING.md](CONTRIBUTING.md).
 - O RTT é um ICMP echo real por dispositivo; um que responde ARP mas não
   ICMP (com firewall) aparece online sem RTT.
 - A sugestão de canal WiFi é uma contagem simples de congestionamento sobre
@@ -215,11 +214,9 @@ uma vulnerabilidade.
 - `netwp ports <ip>` sonda um único dispositivo diretamente (mesmas portas
   usadas na classificação, reportadas individualmente) em vez de um scan
   completo. Sem histórico de portas entre execuções, só o estado atual.
-- A coluna PORTS da tabela reaproveita as portas que a sonda de classificação
-  já coleta, então não custa varredura extra. SSH (22), SMB (445) e RDP
-  (3389) aparecem em vermelho: expostas numa rede doméstica, normalmente não
-  são intencionais. Os nomes das portas ficam um nível abaixo, no
-  `netwp ports <ip>`.
+- A coluna PORTS da tabela destaca SSH (22), SMB (445) e RDP (3389) em
+  vermelho: expostas numa rede doméstica, normalmente não são intencionais.
+  Os nomes das portas ficam um nível abaixo, no `netwp ports <ip>`.
 - O painel DEVICES do dashboard mostra um resumo por classe do que está online
   (ex.: "2 Media · 1 Router"). "This device" e hosts não classificados ficam
   de fora, já que nenhum dos dois diz nada sobre a rede.
