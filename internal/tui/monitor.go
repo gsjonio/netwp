@@ -59,6 +59,7 @@ type monitorModel struct {
 	scanStart time.Time
 	frame     int
 	err       error
+	height    int
 }
 
 type scanDoneMsg struct {
@@ -87,6 +88,9 @@ func (m monitorModel) scanNow() tea.Msg {
 
 func (m monitorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.height = msg.Height
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c", "esc":
@@ -129,22 +133,19 @@ func (m monitorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m monitorModel) View() string {
 	devices := m.tracker.Devices()
+	total := len(devices)
 	online := 0
 	for _, d := range devices {
 		if d.Online {
 			online++
 		}
 	}
+	summary := fmt.Sprintf("%s  %s · %d online / %d known",
+		styTitle.Render("netwp monitor"), m.network.CIDR, online, total)
 
-	var b strings.Builder
-	fmt.Fprintf(&b, "%s  %s · %d online / %d known\n\n",
-		styTitle.Render("netwp monitor"), m.network.CIDR, online, len(devices))
-	b.WriteString(renderMonitorTable(devices, m.lastScan))
-	b.WriteString("\n\n")
-
+	var activity string
 	if len(m.log) > 0 {
-		b.WriteString(styHead.Render("Recent activity") + "\n")
-		b.WriteString(strings.Join(m.log, "\n") + "\n\n")
+		activity = styHead.Render("Recent activity") + "\n" + strings.Join(m.log, "\n")
 	}
 
 	var state string
@@ -154,11 +155,54 @@ func (m monitorModel) View() string {
 	} else {
 		state = styOffline.Render(fmt.Sprintf("idle · next in %s", time.Until(m.lastScan.Add(m.interval)).Round(time.Second)))
 	}
+	footer := state + styOffline.Render("   ·   r rescan   ·   q quit")
+
+	// Trim the device table to whatever vertical room is left, so the
+	// footer never scrolls off screen on a short terminal. Fixed overhead:
+	// summary line + blank, the table's own border/header/separator/border
+	// (4, independent of row count), the blank line after it, the activity
+	// block (if any) plus its trailing blank, an error line (if any), and
+	// the footer itself.
+	if m.height > 0 {
+		used := lineCount(summary) + 1 + 4 + 1 + lineCount(footer)
+		if activity != "" {
+			used += lineCount(activity) + 1
+		}
+		if m.err != nil {
+			used++
+		}
+		var truncated bool
+		budget := m.height - used
+		devices, truncated = truncateToHeight(devices, budget)
+		if truncated {
+			summary += fmt.Sprintf(" (showing %d)", budget)
+		}
+	}
+
+	var b strings.Builder
+	b.WriteString(summary + "\n\n")
+	b.WriteString(renderMonitorTable(devices, m.lastScan))
+	b.WriteString("\n\n")
+	if activity != "" {
+		b.WriteString(activity + "\n\n")
+	}
 	if m.err != nil {
 		b.WriteString(styOffline.Render("error: "+m.err.Error()) + "\n")
 	}
-	b.WriteString(state + styOffline.Render("   ·   r rescan   ·   q quit"))
+	b.WriteString(footer)
 	return b.String()
+}
+
+// truncateToHeight caps devices to budget rows, so a caller with a known
+// terminal height never renders a table taller than it can show. budget<=0
+// leaves devices unchanged: either the height isn't known yet, or the fixed
+// chrome around the table already exceeds it, and showing everything is as
+// reasonable a fallback as showing nothing.
+func truncateToHeight(devices []core.TrackedDevice, budget int) (shown []core.TrackedDevice, truncated bool) {
+	if budget <= 0 || len(devices) <= budget {
+		return devices, false
+	}
+	return devices[:budget], true
 }
 
 func renderMonitorTable(devices []core.TrackedDevice, ref time.Time) string {

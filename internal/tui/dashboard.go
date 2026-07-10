@@ -256,8 +256,10 @@ func (m dashModel) View() string {
 		if activity != "" {
 			used += lineCount(activity)
 		}
-		if budget := m.height - used; budget > 0 && total > budget {
-			devices = devices[:budget]
+		var truncated bool
+		budget := m.height - used
+		devices, truncated = truncateToHeight(devices, budget)
+		if truncated {
 			devTitle = fmt.Sprintf("DEVICES · %d online / %d known (showing %d)", online, total, budget)
 		}
 	}

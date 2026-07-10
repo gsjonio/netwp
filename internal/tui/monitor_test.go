@@ -29,6 +29,53 @@ func TestMonitorViewSmoke(t *testing.T) {
 	}
 }
 
+// TestMonitorTruncatesDevicesToFitHeight mirrors
+// TestDashboardTruncatesDevicesToFitHeight: netwp monitor never had a height
+// budget before, so on a real network with many devices its footer (and the
+// r/q key hints) could scroll off a short terminal.
+func TestMonitorTruncatesDevicesToFitHeight(t *testing.T) {
+	tr := core.NewTracker(30 * time.Second)
+	var devices []core.Device
+	for i := 0; i < 40; i++ {
+		devices = append(devices, core.Device{
+			IP:  net.IPv4(192, 168, 1, byte(i+1)),
+			MAC: net.HardwareAddr{1, 2, 3, 4, 5, byte(i)},
+		})
+	}
+	tr.Observe(devices, time.Now())
+
+	_, cidr, _ := net.ParseCIDR("192.168.1.0/24")
+	m := monitorModel{tracker: tr, network: core.Network{CIDR: cidr}, interval: 10 * time.Second, height: 20}
+
+	out := m.View()
+	lines := strings.Split(out, "\n")
+	if len(lines) > m.height+1 { // +1 tolerance: line budget estimate, not pixel-exact
+		t.Errorf("rendered %d lines, want <= ~%d (height=%d)", len(lines), m.height+1, m.height)
+	}
+	if !strings.Contains(out, "r rescan") {
+		t.Error("footer missing from a short-terminal render")
+	}
+	if !strings.Contains(out, "showing") {
+		t.Error("expected the summary line to note truncation")
+	}
+}
+
+func TestTruncateToHeight(t *testing.T) {
+	var devices []core.TrackedDevice
+	for i := 0; i < 10; i++ {
+		devices = append(devices, core.TrackedDevice{})
+	}
+	if shown, truncated := truncateToHeight(devices, 0); truncated || len(shown) != 10 {
+		t.Errorf("budget<=0: got %d devices, truncated=%v, want all 10 unchanged", len(shown), truncated)
+	}
+	if shown, truncated := truncateToHeight(devices, 20); truncated || len(shown) != 10 {
+		t.Errorf("budget > total: got %d devices, truncated=%v, want all 10 unchanged", len(shown), truncated)
+	}
+	if shown, truncated := truncateToHeight(devices, 4); !truncated || len(shown) != 4 {
+		t.Errorf("budget=4: got %d devices, truncated=%v, want 4 and truncated=true", len(shown), truncated)
+	}
+}
+
 func TestHasSensitivePort(t *testing.T) {
 	cases := []struct {
 		ports []int
