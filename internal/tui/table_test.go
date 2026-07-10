@@ -19,8 +19,8 @@ var ansi = regexp.MustCompile("\x1b\\[[0-9;]*m")
 func TestRenderAlignment(t *testing.T) {
 	mac, _ := net.ParseMAC("30:56:0f:33:80:cc")
 	devices := []core.Device{
-		{IP: net.ParseIP("192.168.0.1"), MAC: mac, Hostname: "router.local", Vendor: "TP-Link", Online: true},
-		{IP: net.ParseIP("192.168.0.20"), MAC: mac, Hostname: "", Vendor: "", Online: true}, // dashes
+		{IP: net.ParseIP("192.168.0.1"), MAC: mac, Hostname: "router.local", Vendor: "TP-Link", Online: true, Ports: []int{80, 443}},
+		{IP: net.ParseIP("192.168.0.20"), MAC: mac, Hostname: "", Vendor: "", Online: true}, // dashes, no ports
 	}
 
 	var buf bytes.Buffer
@@ -36,5 +36,22 @@ func TestRenderAlignment(t *testing.T) {
 		if visible != width {
 			t.Errorf("line %d visible width = %d, want %d\n%q", i, visible, width, line)
 		}
+	}
+
+	out := ansi.ReplaceAllString(buf.String(), "")
+	if !strings.Contains(out, "80,443") {
+		t.Errorf("expected the PORTS column to show \"80,443\", got:\n%s", out)
+	}
+}
+
+func TestPortsText(t *testing.T) {
+	if got := portsText(nil); got != dash {
+		t.Errorf("portsText(nil) = %q, want %q", got, dash)
+	}
+	if got := portsText([]int{22}); got != "22" {
+		t.Errorf("portsText([22]) = %q, want \"22\"", got)
+	}
+	if got := portsText([]int{80, 443, 8009}); got != "80,443,8009" {
+		t.Errorf("portsText([80,443,8009]) = %q, want \"80,443,8009\"", got)
 	}
 }

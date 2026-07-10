@@ -3,6 +3,8 @@ package tui
 import (
 	"fmt"
 	"net"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gsjonio/netwp/internal/core"
@@ -45,4 +47,18 @@ func rttText(rtt time.Duration, reachable bool) string {
 		return "<1ms"
 	}
 	return fmt.Sprintf("%dms", rtt.Milliseconds())
+}
+
+// portsText renders a device's open ports as a compact comma-separated list
+// (e.g. "80,443"), or the placeholder when none were found/probed. Full
+// per-port names are one level down, via `netwp ports <ip>`.
+func portsText(ports []int) string {
+	if len(ports) == 0 {
+		return dash
+	}
+	strs := make([]string, len(ports))
+	for i, p := range ports {
+		strs[i] = strconv.Itoa(p)
+	}
+	return strings.Join(strs, ",")
 }
