@@ -77,8 +77,8 @@ func main() {
 		return
 	case "update":
 		err = runUpdate()
-	case "scan", "--json": // --json is a scan flag, not its own subcommand
-		err = runScan(hasArg("--json"))
+	case "scan", "--json", "--diff": // --json/--diff are scan flags, not their own subcommands
+		err = runScan(hasArg("--json"), hasArg("--diff"))
 	case "monitor":
 		err = runMonitor()
 	case "speedtest":
@@ -112,7 +112,8 @@ Usage:
   netwp <command> [arguments]
 
 Commands:
-  scan [--json]                                  one-shot ARP scan of the local network, with per-device RTT
+  scan [--json] [--diff]                          one-shot ARP scan of the local network, with per-device RTT
+                                                   --diff prints only what changed since the last scan
   monitor                                         live TUI: devices joining/leaving in real time (q to quit)
   dashboard                                       full dashboard: wifi + live bandwidth + speedtest + devices
   speedtest                                       download/upload throughput test
@@ -237,7 +238,7 @@ func discoveryContext() (*core.Discovery, core.Network, error) {
 	return buildDiscovery(store), network, nil
 }
 
-func runScan(asJSON bool) error {
+func runScan(asJSON, diff bool) error {
 	discovery, network, err := discoveryContext()
 	if err != nil {
 		return err
@@ -254,21 +255,57 @@ func runScan(asJSON bool) error {
 		return err
 	}
 
-	if asJSON {
+	// Cache path resolved once: --diff reads the previous snapshot from it
+	// before Save below overwrites it with this scan's.
+	cachePath, cacheErr := scancache.DefaultPath()
+
+	switch {
+	case diff:
+		var previous []core.Device
+		if cacheErr == nil {
+			previous, _ = scancache.Load(cachePath)
+		}
+		printDiff(os.Stdout, core.Diff(previous, devices))
+	case asJSON:
 		if err := tui.RenderDevicesJSON(os.Stdout, devices); err != nil {
 			return err
 		}
-	} else {
+	default:
 		tui.RenderDevices(os.Stdout, devices)
 		fmt.Printf("\n%d device(s) found.\n", len(devices))
 	}
 
-	// Cache the IP-to-MAC map so `alias set <ip>` can skip a fresh scan.
-	// Best-effort: a failed write just means the next alias re-scans.
-	if path, err := scancache.DefaultPath(); err == nil {
-		_ = scancache.Save(path, devices)
+	// Cache the scan snapshot so `alias set <ip>` and the next `--diff` can
+	// skip a fresh scan. Best-effort: a failed write just means the next
+	// alias re-scans, and the next --diff has nothing to compare against.
+	if cacheErr == nil {
+		_ = scancache.Save(cachePath, devices)
 	}
 	return nil
+}
+
+// printDiff writes only what changed since the previous scan snapshot: no
+// full device table, since --diff exists precisely to avoid re-reading one.
+func printDiff(w io.Writer, d core.DiffResult) {
+	if len(d.Joined)+len(d.Left)+len(d.IPChanged)+len(d.MACChanged)+len(d.DupMAC) == 0 {
+		fmt.Fprintln(w, "no changes since last scan.")
+		return
+	}
+	for _, dev := range d.Joined {
+		fmt.Fprintf(w, "+ %s (%s) joined\n", dev.IP, dev.MAC)
+	}
+	for _, dev := range d.Left {
+		fmt.Fprintf(w, "- %s (%s) left\n", dev.IP, dev.MAC)
+	}
+	for _, dev := range d.IPChanged {
+		fmt.Fprintf(w, "~ %s is now at %s\n", dev.MAC, dev.IP)
+	}
+	for _, dev := range d.MACChanged {
+		fmt.Fprintf(w, "⚠ %s now answers as a different MAC (%s) -- possible address takeover\n", dev.IP, dev.MAC)
+	}
+	for _, dev := range d.DupMAC {
+		fmt.Fprintf(w, "⚠ MAC %s seen at more than one IP this scan (%s)\n", dev.MAC, dev.IP)
+	}
 }
 
 // withSpinner animates a braille spinner with an elapsed timer on stderr while

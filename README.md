@@ -143,7 +143,7 @@ internal/tui     legible table output
 | Command | What it does |
 | --- | --- |
 | *(none)* / `help` / `-h` / `--help` | Print usage |
-| `scan` / `scan --json` | One-shot scan, with per-device RTT; `--json` for machine-readable output |
+| `scan` / `scan --json` / `scan --diff` | One-shot scan, with per-device RTT; `--json` for machine-readable output, `--diff` to print only what changed since the last scan |
 | `monitor` / `monitor --alert-down=<rate>` | Live TUI: devices joining/leaving in real time (`q` to quit); `--alert-down` flags a download rate drop, e.g. `--alert-down=50Mbps` |
 | `dashboard` | Full dashboard: Wi-Fi + live bandwidth + speedtest + devices |
 | `speedtest` | Download/upload throughput |
@@ -230,6 +230,12 @@ vulnerability.
   active interface's throughput once a second and highlights the line when
   the download rate drops below that threshold. Omit the flag and monitor
   behaves exactly as before, with no bandwidth line at all.
+- `netwp scan --diff` compares this scan against the previous one (identity
+  by MAC, since IPs shift under DHCP) and prints only joins, departures, and
+  IP changes. It also flags two conditions worth a second look: the same IP
+  now answered by a different MAC (possible address takeover), and a MAC
+  seen at more than one IP in the same scan. The comparison snapshot is the
+  same `lastscan.json` cache `alias set <ip>` already uses.
 
 Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md). This project
 follows the [Code of Conduct](CODE_OF_CONDUCT.md).

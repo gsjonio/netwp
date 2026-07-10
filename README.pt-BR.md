@@ -146,7 +146,7 @@ internal/tui     saída em tabela legível
 | Comando | O que faz |
 | --- | --- |
 | *(nenhum)* / `help` / `-h` / `--help` | Mostra a ajuda |
-| `scan` / `scan --json` | Varredura única, com RTT por dispositivo; `--json` pra saída legível por máquina |
+| `scan` / `scan --json` / `scan --diff` | Varredura única, com RTT por dispositivo; `--json` pra saída legível por máquina, `--diff` pra imprimir só o que mudou desde a última varredura |
 | `monitor` / `monitor --alert-down=<taxa>` | TUI ao vivo: dispositivos entrando/saindo em tempo real (`q` sai); `--alert-down` avisa sobre queda na taxa de download, ex.: `--alert-down=50Mbps` |
 | `dashboard` | Dashboard completo: WiFi + banda ao vivo + speedtest + dispositivos |
 | `speedtest` | Teste de download/upload |
@@ -236,6 +236,12 @@ uma vulnerabilidade.
   banda da interface ativa a cada segundo e destaca a linha quando a taxa de
   download cai abaixo desse limiar. Sem a flag, o monitor se comporta
   exatamente como antes, sem nenhuma linha de banda.
+- `netwp scan --diff` compara essa varredura com a anterior (identidade pelo
+  MAC, já que o IP muda com DHCP) e imprime só entradas, saídas e trocas de
+  IP. Também sinaliza duas condições que merecem atenção: o mesmo IP agora
+  respondido por um MAC diferente (possível sequestro de endereço), e um MAC
+  visto em mais de um IP na mesma varredura. A comparação usa o mesmo cache
+  `lastscan.json` que o `alias set <ip>` já aproveita.
 
 Quer contribuir? Veja [CONTRIBUTING.md](CONTRIBUTING.md). Este projeto
 segue o [Código de Conduta](CODE_OF_CONDUCT.md).
