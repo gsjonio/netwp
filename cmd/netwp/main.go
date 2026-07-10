@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"os/exec"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -73,6 +74,8 @@ func main() {
 	case "version", "--version":
 		printVersion(os.Stdout)
 		return
+	case "update":
+		err = runUpdate()
 	case "scan", "--json": // --json is a scan flag, not its own subcommand
 		err = runScan(hasArg("--json"))
 	case "monitor":
@@ -120,6 +123,7 @@ Commands:
   alias rm <ip-or-mac>                            remove a nickname
   ports <ip>                                      open ports + RTT for one device
   version                                         show the installed version
+  update                                          update to the latest version (needs the Go toolchain)
   help                                            show this help
 
 Run "netwp scan" to see the devices on your network.
@@ -165,6 +169,34 @@ func hasArg(flag string) bool {
 		}
 	}
 	return false
+}
+
+// updateModule is the same module path documented in the README's install
+// instructions, kept in one place so `netwp update` can't drift from it.
+const updateModule = "github.com/gsjonio/netwp/cmd/netwp@latest"
+
+// runUpdate re-runs the same `go install` the README tells people to use by
+// hand, so updating doesn't require remembering or retyping the module path.
+// This needs the Go toolchain; a binary downloaded from Releases has no
+// self-update path (see SECURITY.md/README "Updating").
+//
+// Overwriting the running binary works even on Windows: go install builds to
+// a temp file and renames it into place, and Windows allows renaming a file
+// out from under its own running image (verified against a live `netwp
+// monitor` process during development).
+func runUpdate() error {
+	if _, err := exec.LookPath("go"); err != nil {
+		return fmt.Errorf("go toolchain not found on PATH; download the latest binary instead from https://github.com/gsjonio/netwp/releases/latest")
+	}
+	fmt.Printf("updating: go install %s\n", updateModule)
+	cmd := exec.Command("go", "install", updateModule)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("go install failed: %w", err)
+	}
+	fmt.Println("done. run \"netwp version\" to confirm.")
+	return nil
 }
 
 func vcsSetting(info *debug.BuildInfo, key string) string {

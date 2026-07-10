@@ -103,15 +103,25 @@ required**.
 
 ### Updating
 
-Check what you have with `netwp version`, then update the same way you
-installed:
+Check what you have with `netwp version`. If you have the Go toolchain
+(whichever way you installed netwp), the easiest path is:
+
+```powershell
+netwp update
+```
+
+It's a thin wrapper around `go install github.com/gsjonio/netwp/cmd/netwp@latest`
+— same command as below, just without retyping the module path. Overwriting
+the running binary works even on Windows.
+
+Otherwise, update the same way you installed:
 
 - **Quick install:** re-run `go install github.com/gsjonio/netwp/cmd/netwp@latest`
   (or the specific tag you want). It overwrites the old binary.
 - **Build from source:** `git pull` then rebuild (`go build`/`go install`).
 - **Prebuilt binary:** download the new one from the
   [Releases page](https://github.com/gsjonio/netwp/releases/latest) and
-  replace the old file. There's no self-update mechanism.
+  replace the old file. There's no self-update mechanism for this path.
 
 ## Usage
 
@@ -130,6 +140,7 @@ netwp alias ls                                 # list nicknames
 netwp alias rm 192.168.1.20                    # remove a nickname
 netwp ports 192.168.1.20                       # open ports + RTT for one device
 netwp version                                  # installed version
+netwp update                                   # update to the latest version (needs Go)
 ```
 
 ## Notes

@@ -102,15 +102,26 @@ O scanner Windows usa a API `SendARP`: **não exige admin nem Npcap**.
 
 ### Atualizando
 
-Confira o que você tem com `netwp version`, depois atualize do mesmo jeito
-que instalou:
+Confira o que você tem com `netwp version`. Se tiver o toolchain Go
+instalado (não importa como você instalou o netwp), o caminho mais fácil é:
+
+```powershell
+netwp update
+```
+
+É um wrapper fino em cima do `go install github.com/gsjonio/netwp/cmd/netwp@latest`
+— o mesmo comando de baixo, só sem precisar redigitar o caminho do módulo.
+Sobrescrever o binário em execução funciona até no Windows.
+
+Fora isso, atualize do mesmo jeito que instalou:
 
 - **Instalação rápida:** rode de novo `go install github.com/gsjonio/netwp/cmd/netwp@latest`
   (ou a tag específica que quiser). Sobrescreve o binário antigo.
 - **Compilado do código-fonte:** `git pull` e recompile (`go build`/`go install`).
 - **Binário pronto:** baixe o novo na
   [página de Releases](https://github.com/gsjonio/netwp/releases/latest) e
-  substitua o arquivo antigo. Não tem mecanismo de auto-atualização.
+  substitua o arquivo antigo. Não tem mecanismo de auto-atualização por esse
+  caminho.
 
 ## Uso
 
@@ -129,6 +140,7 @@ netwp alias ls                             # lista os apelidos
 netwp alias rm 192.168.1.20                # remove um apelido
 netwp ports 192.168.1.20                   # portas abertas + RTT de um dispositivo
 netwp version                              # versão instalada
+netwp update                               # atualiza pra última versão (precisa do Go)
 ```
 
 ## Notas

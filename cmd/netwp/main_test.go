@@ -12,10 +12,25 @@ func TestPrintUsageListsCommands(t *testing.T) {
 	var buf bytes.Buffer
 	printUsage(&buf)
 	out := buf.String()
-	for _, want := range []string{"scan", "monitor", "dashboard", "speedtest", "iface", "alias", "ports", "version", "help"} {
+	for _, want := range []string{"scan", "monitor", "dashboard", "speedtest", "iface", "alias", "ports", "version", "update", "help"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("usage output missing command %q:\n%s", want, out)
 		}
+	}
+}
+
+// TestRunUpdateNoGoToolchain guards the fallback message when `go` isn't on
+// PATH (e.g. a binary downloaded from Releases, no dev toolchain installed):
+// it must fail with a clear pointer to the Releases page, not try to exec a
+// missing binary and return a raw "file not found".
+func TestRunUpdateNoGoToolchain(t *testing.T) {
+	t.Setenv("PATH", "")
+	err := runUpdate()
+	if err == nil {
+		t.Fatal("expected an error when go is not on PATH, got nil")
+	}
+	if !strings.Contains(err.Error(), "releases") {
+		t.Errorf("error = %q, want it to point at the Releases page", err.Error())
 	}
 }
 
