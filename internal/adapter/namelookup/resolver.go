@@ -7,25 +7,31 @@ import (
 	"net"
 	"time"
 
-	"github.com/gsjonio/netwp/internal/adapter/netinfo"
+	"github.com/gsjonio/netwp/internal/core"
 )
 
 const fallbackTimeout = 400 * time.Millisecond
 
-// Resolver implements core.HostResolver: reverse DNS first, then mDNS and
-// NetBIOS raced against each other, first non-empty answer wins.
+// Resolver implements core.HostResolver: it asks a primary resolver (reverse
+// DNS in production) first, then races mDNS and NetBIOS, first non-empty
+// answer wins.
 type Resolver struct {
-	dns netinfo.DNSResolver
+	primary core.HostResolver
 }
 
-func New() Resolver { return Resolver{} }
+// New builds a Resolver whose primary lookup is injected by the composition
+// root, so this package depends on the core port rather than another adapter
+// and the fallback path can be tested with a fake primary.
+func New(primary core.HostResolver) Resolver { return Resolver{primary: primary} }
 
 // ponytail: no result caching, no config for the fallback timeout. Every
 // unresolved device pays up to fallbackTimeout on every scan; add a
 // short-lived cache if repeat scans get noticeably slower on large LANs.
 func (r Resolver) Hostname(ip net.IP) string {
-	if name := r.dns.Hostname(ip); name != "" {
-		return name
+	if r.primary != nil {
+		if name := r.primary.Hostname(ip); name != "" {
+			return name
+		}
 	}
 
 	out := make(chan string, 2)
