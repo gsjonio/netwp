@@ -190,12 +190,22 @@ func openAliasStore() (*aliasstore.Store, error) {
 	return aliasstore.Open(path)
 }
 
-func runScan(asJSON bool) error {
+// discoveryContext resolves the two things every scanning command needs: the
+// local network to sweep, and a Discovery wired to the user's alias store.
+func discoveryContext() (*core.Discovery, core.Network, error) {
 	network, err := netinfo.LocalNetwork()
 	if err != nil {
-		return err
+		return nil, core.Network{}, err
 	}
 	store, err := openAliasStore()
+	if err != nil {
+		return nil, core.Network{}, err
+	}
+	return buildDiscovery(store), network, nil
+}
+
+func runScan(asJSON bool) error {
+	discovery, network, err := discoveryContext()
 	if err != nil {
 		return err
 	}
@@ -204,7 +214,7 @@ func runScan(asJSON bool) error {
 
 	var devices []core.Device
 	err = withSpinner(fmt.Sprintf("scanning %s", network.CIDR), func() error {
-		devices, err = buildDiscovery(store).Run(ctx, network)
+		devices, err = discovery.Run(ctx, network)
 		return err
 	})
 	if err != nil {
@@ -400,20 +410,16 @@ func confirm(action string) bool {
 }
 
 func runMonitor() error {
-	network, err := netinfo.LocalNetwork()
-	if err != nil {
-		return err
-	}
-	store, err := openAliasStore()
+	discovery, network, err := discoveryContext()
 	if err != nil {
 		return err
 	}
 	tracker := core.NewTracker(offlineAfter)
-	return tui.RunMonitor(buildDiscovery(store), tracker, network, monitorEvery, monitorScanBudget)
+	return tui.RunMonitor(discovery, tracker, network, monitorEvery, monitorScanBudget)
 }
 
 func runDashboard() error {
-	network, err := netinfo.LocalNetwork()
+	discovery, network, err := discoveryContext()
 	if err != nil {
 		return err
 	}
@@ -421,14 +427,10 @@ func runDashboard() error {
 	if err != nil {
 		return err
 	}
-	store, err := openAliasStore()
-	if err != nil {
-		return err
-	}
 	tracker := core.NewTracker(offlineAfter)
 	reader := ifacestat.New(info.Name)
 	speed := core.NewSpeedtest(httpspeed.New())
-	return tui.RunDashboard(buildDiscovery(store), tracker, network, info, reader, wifi.New(), speed, icmpping.New())
+	return tui.RunDashboard(discovery, tracker, network, info, reader, wifi.New(), speed, icmpping.New())
 }
 
 // runAlias dispatches the alias subcommands: set, ls, rm.
