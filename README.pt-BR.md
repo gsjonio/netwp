@@ -201,7 +201,10 @@ uma vulnerabilidade.
   retorna nada, como melhor esforço — alguns dispositivos continuam sem
   nome. O mecanismo do fallback está no [CONTRIBUTING.md](CONTRIBUTING.md).
 - O RTT é um ICMP echo real por dispositivo; um que responde ARP mas não
-  ICMP (com firewall) aparece online sem RTT.
+  ICMP (com firewall) aparece online sem RTT. A coluna RTT é colorida por
+  faixa: verde abaixo de 20ms, neutro abaixo de 100ms, vermelho acima disso
+  — são faixas pensadas pra LAN, então "vermelho" ainda é rápido pelos
+  padrões de internet, só vale uma segunda olhada na sua própria rede.
 - A sugestão de canal WiFi é uma contagem simples de congestionamento sobre
   os APs visíveis, não um planejador de RF: sem sinal, DFS ou regras
   regulatórias.

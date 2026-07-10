@@ -196,7 +196,10 @@ vulnerability.
   nothing, on a best-effort basis — some devices still won't show a name.
   Fallback mechanics are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - RTT is a real ICMP echo per device; a device that answers ARP but not
-  ICMP (firewalled) shows online with no RTT.
+  ICMP (firewalled) shows online with no RTT. The RTT column is colored by
+  tier: green under 20ms, neutral under 100ms, red beyond that -- these are
+  LAN thresholds, so "red" still means fast by internet standards, just
+  worth a second look on your own network.
 - The Wi-Fi channel suggestion is a simple congestion count over visible
   APs, not an RF planner — no signal strength, DFS, or regulatory rules.
 - A machine with more than one active interface (e.g. Ethernet and Wi-Fi at
