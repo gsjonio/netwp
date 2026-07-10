@@ -34,7 +34,10 @@ func TestDashboardViewSmoke(t *testing.T) {
 	}
 
 	out := m.View()
-	for _, want := range []string{"netwp dashboard", "WI-FI", "HomeNet", "BANDWIDTH", "Mbps", "SPEEDTEST", "DEVICES", "TV"} {
+	for _, want := range []string{
+		"netwp dashboard", "WI-FI", "HomeNet", "BANDWIDTH", "Mbps", "SPEEDTEST", "DEVICES", "TV",
+		"8-11ms", "40-47%", "1.8-2.1 Mbps", // sparkline range labels
+	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("dashboard view missing %q", want)
 		}
@@ -99,6 +102,20 @@ func TestClassSummaryEmpty(t *testing.T) {
 	}
 	if got := classSummary(devices); got != "" {
 		t.Errorf("classSummary() = %q, want empty (only skippable classes online)", got)
+	}
+}
+
+func TestSparklineRange(t *testing.T) {
+	if _, _, ok := sparklineRange(nil); ok {
+		t.Error("sparklineRange(nil) ok = true, want false")
+	}
+	lo, hi, ok := sparklineRange([]float64{5, 1, 9, 3})
+	if !ok || lo != 1 || hi != 9 {
+		t.Errorf("sparklineRange([5,1,9,3]) = (%v, %v, %v), want (1, 9, true)", lo, hi, ok)
+	}
+	lo, hi, ok = sparklineRange([]float64{4})
+	if !ok || lo != 4 || hi != 4 {
+		t.Errorf("sparklineRange([4]) = (%v, %v, %v), want (4, 4, true)", lo, hi, ok)
 	}
 }
 

@@ -314,9 +314,13 @@ func classSummary(devices []core.TrackedDevice) string {
 func (m dashModel) renderHeader(width int) string {
 	title := styTitle.Render("netwp dashboard")
 	clock := time.Now().Format("15:04:05")
-	left := fmt.Sprintf("%s   %s · IP %s · GW %s · net %s %s · up %s",
+	netRange := ""
+	if lo, hi, ok := sparklineRange(m.netHist); ok {
+		netRange = fmt.Sprintf(" %.0f-%.0fms", lo, hi)
+	}
+	left := fmt.Sprintf("%s   %s · IP %s · GW %s · net %s %s%s · up %s",
 		title, m.info.Name, m.info.IP, ipOr(m.info.Gateway, "?"),
-		netStyle(m.netUp).Render(rttText(m.netLatency, m.netUp)), sparkline(m.netHist), uptime(m.start))
+		netStyle(m.netUp).Render(rttText(m.netLatency, m.netUp)), sparkline(m.netHist), netRange, uptime(m.start))
 	gap := width - lipgloss.Width(left) - len(clock) - 2
 	if gap < 1 {
 		gap = 1
@@ -342,9 +346,14 @@ func (m dashModel) renderWifi() string {
 	if best != w.Channel {
 		channelHint = styHead.Render(fmt.Sprintf("try ch %d", best))
 	}
+	wifiRange := ""
+	if lo, hi, ok := sparklineRange(m.wifiHist); ok {
+		wifiRange = fmt.Sprintf(" %.0f-%.0f%%", lo, hi)
+	}
 	lines := []string{
 		styAlias.Render(w.SSID),
-		"signal   " + signalStyle(w.SignalPercent).Render(sig) + " " + sparkline(m.wifiHist),
+		"signal   " + signalStyle(w.SignalPercent).Render(sig),
+		"         " + sparkline(m.wifiHist) + wifiRange,
 		fmt.Sprintf("channel  %d  %s  %s", w.Channel, w.Band, channelHint),
 		fmt.Sprintf("rate     %d/%d Mbps", w.RxRateMbps, w.TxRateMbps),
 		fmt.Sprintf("nearby   %d APs · %d on ch %d", len(w.Nearby), w.SameChannelCount(), w.Channel),
@@ -353,10 +362,14 @@ func (m dashModel) renderWifi() string {
 }
 
 func (m dashModel) renderBandwidth() string {
+	bwLine := sparkline(m.downHist)
+	if lo, hi, ok := sparklineRange(m.downHist); ok {
+		bwLine += fmt.Sprintf(" %s-%s", rateStr(lo), rateStr(hi))
+	}
 	lines := []string{
 		"down  " + styOnline.Render(rateStr(m.rate.DownBps)),
 		"up    " + styHead.Render(rateStr(m.rate.UpBps)),
-		sparkline(m.downHist),
+		bwLine,
 		styOffline.Render(fmt.Sprintf("RX %s · TX %s", byteStr(m.rate.TotalRx), byteStr(m.rate.TotalTx))),
 	}
 	return strings.Join(lines, "\n")
@@ -370,10 +383,14 @@ func (m dashModel) renderSpeed() string {
 		return styOffline.Render("error: " + m.speedErr.Error())
 	}
 	next := time.Until(m.speedAt.Add(dashSpeedEvery)).Round(time.Second)
+	speedLine := sparkline(m.speedHist)
+	if lo, hi, ok := sparklineRange(m.speedHist); ok {
+		speedLine += fmt.Sprintf(" %.1f-%.1f Mbps", lo, hi)
+	}
 	return strings.Join([]string{
 		fmt.Sprintf("down  %s", styOnline.Render(fmt.Sprintf("%.1f Mbps", m.result.DownloadMbps))),
 		fmt.Sprintf("up    %s", styHead.Render(fmt.Sprintf("%.1f Mbps", m.result.UploadMbps))),
-		sparkline(m.speedHist),
+		speedLine,
 		styOffline.Render("at " + m.speedAt.Format("15:04:05")),
 		styOffline.Render(fmt.Sprintf("next in %s", next)),
 	}, "\n")
@@ -410,6 +427,26 @@ func signalStyle(pct int) lipgloss.Style {
 	default:
 		return styOffline
 	}
+}
+
+// sparklineRange returns the min and max of vals, and whether there were any
+// values to measure. A sparkline shows shape only (normalized to its own
+// max); the range is what turns "something happened" into "these are the
+// numbers" without needing a Y-axis.
+func sparklineRange(vals []float64) (lo, hi float64, ok bool) {
+	if len(vals) == 0 {
+		return 0, 0, false
+	}
+	lo, hi = vals[0], vals[0]
+	for _, v := range vals[1:] {
+		if v < lo {
+			lo = v
+		}
+		if v > hi {
+			hi = v
+		}
+	}
+	return lo, hi, true
 }
 
 // sparkline maps values to block glyphs scaled to the current max.
