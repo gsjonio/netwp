@@ -20,12 +20,17 @@ var probePorts = []int{22, 80, 443, 445, 3389, 515, 631, 8009, 9100, 62078}
 // Prober performs a bounded concurrent TCP connect scan.
 type Prober struct {
 	Timeout time.Duration // per-port connect timeout
+	Ports   []int         // ports to probe; nil uses the default probePorts set
 }
 
 func New() Prober { return Prober{Timeout: 300 * time.Millisecond} }
 
-// OpenPorts returns the subset of probePorts that accepted a connection.
+// OpenPorts returns the subset of the probed ports that accepted a connection.
 func (p Prober) OpenPorts(ctx context.Context, ip net.IP) []int {
+	ports := p.Ports
+	if ports == nil {
+		ports = probePorts
+	}
 	dialer := net.Dialer{Timeout: p.Timeout}
 	host := ip.String()
 
@@ -34,7 +39,7 @@ func (p Prober) OpenPorts(ctx context.Context, ip net.IP) []int {
 		open []int
 		wg   sync.WaitGroup
 	)
-	for _, port := range probePorts {
+	for _, port := range ports {
 		wg.Add(1)
 		go func(port int) {
 			defer wg.Done()
