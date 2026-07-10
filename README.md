@@ -15,6 +15,10 @@ A terminal network manager written in Go: active local-network device discovery
 (ARP), live monitoring, a full dashboard, bandwidth testing, and interface
 inspection. Windows-first, portable to Linux.
 
+New to networking? Start with the [beginner's guide](docs/GUIDE.md)
+([pt-BR](docs/GUIDE.pt-BR.md)) instead: it explains every term and table
+column in plain language.
+
 ## Table of Contents
 
 - [Features](#features)
@@ -194,53 +198,35 @@ vulnerability.
 
 ### How some things work
 
+New to terms like MAC, TTL, or "unknown device"? The
+[beginner's guide](docs/GUIDE.md) ([pt-BR](docs/GUIDE.pt-BR.md)) explains
+what everything on screen means. This section is implementation trivia for
+people who already know networking.
+
 - Hostname resolution falls back to mDNS/NetBIOS when reverse DNS has
-  nothing, on a best-effort basis — some devices still won't show a name.
-  Fallback mechanics are in [CONTRIBUTING.md](CONTRIBUTING.md).
-- RTT is a real ICMP echo per device; a device that answers ARP but not
-  ICMP (firewalled) shows online with no RTT. The RTT column is colored by
-  tier: green under 20ms, neutral under 100ms, red beyond that -- these are
-  LAN thresholds, so "red" still means fast by internet standards, just
-  worth a second look on your own network.
-- The same ICMP echo also reports TTL, shown with a coarse OS-family guess
-  (Linux/Android/macOS commonly send 64, Windows 128, some network gear
-  255) since a device found by ARP is 0-1 hops away, so its TTL should sit
-  right at its OS's default. It's informational only, not fed into the
-  device-class guess: TTL alone can't tell a Raspberry Pi from a Linux
-  desktop from an Android phone.
+  nothing; some devices still won't show a name. Mechanics are in
+  [CONTRIBUTING.md](CONTRIBUTING.md).
+- RTT and TTL come from the same ICMP echo per device, so a firewalled
+  device (answers ARP but not ICMP) shows online with neither.
 - The Wi-Fi channel suggestion is a simple congestion count over visible
-  APs, not an RF planner — no signal strength, DFS, or regulatory rules.
+  APs, not an RF planner.
 - A machine with more than one active interface (e.g. Ethernet and Wi-Fi at
-  once) is recognized as "This device" on every one of them, not just the
-  interface used to pick the scan's subnet.
-- The speed test hits Cloudflare's anycast `speed.cloudflare.com`, which
-  auto-routes to the nearest of their ~300 edges; `netwp speedtest` prints
-  which one answered (e.g. "via Cloudflare edge: GRU").
-- `netwp ports <ip>` re-probes one device directly (same ports used for
-  classification, reported individually) instead of a full scan. No
-  port-history across runs, just the current state.
-- The device table's PORTS column flags SSH (22), SMB (445) and RDP (3389)
-  in red: exposed on a home network they are usually unintentional. Port
-  names are one level down, via `netwp ports <ip>`.
-- The dashboard's DEVICES panel shows a per-class breakdown of what's online
-  (e.g. "2 Media · 1 Router"). "This device" and unclassified hosts are left
-  out, since neither says anything about the network.
-- A device join is flagged "unknown" in the activity log only when its MAC
-  has no alias set.
-- `netwp monitor --alert-down=<rate>` (e.g. `50Mbps`, `1.5Gbps`) samples the
-  active interface's throughput once a second and highlights the line when
-  the download rate drops below that threshold. Omit the flag and monitor
-  behaves exactly as before, with no bandwidth line at all.
-- `netwp scan --diff` compares this scan against the previous one (identity
-  by MAC, since IPs shift under DHCP) and prints only joins, departures, and
-  IP changes. It also flags two conditions worth a second look: the same IP
-  now answered by a different MAC (possible address takeover), and a MAC
-  seen at more than one IP in the same scan. The comparison snapshot is the
-  same `lastscan.json` cache `alias set <ip>` already uses.
-- `netwp monitor` and `netwp dashboard` append every join/leave event to
-  `<user-config-dir>/netwp/events.jsonl`. `netwp events [n]` prints the last
-  n (default 20). Append-only, no rotation: a running log for later review,
-  not a queryable database.
+  once) is recognized as "This device" on all of them.
+- The speed test hits Cloudflare's anycast `speed.cloudflare.com`; `netwp
+  speedtest` prints which edge answered.
+- `netwp ports <ip>` re-probes one device directly instead of a full scan,
+  with no port history across runs.
+- The dashboard's DEVICES panel shows a per-class breakdown of what's
+  online (e.g. "2 Media · 1 Router"), skipping "This device" and
+  unclassified hosts.
+- `netwp monitor --alert-down=<rate>` (e.g. `50Mbps`) highlights the
+  bandwidth line when download drops below that threshold. Omit it and
+  monitor behaves exactly as before.
+- `netwp scan --diff` compares against the previous scan (identity by MAC)
+  and prints only what changed, including possible IP/MAC conflicts.
+- `netwp monitor`/`dashboard` log every join/leave to
+  `<user-config-dir>/netwp/events.jsonl`; `netwp events [n]` reads them
+  back.
 
 Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md). This project
 follows the [Code of Conduct](CODE_OF_CONDUCT.md).

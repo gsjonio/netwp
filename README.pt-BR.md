@@ -15,6 +15,10 @@ Gerenciador de rede via terminal escrito em Go: descoberta ativa de dispositivos
 na rede local (ARP), monitoramento ao vivo, dashboard completo, teste de banda e
 inspeção de interface. Windows primeiro, portável para Linux.
 
+Nunca mexeu com redes? Comece pelo [guia para iniciantes](docs/GUIDE.pt-BR.md)
+([EN](docs/GUIDE.md)): explica cada termo e coluna da tabela em linguagem
+simples.
+
 ## Sumário
 
 - [Features](#features)
@@ -198,55 +202,35 @@ uma vulnerabilidade.
 
 ### Como algumas coisas funcionam
 
+Novo em termos como MAC, TTL, ou "dispositivo desconhecido"? O
+[guia para iniciantes](docs/GUIDE.pt-BR.md) ([EN](docs/GUIDE.md)) explica o
+que cada coisa na tela significa. Esta seção é trivia de implementação pra
+quem já manja de redes.
+
 - A resolução de hostname cai para mDNS/NetBIOS quando o DNS reverso não
-  retorna nada, como melhor esforço — alguns dispositivos continuam sem
-  nome. O mecanismo do fallback está no [CONTRIBUTING.md](CONTRIBUTING.md).
-- O RTT é um ICMP echo real por dispositivo; um que responde ARP mas não
-  ICMP (com firewall) aparece online sem RTT. A coluna RTT é colorida por
-  faixa: verde abaixo de 20ms, neutro abaixo de 100ms, vermelho acima disso
-  — são faixas pensadas pra LAN, então "vermelho" ainda é rápido pelos
-  padrões de internet, só vale uma segunda olhada na sua própria rede.
-- O mesmo ICMP echo também traz o TTL, mostrado com um palpite grosseiro de
-  família de SO (Linux/Android/macOS costumam mandar 64, Windows 128,
-  alguns equipamentos de rede 255), já que um dispositivo achado por ARP
-  está a 0-1 saltos de distância, então o TTL dele deve bater bem próximo
-  do padrão do próprio SO. É só informativo, não entra no palpite de classe
-  do dispositivo: só o TTL não dá pra distinguir um Raspberry Pi de um
-  desktop Linux de um celular Android.
+  retorna nada; alguns dispositivos continuam sem nome. O mecanismo está
+  no [CONTRIBUTING.md](CONTRIBUTING.md).
+- RTT e TTL vêm do mesmo ICMP echo por dispositivo, então um com firewall
+  (responde ARP mas não ICMP) aparece online sem nenhum dos dois.
 - A sugestão de canal WiFi é uma contagem simples de congestionamento sobre
-  os APs visíveis, não um planejador de RF: sem sinal, DFS ou regras
-  regulatórias.
+  os APs visíveis, não um planejador de RF.
 - Uma máquina com mais de uma interface ativa (ex.: Ethernet e WiFi ao
-  mesmo tempo) é reconhecida como "This device" em todas elas, não só na
-  interface usada pra escolher a sub-rede do scan.
-- O teste de banda usa o `speed.cloudflare.com` anycast, que roteia
-  automaticamente pro edge mais próximo entre os ~300 da Cloudflare; o
-  `netwp speedtest` mostra qual respondeu (ex.: "via Cloudflare edge: GRU").
-- `netwp ports <ip>` sonda um único dispositivo diretamente (mesmas portas
-  usadas na classificação, reportadas individualmente) em vez de um scan
-  completo. Sem histórico de portas entre execuções, só o estado atual.
-- A coluna PORTS da tabela destaca SSH (22), SMB (445) e RDP (3389) em
-  vermelho: expostas numa rede doméstica, normalmente não são intencionais.
-  Os nomes das portas ficam um nível abaixo, no `netwp ports <ip>`.
-- O painel DEVICES do dashboard mostra um resumo por classe do que está online
-  (ex.: "2 Media · 1 Router"). "This device" e hosts não classificados ficam
-  de fora, já que nenhum dos dois diz nada sobre a rede.
-- Uma entrada só é marcada como "unknown" no log de atividade quando o MAC
-  não tem apelido definido.
-- `netwp monitor --alert-down=<taxa>` (ex.: `50Mbps`, `1.5Gbps`) amostra a
-  banda da interface ativa a cada segundo e destaca a linha quando a taxa de
-  download cai abaixo desse limiar. Sem a flag, o monitor se comporta
-  exatamente como antes, sem nenhuma linha de banda.
-- `netwp scan --diff` compara essa varredura com a anterior (identidade pelo
-  MAC, já que o IP muda com DHCP) e imprime só entradas, saídas e trocas de
-  IP. Também sinaliza duas condições que merecem atenção: o mesmo IP agora
-  respondido por um MAC diferente (possível sequestro de endereço), e um MAC
-  visto em mais de um IP na mesma varredura. A comparação usa o mesmo cache
-  `lastscan.json` que o `alias set <ip>` já aproveita.
-- `netwp monitor` e `netwp dashboard` gravam cada evento de entrada/saída em
-  `<pasta-de-config-do-usuário>/netwp/events.jsonl`. `netwp events [n]`
-  mostra os últimos n (padrão 20). Só acrescenta, sem rotação: um log
-  corrido pra consulta depois, não um banco de dados pra query.
+  mesmo tempo) é reconhecida como "This device" em todas elas.
+- O teste de banda usa o `speed.cloudflare.com` anycast; o `netwp
+  speedtest` mostra qual edge respondeu.
+- `netwp ports <ip>` sonda um único dispositivo diretamente em vez de um
+  scan completo, sem histórico de portas entre execuções.
+- `netwp monitor --alert-down=<taxa>` (ex.: `50Mbps`) destaca a linha de
+  banda quando o download cai abaixo desse limiar. Sem a flag, o monitor se
+  comporta exatamente como antes.
+- `netwp scan --diff` compara com a varredura anterior (identidade pelo
+  MAC) e imprime só o que mudou, incluindo possíveis conflitos de IP/MAC.
+- `netwp monitor`/`dashboard` gravam cada entrada/saída em
+  `<pasta-de-config-do-usuário>/netwp/events.jsonl`; `netwp events [n]`
+  mostra esse histórico.
+- O painel DEVICES do dashboard mostra um resumo por classe do que está
+  online (ex.: "2 Media · 1 Router"), sem contar "This device" e hosts não
+  classificados.
 
 Quer contribuir? Veja [CONTRIBUTING.md](CONTRIBUTING.md). Este projeto
 segue o [Código de Conduta](CODE_OF_CONDUCT.md).

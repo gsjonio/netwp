@@ -62,7 +62,10 @@ they mean for a user; this is how they work):
 - [ ] If you touched a documented behavior, update **both**
       [README.md](README.md) and [README.pt-BR.md](README.pt-BR.md) in the
       same PR — they must stay structurally identical (same sections, same
-      content, one in English and one in Portuguese).
+      content, one in English and one in Portuguese). If it's something a
+      beginner would need explained (a new term, table column, or warning
+      sign), update [docs/GUIDE.md](docs/GUIDE.md) and
+      [docs/GUIDE.pt-BR.md](docs/GUIDE.pt-BR.md) too.
 - [ ] Commit messages are short and imperative, prefixed by type:
       `feat: ...`, `fix: ...`, `docs: ...`, `refactor: ...`, `chore: ...`.
 
