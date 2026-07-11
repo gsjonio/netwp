@@ -20,17 +20,18 @@ const (
 // enriches each result with hostname, vendor, class and round-trip time. It
 // depends only on ports, so it is fully testable with fakes.
 type Discovery struct {
-	scanner Scanner
-	names   HostResolver
-	vendors VendorLookup
-	prober  Prober
-	aliases AliasLookup
-	pinger  Pinger
-	classes ClassLookup // nil disables manual class overrides
+	scanner  Scanner
+	names    HostResolver
+	vendors  VendorLookup
+	prober   Prober
+	aliases  AliasLookup
+	pinger   Pinger
+	classes  ClassLookup    // nil disables manual class overrides
+	services ServiceScanner // nil disables mDNS service-based classification
 }
 
-func NewDiscovery(scanner Scanner, names HostResolver, vendors VendorLookup, prober Prober, aliases AliasLookup, pinger Pinger, classes ClassLookup) *Discovery {
-	return &Discovery{scanner: scanner, names: names, vendors: vendors, prober: prober, aliases: aliases, pinger: pinger, classes: classes}
+func NewDiscovery(scanner Scanner, names HostResolver, vendors VendorLookup, prober Prober, aliases AliasLookup, pinger Pinger, classes ClassLookup, services ServiceScanner) *Discovery {
+	return &Discovery{scanner: scanner, names: names, vendors: vendors, prober: prober, aliases: aliases, pinger: pinger, classes: classes, services: services}
 }
 
 // Run scans the target network and returns the enriched, classified devices.
@@ -49,6 +50,20 @@ func (d *Discovery) Run(ctx context.Context, target Network) ([]Device, error) {
 	// ponytail: the whole scan completes before enrichment starts. Streaming
 	// scan results into enrichment as they arrive would overlap both phases;
 	// worth it only once ranges grow past a /24.
+	// Kick off the network-wide mDNS service sweep concurrently with
+	// enrichment; each device waits on servicesReady right before Classify, so
+	// the sweep's ~1s listen window overlaps the per-host ping/probe work
+	// instead of adding to the total. serviceMap is written only before the
+	// channel closes and read only after, so the close orders the two safely.
+	var serviceMap map[string][]string
+	servicesReady := make(chan struct{})
+	go func() {
+		defer close(servicesReady)
+		if d.services != nil {
+			serviceMap = d.services.Services(ctx)
+		}
+	}()
+
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, enrichConcurrency)
 	for i := range devices {
@@ -80,8 +95,9 @@ func (d *Discovery) Run(ctx context.Context, target Network) ([]Device, error) {
 			dev.Vendor = d.vendors.Vendor(dev.MAC)
 			dev.Alias = d.aliases.Alias(dev.MAC)
 			inner.Wait()
+			<-servicesReady // block only if the sweep is still listening
 			dev.Ports = ports
-			dev.Class = Classify(*dev, target.Gateway, target.Self, ports, target.LocalMACs)
+			dev.Class = Classify(*dev, target.Gateway, target.Self, ports, target.LocalMACs, serviceMap[dev.IP.String()])
 			// A user-pinned class wins over the guess: they told us what this
 			// device is, so stop second-guessing it.
 			if d.classes != nil {

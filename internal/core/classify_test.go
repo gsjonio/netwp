@@ -35,9 +35,45 @@ func TestClassify(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		if got := Classify(c.dev, gw, self, c.ports, nil); got != c.want {
+		if got := Classify(c.dev, gw, self, c.ports, nil, nil); got != c.want {
 			t.Errorf("%s: got %v, want %v", c.name, got, c.want)
 		}
+	}
+}
+
+func TestServiceClass(t *testing.T) {
+	cases := []struct {
+		services []string
+		want     DeviceClass
+	}{
+		{[]string{"_googlecast"}, ClassMedia},
+		{[]string{"_ipp"}, ClassPrinter},
+		{[]string{"_companion-link"}, ClassMobile},
+		{[]string{"_hap"}, ClassIoT},
+		// an iPhone advertising both AirPlay and companion-link is Mobile, not Media
+		{[]string{"_airplay", "_companion-link"}, ClassMobile},
+		{[]string{"_unknownthing"}, ClassUnknown},
+		{nil, ClassUnknown},
+	}
+	for _, c := range cases {
+		got, ok := serviceClass(c.services)
+		if c.want == ClassUnknown {
+			if ok {
+				t.Errorf("serviceClass(%v) = (%v, true), want no match", c.services, got)
+			}
+			continue
+		}
+		if !ok || got != c.want {
+			t.Errorf("serviceClass(%v) = (%v, %v), want %v", c.services, got, ok, c.want)
+		}
+	}
+}
+
+func TestClassifyByService(t *testing.T) {
+	// A device with no ports and no vendor, but advertising Chromecast, is Media.
+	dev := Device{IP: net.ParseIP("192.168.0.40").To4()}
+	if got := Classify(dev, nil, nil, nil, nil, []string{"_googlecast"}); got != ClassMedia {
+		t.Errorf("got %v, want ClassMedia from the _googlecast service", got)
 	}
 }
 
@@ -67,13 +103,13 @@ func TestClassifyLocalMAC(t *testing.T) {
 	otherNIC := net.HardwareAddr{0x28, 0x0c, 0x50, 0xf4, 0x11, 0x9f}
 	dev := Device{IP: net.ParseIP("192.168.0.50").To4(), MAC: otherNIC}
 
-	if got := Classify(dev, nil, self, nil, []net.HardwareAddr{otherNIC}); got != ClassThisDevice {
+	if got := Classify(dev, nil, self, nil, []net.HardwareAddr{otherNIC}, nil); got != ClassThisDevice {
 		t.Errorf("got %v, want ClassThisDevice for a MAC matching one of our own interfaces", got)
 	}
 
 	unrelated := net.HardwareAddr{1, 2, 3, 4, 5, 6}
 	dev2 := Device{IP: net.ParseIP("192.168.0.51").To4(), MAC: unrelated}
-	if got := Classify(dev2, nil, self, nil, []net.HardwareAddr{otherNIC}); got == ClassThisDevice {
+	if got := Classify(dev2, nil, self, nil, []net.HardwareAddr{otherNIC}, nil); got == ClassThisDevice {
 		t.Errorf("got ClassThisDevice for an unrelated MAC, want no false positive")
 	}
 }

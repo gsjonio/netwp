@@ -36,6 +36,13 @@ type ClassLookup interface {
 	ClassOverride(mac net.HardwareAddr) (DeviceClass, bool)
 }
 
+// ServiceScanner discovers, in one network-wide sweep, which mDNS/DNS-SD
+// service types each host advertises (IP string -> service labels like
+// "_googlecast"). Used as a classification hint. Cross-platform.
+type ServiceScanner interface {
+	Services(ctx context.Context) map[string][]string
+}
+
 // Prober reports which of a small set of well-known TCP ports a host accepts
 // connections on — the "detailed scan" used to refine device classification.
 type Prober interface {

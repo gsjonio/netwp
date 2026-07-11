@@ -96,7 +96,7 @@ func TestDiscoveryBoundsEnrichmentConcurrency(t *testing.T) {
 		devs = append(devs, Device{IP: net.IPv4(10, 0, 0, byte(i)), MAC: net.HardwareAddr{1, 2, 3, 4, 5, byte(i)}})
 	}
 	res := &concurrencyResolver{}
-	d := NewDiscovery(fakeScanner{devices: devs}, res, fakeVendor{}, &recordingProber{}, fakeAlias{}, fakePinger{}, nil)
+	d := NewDiscovery(fakeScanner{devices: devs}, res, fakeVendor{}, &recordingProber{}, fakeAlias{}, fakePinger{}, nil, nil)
 
 	if _, err := d.Run(context.Background(), Network{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -122,7 +122,7 @@ func TestDiscoverySkipsSelfAndGatewayProbe(t *testing.T) {
 			{IP: gateway, MAC: net.HardwareAddr{2, 2, 2, 2, 2, 2}},
 			{IP: other, MAC: otherMAC},
 		}},
-		fakeResolver{}, fakeVendor{}, prober, fakeAlias{mac: otherMAC.String()}, fakePinger{}, nil,
+		fakeResolver{}, fakeVendor{}, prober, fakeAlias{mac: otherMAC.String()}, fakePinger{}, nil, nil,
 	)
 
 	devices, err := d.Run(context.Background(), Network{Self: self, Gateway: gateway})
@@ -173,7 +173,7 @@ func TestDiscoveryClassOverride(t *testing.T) {
 	d := NewDiscovery(
 		fakeScanner{devices: []Device{{IP: ip, MAC: mac}}},
 		fakeResolver{}, fakeVendor{}, &recordingProber{ports: []int{portSSH}}, fakeAlias{}, fakePinger{},
-		fakeClassLookup{mac: mac.String(), class: ClassMobile},
+		fakeClassLookup{mac: mac.String(), class: ClassMobile}, nil,
 	)
 	devices, err := d.Run(context.Background(), Network{})
 	if err != nil {

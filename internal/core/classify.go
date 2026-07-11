@@ -90,7 +90,7 @@ const (
 // ponytail: pure heuristic, deliberately conservative — identity signals (self,
 // gateway) win, then port fingerprints, then a vendor-keyword fallback. Wrong
 // guesses fall back to Unknown rather than asserting nonsense.
-func Classify(d Device, gateway, self net.IP, openPorts []int, localMACs []net.HardwareAddr) DeviceClass {
+func Classify(d Device, gateway, self net.IP, openPorts []int, localMACs []net.HardwareAddr, services []string) DeviceClass {
 	if self != nil && d.IP.Equal(self) {
 		return ClassThisDevice
 	}
@@ -99,6 +99,12 @@ func Classify(d Device, gateway, self net.IP, openPorts []int, localMACs []net.H
 	}
 	if gateway != nil && d.IP.Equal(gateway) {
 		return ClassRouter
+	}
+
+	// An advertised mDNS service is a strong, self-reported signal -- trust it
+	// over the port/vendor guesses below (but not over identity above).
+	if c, ok := serviceClass(services); ok {
+		return c
 	}
 
 	has := func(port int) bool {
@@ -159,6 +165,31 @@ func classFromVendor(vendor string) DeviceClass {
 	default:
 		return ClassUnknown
 	}
+}
+
+// serviceClass maps advertised DNS-SD service labels (from a ServiceScanner)
+// to a device class. Printer/mobile signals are checked before media because
+// they're more specific (an iPhone also advertises AirPlay).
+func serviceClass(services []string) (DeviceClass, bool) {
+	has := func(x string) bool {
+		for _, s := range services {
+			if s == x {
+				return true
+			}
+		}
+		return false
+	}
+	switch {
+	case has("_ipp") || has("_ipps") || has("_printer") || has("_pdl-datastream"):
+		return ClassPrinter, true
+	case has("_apple-mobdev2") || has("_companion-link"):
+		return ClassMobile, true
+	case has("_googlecast") || has("_airplay") || has("_raop") || has("_spotify-connect") || has("_amzn-wplay"):
+		return ClassMedia, true
+	case has("_hap"):
+		return ClassIoT, true
+	}
+	return ClassUnknown, false
 }
 
 func containsAny(s string, subs ...string) bool {

@@ -245,7 +245,7 @@ func vcsSetting(info *debug.BuildInfo, key string) string {
 
 // buildDiscovery assembles the discovery use case from its platform adapters.
 func buildDiscovery(aliases core.AliasLookup, classes core.ClassLookup) *core.Discovery {
-	return core.NewDiscovery(arpscan.New(), namelookup.New(netinfo.DNSResolver{}), oui.New(), tcpprobe.New(), aliases, icmpping.New(), classes)
+	return core.NewDiscovery(arpscan.New(), namelookup.New(netinfo.DNSResolver{}), oui.New(), tcpprobe.New(), aliases, icmpping.New(), classes, namelookup.NewServiceScanner())
 }
 
 // openAliasStore opens the persistent nickname store at its default path.
