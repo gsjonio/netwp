@@ -30,8 +30,32 @@ type Discovery struct {
 	services ServiceScanner // nil disables mDNS service-based classification
 }
 
-func NewDiscovery(scanner Scanner, names HostResolver, vendors VendorLookup, prober Prober, aliases AliasLookup, pinger Pinger, classes ClassLookup, services ServiceScanner) *Discovery {
-	return &Discovery{scanner: scanner, names: names, vendors: vendors, prober: prober, aliases: aliases, pinger: pinger, classes: classes, services: services}
+// DiscoveryDeps are the ports NewDiscovery wires into a Discovery. Named
+// fields (over a long positional argument list) keep two same-shaped optional
+// interfaces from being transposed silently. Classes and Services are optional:
+// a nil field disables that signal.
+type DiscoveryDeps struct {
+	Scanner  Scanner
+	Names    HostResolver
+	Vendors  VendorLookup
+	Prober   Prober
+	Aliases  AliasLookup
+	Pinger   Pinger
+	Classes  ClassLookup    // nil disables manual class overrides
+	Services ServiceScanner // nil disables mDNS service-based classification
+}
+
+func NewDiscovery(d DiscoveryDeps) *Discovery {
+	return &Discovery{
+		scanner:  d.Scanner,
+		names:    d.Names,
+		vendors:  d.Vendors,
+		prober:   d.Prober,
+		aliases:  d.Aliases,
+		pinger:   d.Pinger,
+		classes:  d.Classes,
+		services: d.Services,
+	}
 }
 
 // Run scans the target network and returns the enriched, classified devices.

@@ -96,7 +96,7 @@ func TestDiscoveryBoundsEnrichmentConcurrency(t *testing.T) {
 		devs = append(devs, Device{IP: net.IPv4(10, 0, 0, byte(i)), MAC: net.HardwareAddr{1, 2, 3, 4, 5, byte(i)}})
 	}
 	res := &concurrencyResolver{}
-	d := NewDiscovery(fakeScanner{devices: devs}, res, fakeVendor{}, &recordingProber{}, fakeAlias{}, fakePinger{}, nil, nil)
+	d := NewDiscovery(DiscoveryDeps{Scanner: fakeScanner{devices: devs}, Names: res, Vendors: fakeVendor{}, Prober: &recordingProber{}, Aliases: fakeAlias{}, Pinger: fakePinger{}})
 
 	if _, err := d.Run(context.Background(), Network{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -116,14 +116,15 @@ func TestDiscoverySkipsSelfAndGatewayProbe(t *testing.T) {
 
 	otherMAC := net.HardwareAddr{3, 3, 3, 3, 3, 3}
 	prober := &recordingProber{ports: []int{portSSH}} // SSH -> ClassComputer
-	d := NewDiscovery(
-		fakeScanner{devices: []Device{
+	d := NewDiscovery(DiscoveryDeps{
+		Scanner: fakeScanner{devices: []Device{
 			{IP: self, MAC: net.HardwareAddr{1, 1, 1, 1, 1, 1}},
 			{IP: gateway, MAC: net.HardwareAddr{2, 2, 2, 2, 2, 2}},
 			{IP: other, MAC: otherMAC},
 		}},
-		fakeResolver{}, fakeVendor{}, prober, fakeAlias{mac: otherMAC.String()}, fakePinger{}, nil, nil,
-	)
+		Names: fakeResolver{}, Vendors: fakeVendor{}, Prober: prober,
+		Aliases: fakeAlias{mac: otherMAC.String()}, Pinger: fakePinger{},
+	})
 
 	devices, err := d.Run(context.Background(), Network{Self: self, Gateway: gateway})
 	if err != nil {
@@ -170,11 +171,12 @@ func TestDiscoverySkipsSelfAndGatewayProbe(t *testing.T) {
 func TestDiscoveryClassOverride(t *testing.T) {
 	mac := net.HardwareAddr{9, 9, 9, 9, 9, 9}
 	ip := net.IPv4(192, 168, 1, 55)
-	d := NewDiscovery(
-		fakeScanner{devices: []Device{{IP: ip, MAC: mac}}},
-		fakeResolver{}, fakeVendor{}, &recordingProber{ports: []int{portSSH}}, fakeAlias{}, fakePinger{},
-		fakeClassLookup{mac: mac.String(), class: ClassMobile}, nil,
-	)
+	d := NewDiscovery(DiscoveryDeps{
+		Scanner: fakeScanner{devices: []Device{{IP: ip, MAC: mac}}},
+		Names:   fakeResolver{}, Vendors: fakeVendor{}, Prober: &recordingProber{ports: []int{portSSH}},
+		Aliases: fakeAlias{}, Pinger: fakePinger{},
+		Classes: fakeClassLookup{mac: mac.String(), class: ClassMobile},
+	})
 	devices, err := d.Run(context.Background(), Network{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
