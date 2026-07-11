@@ -23,6 +23,21 @@ jobs:
       - run: go vet ./...
       - run: go test ./...
 
+  # The race detector needs cgo (a C toolchain), which the dev machine lacks, so
+  # it can't be part of the local `go test ./...` check. ubuntu-latest ships GCC,
+  # so run it here to catch data races in the concurrent discovery/enrichment
+  # paths that the plain test run can't see.
+  race:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.24"
+      - run: go test -race ./...
+        env:
+          CGO_ENABLED: "1"
+
   lint:
     runs-on: ubuntu-latest
     steps:
