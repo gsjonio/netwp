@@ -38,6 +38,20 @@ func (fakePinger) Ping(net.IP, time.Duration) (time.Duration, int, bool) {
 	return 3 * time.Millisecond, 64, true
 }
 
+// fakeClassLookup pins one specific MAC to a class, to prove a manual override
+// wins over the automatic guess.
+type fakeClassLookup struct {
+	mac   string
+	class DeviceClass
+}
+
+func (f fakeClassLookup) ClassOverride(mac net.HardwareAddr) (DeviceClass, bool) {
+	if mac.String() == f.mac {
+		return f.class, true
+	}
+	return ClassUnknown, false
+}
+
 // recordingProber notes which IPs were probed and reports a fixed open-port
 // set, so the test can assert self/gateway are skipped.
 type recordingProber struct {
@@ -82,7 +96,7 @@ func TestDiscoveryBoundsEnrichmentConcurrency(t *testing.T) {
 		devs = append(devs, Device{IP: net.IPv4(10, 0, 0, byte(i)), MAC: net.HardwareAddr{1, 2, 3, 4, 5, byte(i)}})
 	}
 	res := &concurrencyResolver{}
-	d := NewDiscovery(fakeScanner{devices: devs}, res, fakeVendor{}, &recordingProber{}, fakeAlias{}, fakePinger{})
+	d := NewDiscovery(fakeScanner{devices: devs}, res, fakeVendor{}, &recordingProber{}, fakeAlias{}, fakePinger{}, nil)
 
 	if _, err := d.Run(context.Background(), Network{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -108,7 +122,7 @@ func TestDiscoverySkipsSelfAndGatewayProbe(t *testing.T) {
 			{IP: gateway, MAC: net.HardwareAddr{2, 2, 2, 2, 2, 2}},
 			{IP: other, MAC: otherMAC},
 		}},
-		fakeResolver{}, fakeVendor{}, prober, fakeAlias{mac: otherMAC.String()}, fakePinger{},
+		fakeResolver{}, fakeVendor{}, prober, fakeAlias{mac: otherMAC.String()}, fakePinger{}, nil,
 	)
 
 	devices, err := d.Run(context.Background(), Network{Self: self, Gateway: gateway})
@@ -148,5 +162,24 @@ func TestDiscoverySkipsSelfAndGatewayProbe(t *testing.T) {
 	}
 	if d := byIP[other.String()]; !d.Reachable || d.RTT != 3*time.Millisecond || d.TTL != 64 {
 		t.Errorf("ping enrichment missing: reachable=%v rtt=%v ttl=%v", d.Reachable, d.RTT, d.TTL)
+	}
+}
+
+// TestDiscoveryClassOverride proves a user-pinned class replaces the automatic
+// guess: SSH open would classify as Computer, but the override says Mobile.
+func TestDiscoveryClassOverride(t *testing.T) {
+	mac := net.HardwareAddr{9, 9, 9, 9, 9, 9}
+	ip := net.IPv4(192, 168, 1, 55)
+	d := NewDiscovery(
+		fakeScanner{devices: []Device{{IP: ip, MAC: mac}}},
+		fakeResolver{}, fakeVendor{}, &recordingProber{ports: []int{portSSH}}, fakeAlias{}, fakePinger{},
+		fakeClassLookup{mac: mac.String(), class: ClassMobile},
+	)
+	devices, err := d.Run(context.Background(), Network{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := devices[0].Class; got != ClassMobile {
+		t.Errorf("class = %v, want ClassMobile (override beats the SSH->Computer guess)", got)
 	}
 }

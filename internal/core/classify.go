@@ -20,6 +20,28 @@ const (
 	ClassIoT // smart home / embedded
 )
 
+// ParseClass maps a user-typed class name (as shown by String, case-
+// insensitive) to a DeviceClass, for `netwp class set`. Only the classes a
+// user would meaningfully pin are accepted: not ThisDevice/Unknown.
+func ParseClass(s string) (DeviceClass, bool) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "router":
+		return ClassRouter, true
+	case "computer":
+		return ClassComputer, true
+	case "mobile":
+		return ClassMobile, true
+	case "media":
+		return ClassMedia, true
+	case "printer":
+		return ClassPrinter, true
+	case "iot":
+		return ClassIoT, true
+	default:
+		return ClassUnknown, false
+	}
+}
+
 func (c DeviceClass) String() string {
 	switch c {
 	case ClassThisDevice:

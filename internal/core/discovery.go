@@ -26,10 +26,11 @@ type Discovery struct {
 	prober  Prober
 	aliases AliasLookup
 	pinger  Pinger
+	classes ClassLookup // nil disables manual class overrides
 }
 
-func NewDiscovery(scanner Scanner, names HostResolver, vendors VendorLookup, prober Prober, aliases AliasLookup, pinger Pinger) *Discovery {
-	return &Discovery{scanner: scanner, names: names, vendors: vendors, prober: prober, aliases: aliases, pinger: pinger}
+func NewDiscovery(scanner Scanner, names HostResolver, vendors VendorLookup, prober Prober, aliases AliasLookup, pinger Pinger, classes ClassLookup) *Discovery {
+	return &Discovery{scanner: scanner, names: names, vendors: vendors, prober: prober, aliases: aliases, pinger: pinger, classes: classes}
 }
 
 // Run scans the target network and returns the enriched, classified devices.
@@ -81,6 +82,13 @@ func (d *Discovery) Run(ctx context.Context, target Network) ([]Device, error) {
 			inner.Wait()
 			dev.Ports = ports
 			dev.Class = Classify(*dev, target.Gateway, target.Self, ports, target.LocalMACs)
+			// A user-pinned class wins over the guess: they told us what this
+			// device is, so stop second-guessing it.
+			if d.classes != nil {
+				if c, ok := d.classes.ClassOverride(dev.MAC); ok {
+					dev.Class = c
+				}
+			}
 		}(i)
 	}
 	wg.Wait()

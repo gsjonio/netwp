@@ -8,3 +8,10 @@ type Alias struct {
 	MAC  net.HardwareAddr
 	Name string
 }
+
+// ClassPin is a user-pinned device class bound to a MAC, overriding the
+// automatic guess. Same MAC-keyed rationale as Alias.
+type ClassPin struct {
+	MAC   net.HardwareAddr
+	Class DeviceClass
+}

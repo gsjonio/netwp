@@ -20,6 +20,7 @@ import (
 
 	"github.com/gsjonio/netwp/internal/adapter/aliasstore"
 	"github.com/gsjonio/netwp/internal/adapter/arpscan"
+	"github.com/gsjonio/netwp/internal/adapter/classstore"
 	"github.com/gsjonio/netwp/internal/adapter/eventlog"
 	"github.com/gsjonio/netwp/internal/adapter/httpspeed"
 	"github.com/gsjonio/netwp/internal/adapter/icmpping"
@@ -114,6 +115,8 @@ func main() {
 		err = runPorts()
 	case "events":
 		err = runEvents()
+	case "class":
+		err = runClass()
 	case "uninstall":
 		err = runUninstall()
 	default:
@@ -148,6 +151,9 @@ Commands:
   alias set <ip-or-mac> <name>                    nickname a device
   alias ls                                        list nicknames
   alias rm <ip-or-mac>                            remove a nickname
+  class set <ip-or-mac> <class>                   pin a device's class (router|computer|mobile|media|printer|iot)
+  class ls                                        list class overrides
+  class rm <ip-or-mac>                            remove a class override
   ports <ip>                                      open ports + RTT for one device
   events [n]                                      show the last n join/leave events (default 20)
   version                                         show the installed version
@@ -238,8 +244,8 @@ func vcsSetting(info *debug.BuildInfo, key string) string {
 }
 
 // buildDiscovery assembles the discovery use case from its platform adapters.
-func buildDiscovery(aliases core.AliasLookup) *core.Discovery {
-	return core.NewDiscovery(arpscan.New(), namelookup.New(netinfo.DNSResolver{}), oui.New(), tcpprobe.New(), aliases, icmpping.New())
+func buildDiscovery(aliases core.AliasLookup, classes core.ClassLookup) *core.Discovery {
+	return core.NewDiscovery(arpscan.New(), namelookup.New(netinfo.DNSResolver{}), oui.New(), tcpprobe.New(), aliases, icmpping.New(), classes)
 }
 
 // openAliasStore opens the persistent nickname store at its default path.
@@ -249,6 +255,15 @@ func openAliasStore() (*aliasstore.Store, error) {
 		return nil, err
 	}
 	return aliasstore.Open(path)
+}
+
+// openClassStore opens the persistent class-override store at its default path.
+func openClassStore() (*classstore.Store, error) {
+	path, err := classstore.DefaultPath()
+	if err != nil {
+		return nil, err
+	}
+	return classstore.Open(path)
 }
 
 // discoveryContext resolves the two things every scanning command needs: the
@@ -262,7 +277,11 @@ func discoveryContext() (*core.Discovery, core.Network, error) {
 	if err != nil {
 		return nil, core.Network{}, err
 	}
-	return buildDiscovery(store), network, nil
+	classes, err := openClassStore()
+	if err != nil {
+		return nil, core.Network{}, err
+	}
+	return buildDiscovery(store, classes), network, nil
 }
 
 func runScan(asJSON, diff bool) error {
@@ -730,6 +749,62 @@ func runAliasRemove(store *aliasstore.Store, args []string) error {
 	}
 	fmt.Printf("removed alias for %s\n", mac)
 	return nil
+}
+
+// runClass dispatches the class-override subcommands: set, ls, rm.
+func runClass() error {
+	args := os.Args[2:]
+	if len(args) == 0 {
+		return errors.New("usage: netwp class set <ip-or-mac> <class> | class ls | class rm <ip-or-mac>\nclasses: router, computer, mobile, media, printer, iot")
+	}
+	store, err := openClassStore()
+	if err != nil {
+		return err
+	}
+	switch args[0] {
+	case "ls", "list":
+		list := store.List()
+		if len(list) == 0 {
+			fmt.Println("no class overrides set.")
+			return nil
+		}
+		for _, c := range list {
+			fmt.Printf("%-17s  %s\n", c.MAC, c.Class)
+		}
+		return nil
+	case "set":
+		if len(args) < 3 {
+			return errors.New("usage: netwp class set <ip-or-mac> <class> (router|computer|mobile|media|printer|iot)")
+		}
+		class, ok := core.ParseClass(args[2])
+		if !ok {
+			return fmt.Errorf("unknown class %q (use: router | computer | mobile | media | printer | iot)", args[2])
+		}
+		mac, err := resolveMAC(args[1])
+		if err != nil {
+			return err
+		}
+		if err := store.Set(mac, class); err != nil {
+			return err
+		}
+		fmt.Printf("pinned %s → %s\n", mac, class)
+		return nil
+	case "rm", "remove", "del":
+		if len(args) < 2 {
+			return errors.New("usage: netwp class rm <ip-or-mac>")
+		}
+		mac, err := resolveMAC(args[1])
+		if err != nil {
+			return err
+		}
+		if err := store.Delete(mac); err != nil {
+			return err
+		}
+		fmt.Printf("removed class override for %s\n", mac)
+		return nil
+	default:
+		return fmt.Errorf("unknown class subcommand %q (use: set | ls | rm)", args[0])
+	}
 }
 
 // resolveMAC turns a CLI argument into a MAC. A MAC literal is used directly.

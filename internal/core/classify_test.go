@@ -41,6 +41,24 @@ func TestClassify(t *testing.T) {
 	}
 }
 
+func TestParseClass(t *testing.T) {
+	cases := map[string]DeviceClass{
+		"mobile": ClassMobile, "Mobile": ClassMobile, "  IOT ": ClassIoT,
+		"computer": ClassComputer, "router": ClassRouter,
+		"media": ClassMedia, "printer": ClassPrinter,
+	}
+	for in, want := range cases {
+		if got, ok := ParseClass(in); !ok || got != want {
+			t.Errorf("ParseClass(%q) = (%v, %v), want (%v, true)", in, got, ok, want)
+		}
+	}
+	for _, bad := range []string{"", "phone", "this device", "unknown"} {
+		if _, ok := ParseClass(bad); ok {
+			t.Errorf("ParseClass(%q) accepted, want rejected", bad)
+		}
+	}
+}
+
 // TestClassifyLocalMAC covers the multi-homed case: a second interface (e.g.
 // Wi-Fi alongside Ethernet) gets a different IP than Self, so it can only be
 // recognized as "this device" by MAC.

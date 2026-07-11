@@ -30,6 +30,12 @@ type AliasLookup interface {
 	Alias(mac net.HardwareAddr) string
 }
 
+// ClassLookup returns a user-pinned device class for a MAC, overriding the
+// automatic guess. ok is false when the user hasn't pinned one.
+type ClassLookup interface {
+	ClassOverride(mac net.HardwareAddr) (DeviceClass, bool)
+}
+
 // Prober reports which of a small set of well-known TCP ports a host accepts
 // connections on — the "detailed scan" used to refine device classification.
 type Prober interface {
