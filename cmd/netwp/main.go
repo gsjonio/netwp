@@ -31,6 +31,7 @@ import (
 	"github.com/gsjonio/netwp/internal/adapter/scancache"
 	"github.com/gsjonio/netwp/internal/adapter/tcpprobe"
 	"github.com/gsjonio/netwp/internal/adapter/wifi"
+	"github.com/gsjonio/netwp/internal/adapter/wol"
 	"github.com/gsjonio/netwp/internal/core"
 	"github.com/gsjonio/netwp/internal/tui"
 )
@@ -113,6 +114,8 @@ func main() {
 		err = runDashboard()
 	case "ports":
 		err = runPorts()
+	case "wake":
+		err = runWake()
 	case "events":
 		err = runEvents()
 	case "class":
@@ -155,6 +158,7 @@ Commands:
   class ls                                        list class overrides
   class rm <ip-or-mac>                            remove a class override
   ports <ip>                                      open ports + RTT for one device
+  wake <ip-or-mac-or-alias>                       send a Wake-on-LAN magic packet to power on a device
   events [n]                                      show the last n join/leave events (default 20)
   version                                         show the installed version
   update                                          update to the latest version (needs the Go toolchain)
@@ -805,6 +809,47 @@ func runClass() error {
 	default:
 		return fmt.Errorf("unknown class subcommand %q (use: set | ls | rm)", args[0])
 	}
+}
+
+// runWake sends a Wake-on-LAN magic packet to a device named by MAC, IP, or
+// alias. WoL is for devices that are asleep/offline, so an alias or a cached
+// IP resolves even when the device won't answer an ARP sweep.
+func runWake() error {
+	args := os.Args[2:]
+	if len(args) < 1 {
+		return errors.New("usage: netwp wake <ip-or-mac-or-alias>")
+	}
+	mac, err := resolveWakeTarget(args[0])
+	if err != nil {
+		return err
+	}
+	if err := wol.New().Wake(mac); err != nil {
+		return err
+	}
+	fmt.Printf("sent Wake-on-LAN magic packet to %s\n", mac)
+	return nil
+}
+
+// resolveWakeTarget resolves a MAC, IP, or alias name to a MAC. Unlike
+// resolveMAC it also accepts an alias name (reverse alias lookup), since waking
+// a device by its nickname is the common case and the device is likely offline.
+func resolveWakeTarget(arg string) (net.HardwareAddr, error) {
+	if mac, err := net.ParseMAC(arg); err == nil {
+		return mac, nil
+	}
+	if net.ParseIP(arg) != nil {
+		return resolveMAC(arg) // IP: cache first, then ARP (see resolveMAC)
+	}
+	store, err := openAliasStore()
+	if err != nil {
+		return nil, err
+	}
+	for _, a := range store.List() {
+		if strings.EqualFold(a.Name, arg) {
+			return a.MAC, nil
+		}
+	}
+	return nil, fmt.Errorf("%q is not a MAC, IP, or known alias name", arg)
 }
 
 // resolveMAC turns a CLI argument into a MAC. A MAC literal is used directly.
