@@ -135,6 +135,15 @@ Isso é normal: o roteador reatribui IPs por DHCP de tempos em tempos. O
 netwp usa o MAC (que não muda) para continuar reconhecendo que é o mesmo
 aparelho, então o apelido que você deu continua valendo.
 
+**O netwp pode me avisar se um aparelho importante sair do ar?**
+Pode. `netwp watch add <ip|mac>` marca um aparelho que te importa (uma
+câmera de segurança, um servidor de casa). Enquanto o `netwp monitor` ou o
+`netwp dashboard` estiver rodando, se esse aparelho sair da rede a linha
+dele é destacada e o terminal apita. O mesmo alerta já dispara quando um
+aparelho desconhecido (que você nunca apelidou) entra — então um monitor
+deixado sozinho avisa dos dois jeitos. `netwp watch ls` lista, `netwp watch
+rm` para de vigiar.
+
 **Minha internet está lenta ou não funciona. O que o netwp me diz?**
 Rode `netwp doctor`. Ele checa, em ordem, se sua interface tem endereço, se
 o roteador (gateway) responde, se a internet está acessível, se o DNS

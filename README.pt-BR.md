@@ -159,6 +159,7 @@ internal/tui     saída em tabela legível
 | `iface dhcp` | Volta para DHCP (pede confirmação) |
 | `alias set <ip\|mac> <nome>` / `ls` / `rm <ip\|mac>` | Apelida um dispositivo / lista / remove |
 | `class set <ip\|mac> <classe>` / `ls` / `rm <ip\|mac>` | Fixa a classe de um dispositivo quando o palpite erra (router/computer/mobile/media/printer/iot) |
+| `watch add <ip\|mac>` / `ls` / `rm <ip\|mac>` | Alerta (destaque + bipe) quando um dispositivo sai durante o monitor/dashboard |
 | `ports <ip>` | Portas abertas + RTT + TTL de um dispositivo |
 | `wake <ip\|mac\|apelido>` | Envia um pacote Wake-on-LAN pra ligar um dispositivo |
 | `doctor` | Diagnostica a conexão: interface, gateway, internet, DNS, Wi-Fi |
@@ -235,6 +236,9 @@ quem já manja de redes.
   com o alvo desligado.
 - `netwp doctor` checa de cima pra baixo (interface → gateway → internet →
   DNS); o primeiro ✗ costuma ser a causa raiz e explica os de baixo.
+- No `monitor`/`dashboard`, dois eventos tocam o bipe do terminal e destacam
+  a linha do log: um dispositivo desconhecido entrando (sem apelido) e um
+  dispositivo da lista do `netwp watch` saindo. O resto fica quieto.
 - `netwp monitor --alert-down=<taxa>` (ex.: `50Mbps`) destaca a linha de
   banda quando o download cai abaixo desse limiar. Sem a flag, o monitor se
   comporta exatamente como antes.

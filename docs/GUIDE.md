@@ -133,6 +133,14 @@ That's normal: the router reassigns IPs via DHCP from time to time. netwp
 uses the MAC (which never changes) to keep recognizing it as the same
 device, so the nickname you gave it still applies.
 
+**Can netwp warn me if an important device goes offline?**
+Yes. `netwp watch add <ip|mac>` marks a device you care about (a security
+camera, a home server). While `netwp monitor` or `netwp dashboard` is
+running, if that device leaves the network its line is highlighted and the
+terminal beeps. The same alert already fires when an unknown device (one you
+never nicknamed) joins — so an unattended monitor is audible either way.
+`netwp watch ls` lists them, `netwp watch rm` stops watching.
+
 **My internet is slow or not working. What can netwp tell me?**
 Run `netwp doctor`. It checks, in order, whether your interface has an
 address, whether your router (gateway) answers, whether the internet is

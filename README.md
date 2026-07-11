@@ -156,6 +156,7 @@ internal/tui     legible table output
 | `iface dhcp` | Switch back to DHCP (asks to confirm) |
 | `alias set <ip\|mac> <name>` / `ls` / `rm <ip\|mac>` | Nickname a device / list / remove |
 | `class set <ip\|mac> <class>` / `ls` / `rm <ip\|mac>` | Pin a device's class when the guess is wrong (router/computer/mobile/media/printer/iot) |
+| `watch add <ip\|mac>` / `ls` / `rm <ip\|mac>` | Alert (highlight + bell) when a device leaves during monitor/dashboard |
 | `ports <ip>` | Open ports + RTT + TTL for one device |
 | `wake <ip\|mac\|alias>` | Send a Wake-on-LAN magic packet to power on a device |
 | `doctor` | Diagnose connectivity: interface, gateway, internet, DNS, Wi-Fi |
@@ -230,6 +231,9 @@ people who already know networking.
   is off.
 - `netwp doctor` checks top-down (interface → gateway → internet → DNS); the
   topmost ✗ is usually the root cause and explains the ones below it.
+- In `monitor`/`dashboard`, two events ring the terminal bell and highlight
+  their log line: an unrecognized device joining (no alias set), and a
+  `netwp watch`-listed device leaving. Everything else stays quiet.
 - The dashboard's DEVICES panel shows a per-class breakdown of what's
   online (e.g. "2 Media · 1 Router"), skipping "This device" and
   unclassified hosts.
