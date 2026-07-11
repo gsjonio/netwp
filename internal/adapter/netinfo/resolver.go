@@ -29,3 +29,11 @@ func (DNSResolver) Hostname(ip net.IP) string {
 	}
 	return strings.TrimSuffix(names[0], ".")
 }
+
+// Resolve looks up host's A/AAAA records, to confirm forward DNS works.
+// Implements core.NameChecker (used by `netwp doctor`).
+func (DNSResolver) Resolve(host string) ([]net.IP, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), lookupTimeout)
+	defer cancel()
+	return net.DefaultResolver.LookupIP(ctx, "ip", host)
+}

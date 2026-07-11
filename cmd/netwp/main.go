@@ -116,6 +116,8 @@ func main() {
 		err = runPorts()
 	case "wake":
 		err = runWake()
+	case "doctor":
+		err = runDoctor()
 	case "events":
 		err = runEvents()
 	case "class":
@@ -159,6 +161,7 @@ Commands:
   class rm <ip-or-mac>                            remove a class override
   ports <ip>                                      open ports + RTT for one device
   wake <ip-or-mac-or-alias>                       send a Wake-on-LAN magic packet to power on a device
+  doctor                                          diagnose connectivity (interface, gateway, internet, DNS, Wi-Fi)
   events [n]                                      show the last n join/leave events (default 20)
   version                                         show the installed version
   update                                          update to the latest version (needs the Go toolchain)
@@ -654,6 +657,32 @@ func runDashboard() error {
 	reader := ifacestat.New(info.Name)
 	speed := core.NewSpeedtest(httpspeed.New())
 	return tui.RunDashboard(discovery, tracker, network, info, reader, wifi.New(), speed, icmpping.New(), defaultEventLogger())
+}
+
+// runDoctor runs a quick connectivity diagnosis (interface, gateway,
+// internet, DNS, Wi-Fi) and prints each check with a hint on failure.
+func runDoctor() error {
+	info, err := netinfo.Interface{}.Inspect()
+	if err != nil {
+		return err
+	}
+	doctor := core.NewDoctor(info, icmpping.New(), netinfo.DNSResolver{}, wifi.New())
+
+	failed := 0
+	for _, c := range doctor.Run() {
+		mark := "\x1b[32m✓\x1b[0m"
+		if !c.OK {
+			mark = "\x1b[31m✗\x1b[0m"
+			failed++
+		}
+		fmt.Printf("%s %-10s %s\n", mark, c.Name, c.Detail)
+	}
+	if failed > 0 {
+		fmt.Printf("\n%d check(s) failed. Start with the topmost ✗: a link/gateway problem explains the ones below it.\n", failed)
+	} else {
+		fmt.Println("\nall good.")
+	}
+	return nil
 }
 
 // runEvents prints the last n recorded presence-change events (newest last),
