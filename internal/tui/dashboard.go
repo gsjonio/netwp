@@ -63,6 +63,7 @@ func RunDashboard(cfg DashboardConfig) error {
 		meter:     &core.RateMeter{},
 		start:     time.Now(),
 		width:     dashDefaultCols,
+		ops:       []string{opLine("dashboard started")},
 	}
 	_, err := tea.NewProgram(m, tea.WithAltScreen()).Run()
 	return err
@@ -95,9 +96,38 @@ type dashModel struct {
 	netUp      bool
 	netHist    []float64
 	lastScan   time.Time
-	log        []string
+	log        []string // device join/leave events (ACTIVITY panel)
+	ops        []string // operation log: scans, speedtests, state changes (LOG panel)
 	width      int
 	height     int
+}
+
+// opsLimit is how many operation-log lines the LOG panel keeps on screen.
+const opsLimit = 8
+
+// appendLog appends s to lines, trimmed to the last limit entries.
+func appendLog(lines []string, s string, limit int) []string {
+	lines = append(lines, s)
+	if len(lines) > limit {
+		lines = lines[len(lines)-limit:]
+	}
+	return lines
+}
+
+// opLine prefixes an operation message with a dim timestamp for the LOG panel.
+func opLine(msg string) string {
+	return styOffline.Render(time.Now().Format("15:04:05")) + " " + msg
+}
+
+// lastN returns the last n elements of s (all of them if fewer, none if n<=0).
+func lastN(s []string, n int) []string {
+	if n <= 0 {
+		return nil
+	}
+	if len(s) <= n {
+		return s
+	}
+	return s[len(s)-n:]
 }
 
 // pushHist appends v to hist, trimmed to the last histLen samples.
@@ -184,6 +214,7 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c", "esc":
 			return m, tea.Quit
 		case "r":
+			m.ops = appendLog(m.ops, opLine("running scan (manual)…"), opsLimit)
 			return m, m.scan
 		}
 	case tea.WindowSizeMsg:
@@ -198,6 +229,15 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.readSample
 
 	case wifiMsg:
+		// Log only connection changes, not every 6s refresh, to keep the log
+		// signal-heavy (a wired host never logs a wi-fi line at all).
+		if msg.err == nil && (msg.info.Connected != m.wifiInfo.Connected || msg.info.SSID != m.wifiInfo.SSID) {
+			if msg.info.Connected {
+				m.ops = appendLog(m.ops, opLine(fmt.Sprintf("wi-fi: connected to %s (%d%%)", msg.info.SSID, msg.info.SignalPercent)), opsLimit)
+			} else {
+				m.ops = appendLog(m.ops, opLine("wi-fi: disconnected"), opsLimit)
+			}
+		}
 		m.wifiInfo, m.wifiErr = msg.info, msg.err
 		if msg.err == nil && msg.info.Connected {
 			m.wifiHist = pushHist(m.wifiHist, float64(msg.info.SignalPercent))
@@ -208,6 +248,7 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case scanMsg:
 		m.lastScan = msg.at
+		m.ops = appendLog(m.ops, opLine(fmt.Sprintf("scan done · %d devices", len(msg.devices))), opsLimit)
 		alert := false
 		for _, e := range m.tracker.Observe(msg.devices, msg.at) {
 			watched := m.watchlist != nil && m.watchlist.IsWatched(e.Device.MAC)
@@ -227,18 +268,31 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, tick(dashScanEvery, scanTickMsg{})
 	case scanTickMsg:
+		m.ops = appendLog(m.ops, opLine("running scan…"), opsLimit)
 		return m, m.scan
 
 	case speedMsg:
 		m.result, m.speedAt, m.speedErr = msg.result, msg.at, msg.err
-		if msg.err == nil {
+		if msg.err != nil {
+			m.ops = appendLog(m.ops, opLine("speedtest failed: "+msg.err.Error()), opsLimit)
+		} else {
 			m.speedHist = pushHist(m.speedHist, msg.result.DownloadMbps)
+			m.ops = appendLog(m.ops, opLine(fmt.Sprintf("speedtest · %.0f↓ / %.0f↑ Mbps", msg.result.DownloadMbps, msg.result.UploadMbps)), opsLimit)
 		}
 		return m, tick(dashSpeedEvery, speedTickMsg{})
 	case speedTickMsg:
+		m.ops = appendLog(m.ops, opLine("running speedtest…"), opsLimit)
 		return m, m.runSpeed
 
 	case pingMsg:
+		// Log only up/down transitions, not every 5s probe.
+		if msg.ok != m.netUp {
+			if msg.ok {
+				m.ops = appendLog(m.ops, opLine(fmt.Sprintf("internet up (%s to %s)", msg.rtt.Round(time.Millisecond), dashPingTarget)), opsLimit)
+			} else {
+				m.ops = appendLog(m.ops, opLine("internet down (no reply from "+dashPingTarget+")"), opsLimit)
+			}
+		}
 		m.netLatency, m.netUp = msg.rtt, msg.ok
 		if msg.ok {
 			m.netHist = pushHist(m.netHist, float64(msg.rtt.Microseconds())/1000)
@@ -292,21 +346,32 @@ func (m dashModel) View() string {
 	allDevices := devices
 	devTitle := fmt.Sprintf("DEVICES · %d online / %d known", online, total)
 
-	// Trim the device table to whatever vertical room is left, so the footer
-	// never scrolls off screen on a short terminal. Fixed overhead below the
+	// LOG panel at the bottom: a running trace of the dashboard's own work
+	// (scans, speedtests, connectivity changes), so you can see what it's doing.
+	// It yields to the device table and footer on a short terminal -- shrinking,
+	// then hiding -- so the footer never scrolls off. Fixed overhead below the
 	// header/top/activity/footer lines: the device panel's own border (2) +
 	// title (1), plus the inner table's border+header+separator+border (4).
+	opsPanel := ""
 	if m.height > 0 {
-		used := lineCount(header) + lineCount(top) + lineCount(footer) + 7
+		fixed := lineCount(header) + lineCount(top) + lineCount(footer) + 7
 		if activity != "" {
-			used += lineCount(activity)
+			fixed += lineCount(activity)
+		}
+		room := m.height - fixed // shared by the device rows and the LOG panel
+		// Show the LOG only where there's slack, capped at opsLimit and at most
+		// half the slack, so the device table keeps the rest.
+		if logLines := min(len(m.ops), opsLimit, (room-1)/2); logLines > 0 {
+			opsPanel = panel("LOG", strings.Join(lastN(m.ops, logLines), "\n"), width-2)
+			room -= lineCount(opsPanel)
 		}
 		var truncated bool
-		budget := m.height - used
-		devices, truncated = truncateToHeight(devices, budget)
+		devices, truncated = truncateToHeight(devices, room)
 		if truncated {
-			devTitle = fmt.Sprintf("DEVICES · %d online / %d known (showing %d)", online, total, budget)
+			devTitle = fmt.Sprintf("DEVICES · %d online / %d known (showing %d)", online, total, room)
 		}
+	} else {
+		opsPanel = panel("LOG", strings.Join(lastN(m.ops, opsLimit), "\n"), width-2)
 	}
 	if summary := classSummary(allDevices); summary != "" {
 		devTitle += " · " + summary
@@ -329,7 +394,11 @@ func (m dashModel) View() string {
 	if activity != "" {
 		parts = append(parts, activity)
 	}
-	parts = append(parts, panel(devTitle, devBody, devPanelWidth+2), footer)
+	parts = append(parts, panel(devTitle, devBody, devPanelWidth+2))
+	if opsPanel != "" {
+		parts = append(parts, opsPanel)
+	}
+	parts = append(parts, footer)
 	return strings.Join(parts, "\n")
 }
 

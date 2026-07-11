@@ -80,6 +80,47 @@ func TestDashboardTruncatesDevicesToFitHeight(t *testing.T) {
 	}
 }
 
+// TestDashboardLogPanel checks the LOG panel renders its operation lines on a
+// terminal with room, without pushing the footer off screen.
+func TestDashboardLogPanel(t *testing.T) {
+	m := dashModel{
+		tracker: core.NewTracker(30 * time.Second),
+		info:    core.InterfaceInfo{Name: "Ethernet", IP: net.IPv4(192, 168, 1, 10)},
+		start:   time.Now(),
+		width:   112,
+		height:  40,
+		ops:     []string{opLine("running scan…"), opLine("scan done · 5 devices")},
+	}
+	out := m.View()
+	if !strings.Contains(out, "LOG") {
+		t.Error("LOG panel title missing")
+	}
+	if !strings.Contains(out, "scan done · 5 devices") {
+		t.Error("expected the latest operation line in the LOG panel")
+	}
+	if !strings.Contains(out, "r rescan") {
+		t.Error("footer missing")
+	}
+}
+
+// TestDashboardLogsScanLifecycle checks the scan start and completion each add
+// an operation-log line via Update.
+func TestDashboardLogsScanLifecycle(t *testing.T) {
+	m := dashModel{tracker: core.NewTracker(30 * time.Second), start: time.Now()}
+
+	u, _ := m.Update(scanTickMsg{})
+	m = u.(dashModel)
+	if !strings.Contains(strings.Join(m.ops, "\n"), "running scan") {
+		t.Errorf("scanTickMsg should log a 'running scan' line, got %v", m.ops)
+	}
+
+	u, _ = m.Update(scanMsg{devices: []core.Device{{IP: net.IPv4(10, 0, 0, 1), MAC: net.HardwareAddr{1, 2, 3, 4, 5, 6}}}, at: time.Now()})
+	m = u.(dashModel)
+	if !strings.Contains(strings.Join(m.ops, "\n"), "scan done · 1 devices") {
+		t.Errorf("scanMsg should log a 'scan done' line, got %v", m.ops)
+	}
+}
+
 func TestClassSummary(t *testing.T) {
 	devices := []core.TrackedDevice{
 		{Device: core.Device{Class: core.ClassRouter}, Online: true},

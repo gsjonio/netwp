@@ -149,7 +149,7 @@ internal/tui     legible table output
 | *(none)* / `help` / `-h` / `--help` | Print usage |
 | `scan` / `scan --json` / `scan --diff` | One-shot scan, with per-device RTT; `--json` for machine-readable output, `--diff` to print only what changed since the last scan |
 | `monitor` / `monitor --alert-down=<rate>` | Live TUI: devices joining/leaving in real time (`q` to quit); `--alert-down` flags a download rate drop, e.g. `--alert-down=50Mbps` |
-| `dashboard` | Full dashboard: Wi-Fi + live bandwidth + speedtest + devices |
+| `dashboard` | Full dashboard: Wi-Fi + live bandwidth + speedtest + devices + an operations log |
 | `speedtest` | Download/upload throughput |
 | `iface` | Inspect the active interface's IP config |
 | `iface static <ip>/<bits> <gw> [dns...]` | Set a static address (asks to confirm) |
@@ -237,6 +237,11 @@ people who already know networking.
 - The dashboard's DEVICES panel shows a per-class breakdown of what's
   online (e.g. "2 Media · 1 Router"), skipping "This device" and
   unclassified hosts.
+- The dashboard's LOG panel (bottom) traces its own work — scans starting
+  and finishing, speedtests, and internet/Wi-Fi state changes — so you can
+  see what it's doing. On a short terminal it shrinks, then hides, so the
+  device table and footer keep priority. (Distinct from the ACTIVITY panel,
+  which lists device joins/leaves.)
 - `netwp monitor --alert-down=<rate>` (e.g. `50Mbps`) highlights the
   bandwidth line when download drops below that threshold. Omit it and
   monitor behaves exactly as before.

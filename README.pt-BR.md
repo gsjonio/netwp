@@ -152,7 +152,7 @@ internal/tui     saída em tabela legível
 | *(nenhum)* / `help` / `-h` / `--help` | Mostra a ajuda |
 | `scan` / `scan --json` / `scan --diff` | Varredura única, com RTT por dispositivo; `--json` pra saída legível por máquina, `--diff` pra imprimir só o que mudou desde a última varredura |
 | `monitor` / `monitor --alert-down=<taxa>` | TUI ao vivo: dispositivos entrando/saindo em tempo real (`q` sai); `--alert-down` avisa sobre queda na taxa de download, ex.: `--alert-down=50Mbps` |
-| `dashboard` | Dashboard completo: WiFi + banda ao vivo + speedtest + dispositivos |
+| `dashboard` | Dashboard completo: WiFi + banda ao vivo + speedtest + dispositivos + um log de operações |
 | `speedtest` | Teste de download/upload |
 | `iface` | Inspeciona o IP da interface ativa |
 | `iface static <ip>/<bits> <gw> [dns...]` | Define IP estático (pede confirmação) |
@@ -250,6 +250,11 @@ quem já manja de redes.
 - O painel DEVICES do dashboard mostra um resumo por classe do que está
   online (ex.: "2 Media · 1 Router"), sem contar "This device" e hosts não
   classificados.
+- O painel LOG do dashboard (embaixo) mostra o que ele mesmo está fazendo —
+  scans começando e terminando, speedtests, e mudanças de estado de
+  internet/Wi-Fi. Num terminal curto ele encolhe, depois some, pra a tabela
+  de dispositivos e o rodapé terem prioridade. (Diferente do painel ACTIVITY,
+  que lista entradas/saídas de dispositivos.)
 
 Quer contribuir? Veja [CONTRIBUTING.md](CONTRIBUTING.md). Este projeto
 segue o [Código de Conduta](CODE_OF_CONDUCT.md).
