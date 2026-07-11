@@ -8,6 +8,7 @@
 [![Go version](https://img.shields.io/github/go-mod/go-version/gsjonio/netwp)](go.mod)
 [![Release](https://img.shields.io/github/v/release/gsjonio/netwp)](https://github.com/gsjonio/netwp/releases/latest)
 [![License: MIT](https://img.shields.io/github/license/gsjonio/netwp)](LICENSE)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-gugamenezes-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/gugamenezes)
 
 **netwp** = *Internet / Rede Well Played* ("a rede, bem jogada").
 
@@ -26,6 +27,7 @@ simples.
 - [Arquitetura](#arquitetura)
 - [Uso](#uso)
 - [Notas](#notas)
+- [Apoie o projeto](#apoie-o-projeto)
 - [Licença](#licença)
 
 ## Features
@@ -258,6 +260,13 @@ quem já manja de redes.
 
 Quer contribuir? Veja [CONTRIBUTING.md](CONTRIBUTING.md). Este projeto
 segue o [Código de Conduta](CODE_OF_CONDUCT.md).
+
+## Apoie o projeto
+
+O netwp é livre e de código aberto. Se ele te economiza tempo, você pode
+apoiar o desenvolvimento com um café — obrigado! ☕
+
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-gugamenezes-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/gugamenezes)
 
 ## Licença
 
