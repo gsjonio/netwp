@@ -63,12 +63,6 @@ type EventLogger interface {
 	Log(e Event) error
 }
 
-// Waker sends a Wake-on-LAN magic packet to a MAC, to power on a sleeping
-// device that has WoL enabled. Cross-platform.
-type Waker interface {
-	Wake(mac net.HardwareAddr) error
-}
-
 // Watchlist reports whether a MAC is one the user asked to be alerted about
 // (a device whose departure from the network matters).
 type Watchlist interface {
