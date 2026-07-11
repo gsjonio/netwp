@@ -40,6 +40,10 @@ func (p Prober) OpenPorts(ctx context.Context, ip net.IP) []int {
 	dialer := net.Dialer{Timeout: p.Timeout}
 	host := ip.String()
 
+	// ponytail: one goroutine/socket per port, unbounded. With ~29 ports and
+	// discovery's 32-device fan-out that peaks near 900 sockets, measured fine
+	// on a /24. Add an internal semaphore only if the port list grows further
+	// or a large LAN hits the file-descriptor limit.
 	var (
 		mu   sync.Mutex
 		open []int
