@@ -159,6 +159,7 @@ internal/tui     legible table output
 | `events [n]` | Print the last n join/leave events (default 20) |
 | `version` | Installed version |
 | `update` | Update to the latest version (needs Go) |
+| `uninstall` | Remove netwp's local data (asks to confirm); prints how to remove the binary |
 
 ```powershell
 netwp scan --json | ConvertFrom-Json | Where-Object reachable

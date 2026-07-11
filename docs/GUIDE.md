@@ -127,3 +127,9 @@ distinctive manufacturer) to risk a guess. "Unknown" beats a wrong guess.
 That's normal: the router reassigns IPs via DHCP from time to time. netwp
 uses the MAC (which never changes) to keep recognizing it as the same
 device, so the nickname you gave it still applies.
+
+**How do I uninstall netwp?**
+Run `netwp uninstall`. It asks you to confirm, then removes the local data
+netwp created (your nicknames, the scan cache, the event log) and prints
+how to remove the program file itself. If you liked it (or didn't), the
+same screen links to where you can leave a quick review.

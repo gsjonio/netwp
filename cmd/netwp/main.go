@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -94,6 +95,8 @@ func main() {
 		err = runPorts()
 	case "events":
 		err = runEvents()
+	case "uninstall":
+		err = runUninstall()
 	default:
 		fmt.Fprintf(os.Stderr, "netwp: unknown command %q\n\n", command)
 		printUsage(os.Stderr)
@@ -130,6 +133,7 @@ Commands:
   events [n]                                      show the last n join/leave events (default 20)
   version                                         show the installed version
   update                                          update to the latest version (needs the Go toolchain)
+  uninstall                                       remove netwp's local data (asks to confirm)
   help                                            show this help
 
 Run "netwp scan" to see the devices on your network.
@@ -480,8 +484,53 @@ func runIfaceSetDHCP() error {
 // network), so this always asks, with no --yes flag to skip it.
 func confirm(action string) bool {
 	fmt.Printf("about to %s. This changes your machine's real network config.\nType \"yes\" to continue: ", action)
+	return promptYes()
+}
+
+// promptYes reads one line from stdin and reports whether it is exactly "yes".
+func promptYes() bool {
 	line, _ := bufio.NewReader(os.Stdin).ReadString('\n')
 	return strings.TrimSpace(line) == "yes"
+}
+
+// feedbackURL opens a pre-titled GitHub issue so an uninstalling user can
+// leave a review without hunting for where to click.
+const feedbackURL = "https://github.com/gsjonio/netwp/issues/new?labels=feedback&title=My%20netwp%20review"
+
+// runUninstall removes netwp's local data (aliases, scan cache, event log)
+// after a typed confirmation, then prints how to remove the binary. It never
+// deletes the binary itself: a running program can't reliably delete its own
+// executable on Windows, and a clear instruction beats a silent surprise.
+func runUninstall() error {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return err
+	}
+	dir = filepath.Join(dir, "netwp")
+
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		fmt.Printf("no netwp data found at %s.\n", dir)
+	} else {
+		fmt.Printf("This removes netwp's local data (aliases, scan cache, event log):\n  %s\nType \"yes\" to continue: ", dir)
+		if !promptYes() {
+			fmt.Println("aborted. Nothing was removed.")
+			return nil
+		}
+		if err := os.RemoveAll(dir); err != nil {
+			return err
+		}
+		fmt.Println("removed.")
+	}
+
+	fmt.Printf(`
+To remove the binary too:
+  go clean -i github.com/gsjonio/netwp/cmd/netwp
+  (or delete netwp from your Go bin directory: go env GOPATH)
+
+Thanks for trying netwp. If you'd like to leave a review or feedback:
+  %s
+`, feedbackURL)
+	return nil
 }
 
 // parseRate parses a bits-per-second rate like "50Mbps" or "1.5Gbps" into

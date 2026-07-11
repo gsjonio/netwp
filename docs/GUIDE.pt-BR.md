@@ -129,3 +129,9 @@ melhor "Unknown" do que um palpite errado.
 Isso é normal: o roteador reatribui IPs por DHCP de tempos em tempos. O
 netwp usa o MAC (que não muda) para continuar reconhecendo que é o mesmo
 aparelho, então o apelido que você deu continua valendo.
+
+**Como eu desinstalo o netwp?**
+Rode `netwp uninstall`. Ele pede confirmação, depois apaga os dados locais
+que o netwp criou (seus apelidos, o cache de varredura, o log de eventos) e
+mostra como remover o próprio programa. Se você gostou (ou não), a mesma
+tela tem o link pra deixar uma review rápida.

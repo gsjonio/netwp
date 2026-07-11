@@ -162,6 +162,7 @@ internal/tui     saída em tabela legível
 | `events [n]` | Mostra os últimos n eventos de entrada/saída (padrão 20) |
 | `version` | Versão instalada |
 | `update` | Atualiza pra última versão (precisa do Go) |
+| `uninstall` | Remove os dados locais do netwp (pede confirmação); mostra como remover o binário |
 
 ```powershell
 netwp scan --json | ConvertFrom-Json | Where-Object reachable
