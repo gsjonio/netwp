@@ -69,6 +69,37 @@ func TestUpload(t *testing.T) {
 	}
 }
 
+// TestUploadStreamsExactBytes proves the streamed (non-allocated) payload
+// still sends exactly `size` bytes, all zero.
+func TestUploadStreamsExactBytes(t *testing.T) {
+	var got int64
+	var allZero = true
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		buf, _ := io.ReadAll(r.Body)
+		got = int64(len(buf))
+		for _, b := range buf {
+			if b != 0 {
+				allZero = false
+				break
+			}
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(srv.Close)
+	tester := Tester{Client: srv.Client(), BaseURL: srv.URL}
+
+	const size = 4096
+	if _, err := tester.Upload(context.Background(), size); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != size {
+		t.Errorf("server received %d bytes, want %d", got, size)
+	}
+	if !allZero {
+		t.Error("payload was not all-zero")
+	}
+}
+
 func TestColo(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/cdn-cgi/trace", func(w http.ResponseWriter, r *http.Request) {

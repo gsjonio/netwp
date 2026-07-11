@@ -3,7 +3,6 @@
 package httpspeed
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -11,6 +10,17 @@ import (
 	"strings"
 	"time"
 )
+
+// zeroReader yields an endless stream of zero bytes. Wrapped in an
+// io.LimitReader it feeds the upload payload without allocating the whole
+// thing (uploadBytes is 10 MB): the endpoint only times the transfer, so the
+// content doesn't matter.
+type zeroReader struct{}
+
+func (zeroReader) Read(p []byte) (int, error) {
+	clear(p)
+	return len(p), nil
+}
 
 const defaultBaseURL = "https://speed.cloudflare.com"
 
@@ -78,8 +88,9 @@ func (t Tester) Colo(ctx context.Context) string {
 // Upload sends size bytes and reports how long the transfer took.
 func (t Tester) Upload(ctx context.Context, size int64) (time.Duration, error) {
 	// ponytail: an all-zero payload is fine, the endpoint only measures
-	// transfer time, not entropy.
-	payload := bytes.NewReader(make([]byte, size))
+	// transfer time, not entropy. Stream it (see zeroReader) instead of
+	// allocating `size` bytes up front.
+	payload := io.LimitReader(zeroReader{}, size)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, t.BaseURL+"/__up", payload)
 	if err != nil {
 		return 0, err
