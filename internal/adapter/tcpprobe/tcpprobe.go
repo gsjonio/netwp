@@ -23,10 +23,20 @@ var probePorts = []int{
 	8009, 8080, 8096, 8123, 8443, 8888, 9000, 9100, 32400, 62078,
 }
 
+// maxConcurrentDials caps how many sockets one OpenPorts call opens at once.
+// Without it, ~29 ports times discovery's 32-device fan-out peaks near 900
+// sockets, which can exhaust the file-descriptor limit (Linux default 1024) on
+// a busy /24. 16 keeps the whole scan's peak around 512, with headroom.
+const maxConcurrentDials = 16
+
 // Prober performs a bounded concurrent TCP connect scan.
 type Prober struct {
 	Timeout time.Duration // per-port connect timeout
 	Ports   []int         // ports to probe; nil uses the default probePorts set
+
+	// dial defaults to a net.Dialer with Timeout; overridable in tests to
+	// observe the concurrency cap without opening real sockets.
+	dial func(ctx context.Context, network, addr string) (net.Conn, error)
 }
 
 func New() Prober { return Prober{Timeout: 300 * time.Millisecond} }
@@ -37,23 +47,25 @@ func (p Prober) OpenPorts(ctx context.Context, ip net.IP) []int {
 	if ports == nil {
 		ports = probePorts
 	}
-	dialer := net.Dialer{Timeout: p.Timeout}
+	dial := p.dial
+	if dial == nil {
+		dial = (&net.Dialer{Timeout: p.Timeout}).DialContext
+	}
 	host := ip.String()
 
-	// ponytail: one goroutine/socket per port, unbounded. With ~29 ports and
-	// discovery's 32-device fan-out that peaks near 900 sockets, measured fine
-	// on a /24. Add an internal semaphore only if the port list grows further
-	// or a large LAN hits the file-descriptor limit.
 	var (
 		mu   sync.Mutex
 		open []int
 		wg   sync.WaitGroup
 	)
+	sem := make(chan struct{}, maxConcurrentDials)
 	for _, port := range ports {
 		wg.Add(1)
 		go func(port int) {
 			defer wg.Done()
-			conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(host, strconv.Itoa(port)))
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			conn, err := dial(ctx, "tcp", net.JoinHostPort(host, strconv.Itoa(port)))
 			if err != nil {
 				return
 			}

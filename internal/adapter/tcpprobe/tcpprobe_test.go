@@ -2,10 +2,48 @@ package tcpprobe
 
 import (
 	"context"
+	"errors"
 	"net"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
+
+// TestOpenPortsBoundsConcurrency proves the dial fan-out is capped: 100 ports
+// would open 100 sockets at once without the semaphore. A fake dial records the
+// peak number of overlapping calls and asserts it never exceeds the cap.
+func TestOpenPortsBoundsConcurrency(t *testing.T) {
+	var cur, peak int64
+	var mu sync.Mutex
+	ports := make([]int, 100)
+	for i := range ports {
+		ports[i] = i + 1
+	}
+	p := Prober{
+		Ports: ports,
+		dial: func(context.Context, string, string) (net.Conn, error) {
+			c := atomic.AddInt64(&cur, 1)
+			mu.Lock()
+			if c > peak {
+				peak = c
+			}
+			mu.Unlock()
+			time.Sleep(2 * time.Millisecond) // hold the "socket" so calls overlap
+			atomic.AddInt64(&cur, -1)
+			return nil, errors.New("probe: closed") // treated as a closed port
+		},
+	}
+
+	p.OpenPorts(context.Background(), net.ParseIP("127.0.0.1"))
+
+	if peak > maxConcurrentDials {
+		t.Errorf("peak concurrent dials = %d, want <= %d", peak, maxConcurrentDials)
+	}
+	if peak < 2 {
+		t.Errorf("peak = %d, expected the dials to actually overlap", peak)
+	}
+}
 
 // TestOpenPortsFindsListeningPort points the prober at a live loopback
 // listener and a port that was bound then closed, and checks it reports only
