@@ -64,7 +64,7 @@ func (Lookup) Vendor(mac net.HardwareAddr) string {
 		return ""
 	}
 	once.Do(load)
-	prefix := strings.ToUpper(fmt.Sprintf("%02X%02X%02X", mac[0], mac[1], mac[2]))
+	prefix := fmt.Sprintf("%02X%02X%02X", mac[0], mac[1], mac[2]) // %X is already uppercase
 	if v, ok := table[prefix]; ok {
 		return v
 	}
