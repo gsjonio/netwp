@@ -80,3 +80,46 @@ func TestTrackerDevicesOnlineFirst(t *testing.T) {
 		t.Errorf("offline device = %v, want a (.1) even though it has the lowest IP", ds[2].IP)
 	}
 }
+
+// TestTrackerEvictsLongGoneDevices checks the device map doesn't grow without
+// bound: a device gone past the retention window is forgotten, while one still
+// within it is kept (so its recent "left" history survives).
+func TestTrackerEvictsLongGoneDevices(t *testing.T) {
+	tr := NewTracker(30 * time.Second)
+	t0 := time.Unix(0, 0)
+	a := dev("aa:aa:aa:aa:aa:aa", "192.168.0.2")
+
+	tr.Observe([]Device{a}, t0)          // joined
+	tr.Observe(nil, t0.Add(time.Minute)) // past grace -> offline (Left)
+	if len(tr.Devices()) != 1 {          // still remembered within retention
+		t.Fatalf("within retention: %d devices, want 1", len(tr.Devices()))
+	}
+	tr.Observe(nil, t0.Add(deviceRetention+time.Minute)) // past retention -> evicted
+	if got := len(tr.Devices()); got != 0 {
+		t.Errorf("past retention: %d devices, want 0 (evicted)", got)
+	}
+}
+
+// TestTrackerEvictionIsBounded feeds many distinct MACs (as MAC randomization
+// or spoofing would) and confirms the map stays bounded once they age out,
+// instead of growing with every address ever seen. Driven the way a live
+// monitor drives it: a scan, then absent scans that first mark them offline
+// (past grace) and later evict them (past retention).
+func TestTrackerEvictionIsBounded(t *testing.T) {
+	tr := NewTracker(30 * time.Second)
+	t0 := time.Unix(0, 0)
+	var many []Device
+	for i := 0; i < 1000; i++ {
+		mac := net.HardwareAddr{2, 0, 0, 0, byte(i >> 8), byte(i)}
+		many = append(many, Device{IP: net.IPv4(10, 0, byte(i>>8), byte(i)), MAC: mac})
+	}
+	tr.Observe(many, t0)                 // 1000 join
+	tr.Observe(nil, t0.Add(time.Minute)) // absent, past grace -> all offline
+	if got := len(tr.Devices()); got != 1000 {
+		t.Fatalf("within retention: %d devices, want 1000 still remembered", got)
+	}
+	tr.Observe(nil, t0.Add(deviceRetention+time.Minute)) // past retention -> all evicted
+	if got := len(tr.Devices()); got != 0 {
+		t.Errorf("after retention, %d still tracked, want 0 (map must stay bounded)", got)
+	}
+}

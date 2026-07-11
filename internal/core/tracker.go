@@ -22,6 +22,13 @@ const (
 	Left                    // went offline after the grace period elapsed
 )
 
+// deviceRetention is how long a departed device is remembered before the
+// tracker forgets it. Without eviction the device map only grows across a long
+// monitor/dashboard session -- unbounded under MAC randomization (phones rotate
+// MACs) or a device spoofing many addresses. Much larger than any offlineAfter,
+// so a device that just left keeps its "left N ago" history for a good while.
+const deviceRetention = 30 * time.Minute
+
 // Event is a presence change emitted by the Tracker.
 type Event struct {
 	Kind   EventKind
@@ -69,12 +76,20 @@ func (t *Tracker) Observe(scanned []Device, now time.Time) []Event {
 	}
 
 	for key, td := range t.devices {
-		if present[key] || !td.Online {
-			continue
+		if present[key] {
+			continue // still on the network
 		}
-		if now.Sub(td.LastSeen) >= t.offlineAfter {
-			td.Online = false
-			events = append(events, Event{Left, td.Device, now})
+		if td.Online {
+			if now.Sub(td.LastSeen) >= t.offlineAfter {
+				td.Online = false
+				events = append(events, Event{Left, td.Device, now})
+			}
+			continue // online, or still within the grace window
+		}
+		// Already offline: forget it once it's been gone past the retention
+		// window, so the map can't grow without bound in a long session.
+		if now.Sub(td.LastSeen) >= deviceRetention {
+			delete(t.devices, key)
 		}
 	}
 	return events
