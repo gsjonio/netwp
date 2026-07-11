@@ -158,6 +158,7 @@ internal/tui     saída em tabela legível
 | `iface static <ip>/<bits> <gw> [dns...]` | Define IP estático (pede confirmação) |
 | `iface dhcp` | Volta para DHCP (pede confirmação) |
 | `alias set <ip\|mac> <nome>` / `ls` / `rm <ip\|mac>` | Apelida um dispositivo / lista / remove |
+| `class set <ip\|mac> <classe>` / `ls` / `rm <ip\|mac>` | Fixa a classe de um dispositivo quando o palpite erra (router/computer/mobile/media/printer/iot) |
 | `ports <ip>` | Portas abertas + RTT + TTL de um dispositivo |
 | `events [n]` | Mostra os últimos n eventos de entrada/saída (padrão 20) |
 | `version` | Versão instalada |
@@ -221,6 +222,11 @@ quem já manja de redes.
   speedtest` mostra qual edge respondeu.
 - `netwp ports <ip>` sonda um único dispositivo diretamente em vez de um
   scan completo, sem histórico de portas entre execuções.
+- O palpite de CLASS combina serviços mDNS anunciados (um Chromecast,
+  impressora ou iPhone dizem o que são), depois ~29 portas sondadas, depois o
+  fabricante. Quando ainda erra (um celular com MAC aleatório e sem portas
+  abertas), fixe com `netwp class set <ip|mac> <classe>` — o pin manual
+  sempre vence.
 - `netwp monitor --alert-down=<taxa>` (ex.: `50Mbps`) destaca a linha de
   banda quando o download cai abaixo desse limiar. Sem a flag, o monitor se
   comporta exatamente como antes.

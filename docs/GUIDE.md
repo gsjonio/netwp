@@ -68,7 +68,7 @@ constantly:
 | **ALIAS** | A nickname you set yourself with `netwp alias set`, so you don't have to memorize a MAC address. |
 | **RTT** | How long (in milliseconds) a "ping" takes to go out and come back from the device. Lower is better: green is fast, uncolored is fine, red is slow by local-network standards (still fast by internet standards, though). |
 | **TTL** | A hint about the device's operating system, like "64 (Linux)" or "128 (Windows)". Comes for free from the same reply as RTT. It's a guess, not a certainty. |
-| **CLASS** | A guess at what kind of device it is (Router, Computer, Mobile, Media, Printer, IoT). netwp guesses from open ports and manufacturer; it's sometimes wrong or shows "Unknown". |
+| **CLASS** | A guess at what kind of device it is (Router, Computer, Mobile, Media, Printer, IoT). netwp guesses from services the device announces, its open ports, and its manufacturer; it's sometimes wrong or shows "Unknown". You can fix it with `netwp class set` (see the FAQ). |
 | **MAC** | The MAC address explained above: the device's permanent identity. |
 | **HOSTNAME** | The name the device itself announces on the network (not every device announces one). |
 | **VENDOR** | The network card's manufacturer (Apple, Samsung, TP-Link...), found from the first digits of the MAC. |
@@ -119,9 +119,14 @@ Don't run netwp against networks you don't own or don't have explicit
 authorization to scan. On a corporate network this can even violate its
 acceptable-use policy. See [SECURITY.md](../SECURITY.md).
 
-**Why does a device show "Unknown" in the CLASS column?**
-Because netwp couldn't find enough of a clue (no recognized open port, no
-distinctive manufacturer) to risk a guess. "Unknown" beats a wrong guess.
+**Why does a device show "Unknown" in the CLASS column? Can I fix it?**
+It's Unknown because netwp couldn't find enough of a clue (no announced
+service, no recognized open port, no distinctive manufacturer) to risk a
+guess. "Unknown" beats a wrong guess. When you know what a device is (say,
+your phone), pin it: `netwp class set 192.168.1.20 mobile`. A manual pin,
+kept by MAC address, always wins over the automatic guess and survives the
+device changing IP. Undo it with `netwp class rm`, list pins with `netwp
+class ls`. Valid classes: router, computer, mobile, media, printer, iot.
 
 **Why does a device's IP change sometimes?**
 That's normal: the router reassigns IPs via DHCP from time to time. netwp

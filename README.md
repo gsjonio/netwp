@@ -155,6 +155,7 @@ internal/tui     legible table output
 | `iface static <ip>/<bits> <gw> [dns...]` | Set a static address (asks to confirm) |
 | `iface dhcp` | Switch back to DHCP (asks to confirm) |
 | `alias set <ip\|mac> <name>` / `ls` / `rm <ip\|mac>` | Nickname a device / list / remove |
+| `class set <ip\|mac> <class>` / `ls` / `rm <ip\|mac>` | Pin a device's class when the guess is wrong (router/computer/mobile/media/printer/iot) |
 | `ports <ip>` | Open ports + RTT + TTL for one device |
 | `events [n]` | Print the last n join/leave events (default 20) |
 | `version` | Installed version |
@@ -217,6 +218,10 @@ people who already know networking.
   speedtest` prints which edge answered.
 - `netwp ports <ip>` re-probes one device directly instead of a full scan,
   with no port history across runs.
+- The CLASS guess combines advertised mDNS services (a Chromecast, printer,
+  or iPhone announces what it is), then ~29 probed ports, then vendor. When
+  it's still wrong (a phone with a random MAC and no open ports), pin it with
+  `netwp class set <ip|mac> <class>` — a manual pin always wins.
 - The dashboard's DEVICES panel shows a per-class breakdown of what's
   online (e.g. "2 Media · 1 Router"), skipping "This device" and
   unclassified hosts.

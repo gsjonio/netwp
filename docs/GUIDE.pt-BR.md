@@ -68,7 +68,7 @@ Antes das telas do netwp, alguns conceitos que aparecem o tempo todo:
 | **ALIAS** | Um apelido que você mesmo define com `netwp alias set`, para não precisar decorar o endereço MAC. |
 | **RTT** | Quanto tempo (em milissegundos) uma "batidinha" (ping) leva para ir e voltar até o aparelho. Quanto menor, melhor: verde é rápido, sem cor é razoável, vermelho é lento para os padrões de rede local (ainda assim rápido perto dos padrões de internet). |
 | **TTL** | Uma pista sobre o sistema operacional do aparelho, tipo "64 (Linux)" ou "128 (Windows)". Vem de graça na mesma resposta do RTT. É só um palpite, não uma certeza. |
-| **CLASS** | Um palpite de que tipo de aparelho é (Router, Computer, Mobile, Media, Printer, IoT). O netwp adivinha pelas portas abertas e pelo fabricante; às vezes erra ou fica "Unknown". |
+| **CLASS** | Um palpite de que tipo de aparelho é (Router, Computer, Mobile, Media, Printer, IoT). O netwp adivinha pelos serviços que o aparelho anuncia, pelas portas abertas e pelo fabricante; às vezes erra ou fica "Unknown". Dá pra corrigir com `netwp class set` (veja a FAQ). |
 | **MAC** | O endereço MAC explicado acima: a identidade permanente do aparelho. |
 | **HOSTNAME** | O nome que o próprio aparelho anuncia na rede (nem todo aparelho anuncia um). |
 | **VENDOR** | O fabricante da placa de rede (Apple, Samsung, TP-Link...), descoberto pelos primeiros números do MAC. |
@@ -120,10 +120,15 @@ Não use o netwp em redes que não são suas ou que você não tem autorização
 explícita para escanear. Em redes corporativas isso pode até violar
 políticas de uso. Veja [SECURITY.md](../SECURITY.md).
 
-**Por que um aparelho aparece como "Unknown" na coluna CLASS?**
-Porque o netwp não conseguiu nenhuma pista suficiente (nem porta aberta
-reconhecida, nem fabricante característico) para arriscar um palpite. É
-melhor "Unknown" do que um palpite errado.
+**Por que um aparelho aparece como "Unknown" na coluna CLASS? Dá pra corrigir?**
+Fica Unknown porque o netwp não achou pista suficiente (nem serviço
+anunciado, nem porta aberta reconhecida, nem fabricante característico) para
+arriscar um palpite. É melhor "Unknown" do que um palpite errado. Quando
+você sabe o que o aparelho é (o seu celular, por exemplo), fixe a classe:
+`netwp class set 192.168.1.20 mobile`. O pin manual, guardado por MAC,
+sempre vence o palpite automático e sobrevive a troca de IP. Desfaça com
+`netwp class rm`, liste com `netwp class ls`. Classes válidas: router,
+computer, mobile, media, printer, iot.
 
 **Por que o IP de um aparelho muda de vez em quando?**
 Isso é normal: o roteador reatribui IPs por DHCP de tempos em tempos. O
