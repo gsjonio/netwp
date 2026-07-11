@@ -768,7 +768,8 @@ func runEvents() error {
 	return nil
 }
 
-// runAlias dispatches the alias subcommands: set, ls, rm.
+// runAlias dispatches the alias subcommands: set, ls, rm. Inline switch to
+// match runClass/runWatch (the three store commands share this shape).
 func runAlias() error {
 	args := os.Args[2:]
 	if len(args) == 0 {
@@ -780,57 +781,45 @@ func runAlias() error {
 	}
 	switch args[0] {
 	case "ls", "list":
-		return runAliasList(store)
+		list := store.List()
+		if len(list) == 0 {
+			fmt.Println("no aliases set.")
+			return nil
+		}
+		for _, a := range list {
+			fmt.Printf("%-17s  %s\n", a.MAC, a.Name)
+		}
+		return nil
 	case "set":
-		return runAliasSet(store, args[1:])
+		if len(args) < 3 {
+			return errors.New("usage: netwp alias set <ip-or-mac> <name>")
+		}
+		mac, err := resolveMAC(args[1])
+		if err != nil {
+			return err
+		}
+		name := strings.Join(args[2:], " ")
+		if err := store.Set(mac, name); err != nil {
+			return err
+		}
+		fmt.Printf("aliased %s → %q\n", mac, name)
+		return nil
 	case "rm", "remove", "del":
-		return runAliasRemove(store, args[1:])
+		if len(args) < 2 {
+			return errors.New("usage: netwp alias rm <ip-or-mac>")
+		}
+		mac, err := resolveMAC(args[1])
+		if err != nil {
+			return err
+		}
+		if err := store.Delete(mac); err != nil {
+			return err
+		}
+		fmt.Printf("removed alias for %s\n", mac)
+		return nil
 	default:
 		return fmt.Errorf("unknown alias subcommand %q (use: set | ls | rm)", args[0])
 	}
-}
-
-func runAliasList(store *aliasstore.Store) error {
-	list := store.List()
-	if len(list) == 0 {
-		fmt.Println("no aliases set.")
-		return nil
-	}
-	for _, a := range list {
-		fmt.Printf("%-17s  %s\n", a.MAC, a.Name)
-	}
-	return nil
-}
-
-func runAliasSet(store *aliasstore.Store, args []string) error {
-	if len(args) < 2 {
-		return errors.New("usage: netwp alias set <ip-or-mac> <name>")
-	}
-	mac, err := resolveMAC(args[0])
-	if err != nil {
-		return err
-	}
-	name := strings.Join(args[1:], " ")
-	if err := store.Set(mac, name); err != nil {
-		return err
-	}
-	fmt.Printf("aliased %s → %q\n", mac, name)
-	return nil
-}
-
-func runAliasRemove(store *aliasstore.Store, args []string) error {
-	if len(args) < 1 {
-		return errors.New("usage: netwp alias rm <ip-or-mac>")
-	}
-	mac, err := resolveMAC(args[0])
-	if err != nil {
-		return err
-	}
-	if err := store.Delete(mac); err != nil {
-		return err
-	}
-	fmt.Printf("removed alias for %s\n", mac)
-	return nil
 }
 
 // runClass dispatches the class-override subcommands: set, ls, rm.
