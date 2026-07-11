@@ -44,12 +44,21 @@ func (c DeviceClass) String() string {
 // Well-known TCP ports used as classification hints.
 const (
 	portSSH        = 22
+	portAFP        = 548 // Apple file sharing (a Mac)
 	portSMB        = 445
 	portRDP        = 3389
+	portVNC        = 5900
+	portMySQL      = 3306
+	portPostgres   = 5432
 	portPrintRaw   = 9100 // JetDirect
 	portPrintLPD   = 515
 	portIPP        = 631
 	portChromecast = 8009
+	portPlex       = 32400
+	portJellyfin   = 8096
+	portRTSP       = 554  // IP camera
+	portMQTT       = 1883 // smart-home broker
+	portHomeAssist = 8123
 	portAppleSync  = 62078 // iPhone/iPad "lockdownd"
 )
 
@@ -83,9 +92,11 @@ func Classify(d Device, gateway, self net.IP, openPorts []int, localMACs []net.H
 		return ClassPrinter
 	case has(portAppleSync):
 		return ClassMobile
-	case has(portChromecast):
+	case has(portChromecast) || has(portPlex) || has(portJellyfin):
 		return ClassMedia
-	case has(portSMB) || has(portRDP):
+	case has(portRTSP) || has(portMQTT) || has(portHomeAssist):
+		return ClassIoT
+	case has(portSMB) || has(portRDP) || has(portVNC) || has(portAFP) || has(portMySQL) || has(portPostgres):
 		return ClassComputer
 	case has(portSSH):
 		return ClassComputer

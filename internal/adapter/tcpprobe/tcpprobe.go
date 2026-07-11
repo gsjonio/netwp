@@ -10,12 +10,18 @@ import (
 	"time"
 )
 
-// probePorts is a deliberately small set of ports whose presence hints at a
-// device class (web UI, file sharing, printing, casting, phone sync).
+// probePorts is a curated set of ports common on home devices: enough to both
+// hint at a device class (file sharing, printing, casting, phone sync) and show
+// the user what a device actually exposes.
 //
-// ponytail: keep this list short. A full port sweep would be slower and read as
-// far more intrusive; these few are enough to classify common home devices.
-var probePorts = []int{22, 80, 443, 445, 3389, 515, 631, 8009, 9100, 62078}
+// ponytail: curated, not a full sweep. A 1-65535 scan would be far slower and
+// read as an intrusion; this stays to well-known home-network services. Grow it
+// only with ports that are both common and meaningful to a home user.
+var probePorts = []int{
+	21, 22, 23, 53, 80, 139, 443, 445, 515, 548, 554, 631,
+	1883, 3000, 3306, 3389, 5000, 5432, 5900,
+	8009, 8080, 8096, 8123, 8443, 8888, 9000, 9100, 32400, 62078,
+}
 
 // Prober performs a bounded concurrent TCP connect scan.
 type Prober struct {
