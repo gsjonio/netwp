@@ -35,7 +35,7 @@ const (
 // review via `netwp events`.
 func RunDashboard(discovery *core.Discovery, tracker *core.Tracker, network core.Network,
 	info core.InterfaceInfo, reader core.CounterReader, wifi core.WiFiInspector, speed *core.Speedtest, pinger core.Pinger,
-	logger core.EventLogger) error {
+	logger core.EventLogger, watchlist core.Watchlist) error {
 	m := dashModel{
 		discovery: discovery,
 		tracker:   tracker,
@@ -46,6 +46,7 @@ func RunDashboard(discovery *core.Discovery, tracker *core.Tracker, network core
 		speed:     speed,
 		pinger:    pinger,
 		logger:    logger,
+		watchlist: watchlist,
 		meter:     &core.RateMeter{},
 		start:     time.Now(),
 		width:     dashDefaultCols,
@@ -64,6 +65,7 @@ type dashModel struct {
 	speed     *core.Speedtest
 	pinger    core.Pinger
 	logger    core.EventLogger // nil disables event persistence
+	watchlist core.Watchlist   // nil disables watched-device-left alerts
 	meter     *core.RateMeter
 
 	start      time.Time
@@ -193,14 +195,22 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case scanMsg:
 		m.lastScan = msg.at
+		alert := false
 		for _, e := range m.tracker.Observe(msg.devices, msg.at) {
-			m.log = append(m.log, formatEvent(e))
+			watched := m.watchlist != nil && m.watchlist.IsWatched(e.Device.MAC)
+			m.log = append(m.log, formatEvent(e, watched))
 			if m.logger != nil {
 				_ = m.logger.Log(e)
+			}
+			if isAlertEvent(e, watched) {
+				alert = true
 			}
 		}
 		if len(m.log) > logLimit {
 			m.log = m.log[len(m.log)-logLimit:]
+		}
+		if alert {
+			return m, tea.Batch(tick(dashScanEvery, scanTickMsg{}), bell)
 		}
 		return m, tick(dashScanEvery, scanTickMsg{})
 	case scanTickMsg:

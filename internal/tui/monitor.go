@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -12,6 +13,14 @@ import (
 
 	"github.com/gsjonio/netwp/internal/core"
 )
+
+// bell is a tea.Cmd that rings the terminal (ASCII BEL) to audibly flag an
+// alert event. Written to stderr so it never lands in bubbletea's stdout
+// render buffer; the terminal still rings.
+func bell() tea.Msg {
+	fmt.Fprint(os.Stderr, "\a")
+	return nil
+}
 
 const (
 	logLimit           = 8                      // recent-activity lines kept on screen
@@ -39,9 +48,10 @@ var (
 // this existed, with no bandwidth line at all.
 //
 // logger, if non-nil, persists every join/leave event for later review via
-// `netwp events`.
+// `netwp events`. watchlist, if non-nil, drives the "watched device left"
+// alert (highlight + bell).
 func RunMonitor(discovery *core.Discovery, tracker *core.Tracker, network core.Network, interval, scanBudget time.Duration,
-	reader core.CounterReader, alertDown float64, logger core.EventLogger) error {
+	reader core.CounterReader, alertDown float64, logger core.EventLogger, watchlist core.Watchlist) error {
 	m := monitorModel{
 		discovery:  discovery,
 		tracker:    tracker,
@@ -51,6 +61,7 @@ func RunMonitor(discovery *core.Discovery, tracker *core.Tracker, network core.N
 		reader:     reader,
 		alertDown:  alertDown,
 		logger:     logger,
+		watchlist:  watchlist,
 		meter:      &core.RateMeter{},
 		scanning:   true,
 		scanStart:  time.Now(),
@@ -68,6 +79,7 @@ type monitorModel struct {
 	reader     core.CounterReader // nil disables bandwidth sampling/alerting entirely
 	alertDown  float64            // bytes/sec threshold; <= 0 disables the alert
 	logger     core.EventLogger   // nil disables event persistence
+	watchlist  core.Watchlist     // nil disables watched-device-left alerts
 	meter      *core.RateMeter
 	rate       core.Rate
 
@@ -149,18 +161,27 @@ func (m monitorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.scanning = false
 		m.lastScan = msg.at
 		m.err = msg.err
+		alert := false
 		if msg.err == nil {
 			for _, e := range m.tracker.Observe(msg.devices, msg.at) {
-				m.log = append(m.log, formatEvent(e))
+				watched := m.watchlist != nil && m.watchlist.IsWatched(e.Device.MAC)
+				m.log = append(m.log, formatEvent(e, watched))
 				if m.logger != nil {
 					_ = m.logger.Log(e)
+				}
+				if isAlertEvent(e, watched) {
+					alert = true
 				}
 			}
 			if len(m.log) > logLimit {
 				m.log = m.log[len(m.log)-logLimit:]
 			}
 		}
-		return m, tea.Tick(m.interval, func(time.Time) tea.Msg { return rescanMsg{} })
+		next := tea.Tick(m.interval, func(time.Time) tea.Msg { return rescanMsg{} })
+		if alert {
+			return m, tea.Batch(next, bell)
+		}
+		return m, next
 
 	case rescanMsg:
 		if !m.scanning {
@@ -299,7 +320,13 @@ func renderMonitorTable(devices []core.TrackedDevice, ref time.Time) string {
 	return t.String()
 }
 
-func formatEvent(e core.Event) string {
+// isAlertEvent reports whether an event deserves a visual highlight and a
+// terminal bell: an unrecognized device joining, or a watched device leaving.
+func isAlertEvent(e core.Event, watched bool) bool {
+	return (e.Kind == core.Joined && e.Device.Alias == "") || (e.Kind == core.Left && watched)
+}
+
+func formatEvent(e core.Event, watched bool) string {
 	name := e.Device.Alias
 	if name == "" {
 		name = e.Device.Hostname
@@ -314,6 +341,9 @@ func formatEvent(e core.Event) string {
 		return styWarn.Render("⚠ " + ts + "  " + name + " joined (unknown)")
 	case e.Kind == core.Joined:
 		return styOnline.Render("＋") + " " + ts + "  " + name + " joined"
+	case e.Kind == core.Left && watched:
+		// A device the user asked to watch just dropped off: flag it.
+		return styWarn.Render("⚠ " + ts + "  " + name + " left (watched)")
 	default:
 		return styOffline.Render("－") + " " + ts + "  " + name + " left"
 	}

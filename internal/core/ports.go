@@ -69,6 +69,12 @@ type Waker interface {
 	Wake(mac net.HardwareAddr) error
 }
 
+// Watchlist reports whether a MAC is one the user asked to be alerted about
+// (a device whose departure from the network matters).
+type Watchlist interface {
+	IsWatched(mac net.HardwareAddr) bool
+}
+
 // InterfaceInspector reads the active network interface's IP configuration.
 type InterfaceInspector interface {
 	Inspect() (InterfaceInfo, error)

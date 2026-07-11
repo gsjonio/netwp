@@ -30,6 +30,7 @@ import (
 	"github.com/gsjonio/netwp/internal/adapter/oui"
 	"github.com/gsjonio/netwp/internal/adapter/scancache"
 	"github.com/gsjonio/netwp/internal/adapter/tcpprobe"
+	"github.com/gsjonio/netwp/internal/adapter/watchstore"
 	"github.com/gsjonio/netwp/internal/adapter/wifi"
 	"github.com/gsjonio/netwp/internal/adapter/wol"
 	"github.com/gsjonio/netwp/internal/core"
@@ -122,6 +123,8 @@ func main() {
 		err = runEvents()
 	case "class":
 		err = runClass()
+	case "watch":
+		err = runWatch()
 	case "uninstall":
 		err = runUninstall()
 	default:
@@ -159,6 +162,9 @@ Commands:
   class set <ip-or-mac> <class>                   pin a device's class (router|computer|mobile|media|printer|iot)
   class ls                                        list class overrides
   class rm <ip-or-mac>                            remove a class override
+  watch add <ip-or-mac>                           alert when this device leaves (monitor/dashboard)
+  watch ls                                        list watched devices
+  watch rm <ip-or-mac>                            stop watching a device
   ports <ip>                                      open ports + RTT for one device
   wake <ip-or-mac-or-alias>                       send a Wake-on-LAN magic packet to power on a device
   doctor                                          diagnose connectivity (interface, gateway, internet, DNS, Wi-Fi)
@@ -622,6 +628,21 @@ func defaultEventLogger() core.EventLogger {
 	return eventlog.New(path)
 }
 
+// defaultWatchlist opens the persistent watch list for monitor/dashboard.
+// Returns a nil interface (alerts disabled) if it can't be loaded, so the
+// caller's nil check stays correct.
+func defaultWatchlist() core.Watchlist {
+	path, err := watchstore.DefaultPath()
+	if err != nil {
+		return nil
+	}
+	store, err := watchstore.Open(path)
+	if err != nil {
+		return nil
+	}
+	return store
+}
+
 func runMonitor() error {
 	discovery, network, err := discoveryContext()
 	if err != nil {
@@ -641,7 +662,7 @@ func runMonitor() error {
 		}
 		reader = ifacestat.New(info.Name)
 	}
-	return tui.RunMonitor(discovery, tracker, network, monitorEvery, monitorScanBudget, reader, alertDown, defaultEventLogger())
+	return tui.RunMonitor(discovery, tracker, network, monitorEvery, monitorScanBudget, reader, alertDown, defaultEventLogger(), defaultWatchlist())
 }
 
 func runDashboard() error {
@@ -656,7 +677,7 @@ func runDashboard() error {
 	tracker := core.NewTracker(offlineAfter)
 	reader := ifacestat.New(info.Name)
 	speed := core.NewSpeedtest(httpspeed.New())
-	return tui.RunDashboard(discovery, tracker, network, info, reader, wifi.New(), speed, icmpping.New(), defaultEventLogger())
+	return tui.RunDashboard(discovery, tracker, network, info, reader, wifi.New(), speed, icmpping.New(), defaultEventLogger(), defaultWatchlist())
 }
 
 // runDoctor runs a quick connectivity diagnosis (interface, gateway,
@@ -837,6 +858,64 @@ func runClass() error {
 		return nil
 	default:
 		return fmt.Errorf("unknown class subcommand %q (use: set | ls | rm)", args[0])
+	}
+}
+
+// runWatch dispatches the watch-list subcommands: add, ls, rm. A watched
+// device triggers a highlighted alert (and a terminal bell) when it leaves
+// during `netwp monitor` or `netwp dashboard`.
+func runWatch() error {
+	args := os.Args[2:]
+	if len(args) == 0 {
+		return errors.New("usage: netwp watch add <ip-or-mac> | watch ls | watch rm <ip-or-mac>")
+	}
+	path, err := watchstore.DefaultPath()
+	if err != nil {
+		return err
+	}
+	store, err := watchstore.Open(path)
+	if err != nil {
+		return err
+	}
+	switch args[0] {
+	case "ls", "list":
+		list := store.List()
+		if len(list) == 0 {
+			fmt.Println("no watched devices.")
+			return nil
+		}
+		for _, mac := range list {
+			fmt.Println(mac)
+		}
+		return nil
+	case "add":
+		if len(args) < 2 {
+			return errors.New("usage: netwp watch add <ip-or-mac>")
+		}
+		mac, err := resolveMAC(args[1])
+		if err != nil {
+			return err
+		}
+		if err := store.Add(mac); err != nil {
+			return err
+		}
+		fmt.Printf("watching %s\n", mac)
+		return nil
+	case "rm", "remove", "del":
+		if len(args) < 2 {
+			return errors.New("usage: netwp watch rm <ip-or-mac>")
+		}
+		mac, err := resolveMAC(args[1])
+		if err != nil {
+			return err
+		}
+		if err := store.Remove(mac); err != nil {
+			return err
+		}
+		fmt.Printf("stopped watching %s\n", mac)
+		return nil
+	default:
+		return fmt.Errorf("unknown watch subcommand %q (use: add | ls | rm)", args[0])
 	}
 }
 

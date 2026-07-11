@@ -124,6 +124,35 @@ func TestMonitorLogsEventsToLogger(t *testing.T) {
 	}
 }
 
+func TestIsAlertEvent(t *testing.T) {
+	unknownJoin := core.Event{Kind: core.Joined, Device: core.Device{Alias: ""}}
+	knownJoin := core.Event{Kind: core.Joined, Device: core.Device{Alias: "Meu PC"}}
+	leave := core.Event{Kind: core.Left, Device: core.Device{Alias: "Câmera"}}
+
+	if !isAlertEvent(unknownJoin, false) {
+		t.Error("an unknown device joining should alert")
+	}
+	if isAlertEvent(knownJoin, false) {
+		t.Error("a known (aliased) device joining should not alert")
+	}
+	if !isAlertEvent(leave, true) {
+		t.Error("a watched device leaving should alert")
+	}
+	if isAlertEvent(leave, false) {
+		t.Error("an unwatched device leaving should not alert")
+	}
+}
+
+func TestFormatEventWatchedLeft(t *testing.T) {
+	e := core.Event{Kind: core.Left, Device: core.Device{Alias: "Câmera"}, At: time.Now()}
+	if got := formatEvent(e, true); !strings.Contains(got, "watched") {
+		t.Errorf("formatEvent(watched left) = %q, want it to mention \"watched\"", got)
+	}
+	if got := formatEvent(e, false); strings.Contains(got, "watched") {
+		t.Errorf("formatEvent(unwatched left) = %q, should not mention \"watched\"", got)
+	}
+}
+
 func TestHasSensitivePort(t *testing.T) {
 	cases := []struct {
 		ports []int
