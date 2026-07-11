@@ -160,6 +160,8 @@ internal/tui     saída em tabela legível
 | `alias set <ip\|mac> <nome>` / `ls` / `rm <ip\|mac>` | Apelida um dispositivo / lista / remove |
 | `class set <ip\|mac> <classe>` / `ls` / `rm <ip\|mac>` | Fixa a classe de um dispositivo quando o palpite erra (router/computer/mobile/media/printer/iot) |
 | `ports <ip>` | Portas abertas + RTT + TTL de um dispositivo |
+| `wake <ip\|mac\|apelido>` | Envia um pacote Wake-on-LAN pra ligar um dispositivo |
+| `doctor` | Diagnostica a conexão: interface, gateway, internet, DNS, Wi-Fi |
 | `events [n]` | Mostra os últimos n eventos de entrada/saída (padrão 20) |
 | `version` | Versão instalada |
 | `update` | Atualiza pra última versão (precisa do Go) |
@@ -227,6 +229,12 @@ quem já manja de redes.
   fabricante. Quando ainda erra (um celular com MAC aleatório e sem portas
   abertas), fixe com `netwp class set <ip|mac> <classe>` — o pin manual
   sempre vence.
+- `netwp wake` só liga um dispositivo que ficou com Wake-on-LAN habilitado
+  (uma opção de BIOS/SO). Ele faz broadcast e não recebe resposta, então
+  reporta "enviado", não "acordou". Um apelido ou IP em cache resolve mesmo
+  com o alvo desligado.
+- `netwp doctor` checa de cima pra baixo (interface → gateway → internet →
+  DNS); o primeiro ✗ costuma ser a causa raiz e explica os de baixo.
 - `netwp monitor --alert-down=<taxa>` (ex.: `50Mbps`) destaca a linha de
   banda quando o download cai abaixo desse limiar. Sem a flag, o monitor se
   comporta exatamente como antes.

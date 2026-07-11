@@ -157,6 +157,8 @@ internal/tui     legible table output
 | `alias set <ip\|mac> <name>` / `ls` / `rm <ip\|mac>` | Nickname a device / list / remove |
 | `class set <ip\|mac> <class>` / `ls` / `rm <ip\|mac>` | Pin a device's class when the guess is wrong (router/computer/mobile/media/printer/iot) |
 | `ports <ip>` | Open ports + RTT + TTL for one device |
+| `wake <ip\|mac\|alias>` | Send a Wake-on-LAN magic packet to power on a device |
+| `doctor` | Diagnose connectivity: interface, gateway, internet, DNS, Wi-Fi |
 | `events [n]` | Print the last n join/leave events (default 20) |
 | `version` | Installed version |
 | `update` | Update to the latest version (needs Go) |
@@ -222,6 +224,12 @@ people who already know networking.
   or iPhone announces what it is), then ~29 probed ports, then vendor. When
   it's still wrong (a phone with a random MAC and no open ports), pin it with
   `netwp class set <ip|mac> <class>` — a manual pin always wins.
+- `netwp wake` only powers on a device that was left with Wake-on-LAN
+  enabled (a BIOS/OS setting). It broadcasts and gets no reply, so it reports
+  "sent", not "woke". An alias or a cached IP resolves even while the target
+  is off.
+- `netwp doctor` checks top-down (interface → gateway → internet → DNS); the
+  topmost ✗ is usually the root cause and explains the ones below it.
 - The dashboard's DEVICES panel shows a per-class breakdown of what's
   online (e.g. "2 Media · 1 Router"), skipping "This device" and
   unclassified hosts.

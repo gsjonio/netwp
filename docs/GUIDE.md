@@ -133,6 +133,19 @@ That's normal: the router reassigns IPs via DHCP from time to time. netwp
 uses the MAC (which never changes) to keep recognizing it as the same
 device, so the nickname you gave it still applies.
 
+**My internet is slow or not working. What can netwp tell me?**
+Run `netwp doctor`. It checks, in order, whether your interface has an
+address, whether your router (gateway) answers, whether the internet is
+reachable, whether DNS resolves, and your Wi-Fi signal. Read it top to
+bottom: the first ✗ is usually the real problem, and the checks below it
+tend to fail as a consequence.
+
+**Can I turn on a computer over the network?**
+Yes, if that computer has "Wake-on-LAN" turned on in its BIOS/OS settings
+(off by default on most machines). Then `netwp wake <ip|mac|alias>` sends
+the wake signal. It's fire-and-forget: netwp says "sent", but whether the
+machine actually wakes is up to that machine's settings.
+
 **How do I uninstall netwp?**
 Run `netwp uninstall`. It asks you to confirm, then removes the local data
 netwp created (your nicknames, the scan cache, the event log) and prints

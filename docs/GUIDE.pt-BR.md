@@ -135,6 +135,19 @@ Isso é normal: o roteador reatribui IPs por DHCP de tempos em tempos. O
 netwp usa o MAC (que não muda) para continuar reconhecendo que é o mesmo
 aparelho, então o apelido que você deu continua valendo.
 
+**Minha internet está lenta ou não funciona. O que o netwp me diz?**
+Rode `netwp doctor`. Ele checa, em ordem, se sua interface tem endereço, se
+o roteador (gateway) responde, se a internet está acessível, se o DNS
+resolve, e o sinal do Wi-Fi. Leia de cima pra baixo: o primeiro ✗ costuma
+ser o problema real, e os checks abaixo dele tendem a falhar por
+consequência.
+
+**Dá pra ligar um computador pela rede?**
+Sim, se esse computador estiver com "Wake-on-LAN" ativado nas configurações
+de BIOS/SO (vem desligado na maioria das máquinas). Aí `netwp wake
+<ip|mac|apelido>` envia o sinal. É "envia e esquece": o netwp diz "enviado",
+mas se a máquina acorda ou não depende das configurações dela.
+
 **Como eu desinstalo o netwp?**
 Rode `netwp uninstall`. Ele pede confirmação, depois apaga os dados locais
 que o netwp criou (seus apelidos, o cache de varredura, o log de eventos) e
