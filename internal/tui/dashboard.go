@@ -30,23 +30,36 @@ const (
 	histLen         = 24
 )
 
+// DashboardConfig holds everything RunDashboard needs. Logger, if non-nil,
+// persists join/leave events for `netwp events`; Watchlist, if non-nil, drives
+// the "watched device left" alert (highlight + bell).
+type DashboardConfig struct {
+	Discovery *core.Discovery
+	Tracker   *core.Tracker
+	Network   core.Network
+	Info      core.InterfaceInfo
+	Reader    core.CounterReader
+	WiFi      core.WiFiInspector
+	Speed     *core.Speedtest
+	Pinger    core.Pinger
+	Logger    core.EventLogger // nil disables event persistence
+	Watchlist core.Watchlist   // nil disables watched-device-left alerts
+}
+
 // RunDashboard starts the composite live dashboard and blocks until the user
-// quits. logger, if non-nil, persists every join/leave event for later
-// review via `netwp events`.
-func RunDashboard(discovery *core.Discovery, tracker *core.Tracker, network core.Network,
-	info core.InterfaceInfo, reader core.CounterReader, wifi core.WiFiInspector, speed *core.Speedtest, pinger core.Pinger,
-	logger core.EventLogger, watchlist core.Watchlist) error {
+// quits.
+func RunDashboard(cfg DashboardConfig) error {
 	m := dashModel{
-		discovery: discovery,
-		tracker:   tracker,
-		network:   network,
-		info:      info,
-		reader:    reader,
-		wifi:      wifi,
-		speed:     speed,
-		pinger:    pinger,
-		logger:    logger,
-		watchlist: watchlist,
+		discovery: cfg.Discovery,
+		tracker:   cfg.Tracker,
+		network:   cfg.Network,
+		info:      cfg.Info,
+		reader:    cfg.Reader,
+		wifi:      cfg.WiFi,
+		speed:     cfg.Speed,
+		pinger:    cfg.Pinger,
+		logger:    cfg.Logger,
+		watchlist: cfg.Watchlist,
 		meter:     &core.RateMeter{},
 		start:     time.Now(),
 		width:     dashDefaultCols,

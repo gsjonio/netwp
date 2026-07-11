@@ -671,7 +671,17 @@ func runMonitor() error {
 		}
 		reader = ifacestat.New(info.Name)
 	}
-	return tui.RunMonitor(discovery, tracker, network, monitorEvery, monitorScanBudget, reader, alertDown, defaultEventLogger(), defaultWatchlist())
+	return tui.RunMonitor(tui.MonitorConfig{
+		Discovery:  discovery,
+		Tracker:    tracker,
+		Network:    network,
+		Interval:   monitorEvery,
+		ScanBudget: monitorScanBudget,
+		Reader:     reader,
+		AlertDown:  alertDown,
+		Logger:     defaultEventLogger(),
+		Watchlist:  defaultWatchlist(),
+	})
 }
 
 func runDashboard() error {
@@ -684,9 +694,18 @@ func runDashboard() error {
 		return err
 	}
 	tracker := core.NewTracker(offlineAfter)
-	reader := ifacestat.New(info.Name)
-	speed := core.NewSpeedtest(httpspeed.New())
-	return tui.RunDashboard(discovery, tracker, network, info, reader, wifi.New(), speed, icmpping.New(), defaultEventLogger(), defaultWatchlist())
+	return tui.RunDashboard(tui.DashboardConfig{
+		Discovery: discovery,
+		Tracker:   tracker,
+		Network:   network,
+		Info:      info,
+		Reader:    ifacestat.New(info.Name),
+		WiFi:      wifi.New(),
+		Speed:     core.NewSpeedtest(httpspeed.New()),
+		Pinger:    icmpping.New(),
+		Logger:    defaultEventLogger(),
+		Watchlist: defaultWatchlist(),
+	})
 }
 
 // runDoctor runs a quick connectivity diagnosis (interface, gateway,

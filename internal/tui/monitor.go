@@ -39,29 +39,38 @@ var (
 	spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 )
 
+// MonitorConfig holds everything RunMonitor needs. Interval is the gap between
+// scans; ScanBudget bounds how long each scan may run (kept separate: a scan
+// can legitimately take longer than the interval).
+//
+// Reader + AlertDown enable an optional bandwidth alert: a nil Reader (or
+// AlertDown <= 0) leaves monitor with no bandwidth line at all. Logger, if
+// non-nil, persists join/leave events for `netwp events`. Watchlist, if
+// non-nil, drives the "watched device left" alert (highlight + bell).
+type MonitorConfig struct {
+	Discovery  *core.Discovery
+	Tracker    *core.Tracker
+	Network    core.Network
+	Interval   time.Duration
+	ScanBudget time.Duration
+	Reader     core.CounterReader // nil disables bandwidth sampling/alerting
+	AlertDown  float64            // bytes/sec threshold; <= 0 disables the alert
+	Logger     core.EventLogger   // nil disables event persistence
+	Watchlist  core.Watchlist     // nil disables watched-device-left alerts
+}
+
 // RunMonitor starts the live monitoring UI and blocks until the user quits.
-// interval is the gap between scans; scanBudget bounds how long each scan may
-// run (kept separate: a scan can legitimately take longer than the interval).
-//
-// reader and alertDown together enable an optional bandwidth alert: pass a
-// nil reader (or alertDown <= 0) to leave monitor exactly as it was before
-// this existed, with no bandwidth line at all.
-//
-// logger, if non-nil, persists every join/leave event for later review via
-// `netwp events`. watchlist, if non-nil, drives the "watched device left"
-// alert (highlight + bell).
-func RunMonitor(discovery *core.Discovery, tracker *core.Tracker, network core.Network, interval, scanBudget time.Duration,
-	reader core.CounterReader, alertDown float64, logger core.EventLogger, watchlist core.Watchlist) error {
+func RunMonitor(cfg MonitorConfig) error {
 	m := monitorModel{
-		discovery:  discovery,
-		tracker:    tracker,
-		network:    network,
-		interval:   interval,
-		scanBudget: scanBudget,
-		reader:     reader,
-		alertDown:  alertDown,
-		logger:     logger,
-		watchlist:  watchlist,
+		discovery:  cfg.Discovery,
+		tracker:    cfg.Tracker,
+		network:    cfg.Network,
+		interval:   cfg.Interval,
+		scanBudget: cfg.ScanBudget,
+		reader:     cfg.Reader,
+		alertDown:  cfg.AlertDown,
+		logger:     cfg.Logger,
+		watchlist:  cfg.Watchlist,
 		meter:      &core.RateMeter{},
 		scanning:   true,
 		scanStart:  time.Now(),
