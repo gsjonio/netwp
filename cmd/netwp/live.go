@@ -18,7 +18,7 @@ import (
 )
 
 func runMonitor() error {
-	discovery, network, err := discoveryContext()
+	discovery, network, err := discoveryContext(nil)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func runMonitor() error {
 }
 
 func runDashboard() error {
-	discovery, network, err := discoveryContext()
+	discovery, network, err := discoveryContext(nil)
 	if err != nil {
 		return err
 	}

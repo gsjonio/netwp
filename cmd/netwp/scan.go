@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -20,7 +21,11 @@ import (
 )
 
 func runScan(asJSON, diff bool) error {
-	discovery, network, err := discoveryContext()
+	ports, err := portsFlag(os.Args[2:])
+	if err != nil {
+		return err
+	}
+	discovery, network, err := discoveryContext(ports)
 	if err != nil {
 		return err
 	}
@@ -111,6 +116,40 @@ func withSpinner(label string, fn func() error) error {
 	err := fn()
 	close(done)
 	return err
+}
+
+// portsFlag reads "--ports=<list>" from the scan arguments, returning the
+// custom port set or nil (default set) when the flag is absent.
+func portsFlag(args []string) ([]int, error) {
+	for _, a := range args {
+		if v, ok := strings.CutPrefix(a, "--ports="); ok {
+			return parsePorts(v)
+		}
+	}
+	return nil, nil
+}
+
+// parsePorts turns "22,80,443" into a port slice. Comma-separated individual
+// ports only (no ranges): the whole point of the curated default is to avoid a
+// full sweep, and listing ports keeps that friction while allowing an extra one
+// or two (a dev server on 3000, say).
+func parsePorts(s string) ([]int, error) {
+	var ports []int
+	for _, tok := range strings.Split(s, ",") {
+		tok = strings.TrimSpace(tok)
+		if tok == "" {
+			continue
+		}
+		p, err := strconv.Atoi(tok)
+		if err != nil || p < 1 || p > 65535 {
+			return nil, fmt.Errorf("invalid port %q: expected 1-65535", tok)
+		}
+		ports = append(ports, p)
+	}
+	if len(ports) == 0 {
+		return nil, errors.New("--ports needs at least one port, e.g. --ports=22,80,443")
+	}
+	return ports, nil
 }
 
 // runPorts probes a single IP directly: ICMP reachability plus the same

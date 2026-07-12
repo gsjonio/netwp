@@ -21,12 +21,15 @@ import (
 )
 
 // buildDiscovery assembles the discovery use case from its platform adapters.
-func buildDiscovery(aliases core.AliasLookup, classes core.ClassLookup) *core.Discovery {
+// ports overrides the probed TCP port set; nil keeps tcpprobe's default set.
+func buildDiscovery(aliases core.AliasLookup, classes core.ClassLookup, ports []int) *core.Discovery {
+	prober := tcpprobe.New()
+	prober.Ports = ports
 	return core.NewDiscovery(core.DiscoveryDeps{
 		Scanner:  arpscan.New(),
 		Names:    namelookup.New(netinfo.DNSResolver{}),
 		Vendors:  oui.New(),
-		Prober:   tcpprobe.New(),
+		Prober:   prober,
 		Aliases:  aliases,
 		Pinger:   icmpping.New(),
 		Classes:  classes,
@@ -54,7 +57,8 @@ func openClassStore() (*classstore.Store, error) {
 
 // discoveryContext resolves the two things every scanning command needs: the
 // local network to sweep, and a Discovery wired to the user's alias store.
-func discoveryContext() (*core.Discovery, core.Network, error) {
+// ports overrides the probed TCP port set (scan --ports); nil uses the default.
+func discoveryContext(ports []int) (*core.Discovery, core.Network, error) {
 	network, err := netinfo.LocalNetwork()
 	if err != nil {
 		return nil, core.Network{}, err
@@ -67,7 +71,7 @@ func discoveryContext() (*core.Discovery, core.Network, error) {
 	if err != nil {
 		return nil, core.Network{}, err
 	}
-	return buildDiscovery(store, classes), network, nil
+	return buildDiscovery(store, classes, ports), network, nil
 }
 
 // defaultEventLogger builds the events.jsonl logger for monitor/dashboard.

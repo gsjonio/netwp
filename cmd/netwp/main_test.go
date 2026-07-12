@@ -8,6 +8,34 @@ import (
 	"testing"
 )
 
+func TestParsePorts(t *testing.T) {
+	got, err := parsePorts("22, 80,443")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 3 || got[0] != 22 || got[1] != 80 || got[2] != 443 {
+		t.Errorf("parsePorts = %v, want [22 80 443]", got)
+	}
+}
+
+func TestParsePortsInvalid(t *testing.T) {
+	for _, in := range []string{"", "80,abc", "0", "70000", "-1"} {
+		if _, err := parsePorts(in); err == nil {
+			t.Errorf("parsePorts(%q): expected error, got nil", in)
+		}
+	}
+}
+
+func TestPortsFlag(t *testing.T) {
+	got, err := portsFlag([]string{"--json", "--ports=8080,3000"})
+	if err != nil || len(got) != 2 || got[0] != 8080 || got[1] != 3000 {
+		t.Errorf("portsFlag = (%v, %v), want [8080 3000]", got, err)
+	}
+	if got, _ := portsFlag([]string{"--json"}); got != nil {
+		t.Errorf("portsFlag with no --ports = %v, want nil (default set)", got)
+	}
+}
+
 func TestPrintUsageListsCommands(t *testing.T) {
 	var buf bytes.Buffer
 	printUsage(&buf)

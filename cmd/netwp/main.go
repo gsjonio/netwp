@@ -123,8 +123,9 @@ Usage:
   netwp <command> [arguments]
 
 Commands:
-  scan [--json] [--diff]                          one-shot ARP scan of the local network, with per-device RTT
+  scan [--json] [--diff] [--ports=<list>]         one-shot ARP scan of the local network, with per-device RTT
                                                    --diff prints only what changed since the last scan
+                                                   --ports=22,80,443 probes a custom TCP port set instead of the default
   monitor                                         live TUI: devices joining/leaving in real time (q to quit)
   dashboard                                       full dashboard: wifi + live bandwidth + speedtest + devices
   speedtest                                       download/upload throughput test
