@@ -38,6 +38,21 @@ jobs:
         env:
           CGO_ENABLED: "1"
 
+  # Short fuzzing pass over the DNS/mDNS/ARP wire parsers, which consume bytes
+  # off the network from untrusted hosts. 15s per target won't exhaust the input
+  # space, but it explores a bit more on every push and fails loudly on a crash.
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.24"
+      - run: go test ./internal/adapter/namelookup -run=x -fuzz=FuzzReadName -fuzztime=15s
+      - run: go test ./internal/adapter/namelookup -run=x -fuzz=FuzzParsePTRAnswer -fuzztime=15s
+      - run: go test ./internal/adapter/namelookup -run=x -fuzz=FuzzPtrServiceLabels -fuzztime=15s
+      - run: go test ./internal/adapter/arpscan -run=x -fuzz=FuzzParseARPReply -fuzztime=15s
+
   lint:
     runs-on: ubuntu-latest
     steps:
