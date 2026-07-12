@@ -100,6 +100,9 @@ type dashModel struct {
 	ops        []string // operation log: scans, speedtests, state changes (LOG panel)
 	width      int
 	height     int
+
+	filter    string // active DEVICES-table filter query
+	filtering bool   // true while the user is typing the filter
 }
 
 // opsLimit is how many operation-log lines the LOG panel keeps on screen.
@@ -211,9 +214,33 @@ func (m dashModel) Init() tea.Cmd {
 func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if m.filtering {
+			switch msg.Type {
+			case tea.KeyCtrlC:
+				return m, tea.Quit
+			case tea.KeyEsc:
+				m.filtering, m.filter = false, "" // esc discards the filter
+			case tea.KeyEnter:
+				m.filtering = false // enter keeps it applied
+			case tea.KeyBackspace:
+				m.filter = applyFilterKey(m.filter, nil, true)
+			case tea.KeyRunes, tea.KeySpace:
+				m.filter = applyFilterKey(m.filter, msg.Runes, false)
+			}
+			return m, nil
+		}
 		switch msg.String() {
-		case "q", "ctrl+c", "esc":
+		case "q", "ctrl+c":
 			return m, tea.Quit
+		case "esc":
+			if m.filter != "" {
+				m.filter = "" // esc clears an applied filter before it quits
+				return m, nil
+			}
+			return m, tea.Quit
+		case "/":
+			m.filtering = true
+			return m, nil
 		case "r":
 			m.ops = appendLog(m.ops, opLine("running scan (manual)…"), opsLimit)
 			return m, m.scan
@@ -335,23 +362,28 @@ func (m dashModel) View() string {
 			panel("SPEEDTEST", m.renderSpeed(), colW),
 		)
 	}
-	footer := styOffline.Render("r rescan · q quit")
+	footer := styOffline.Render("/ filter · r rescan · q quit")
 
 	var activity string
 	if len(m.log) > 0 {
 		activity = panel("ACTIVITY", strings.Join(m.log, "\n"), width-2)
 	}
 
-	devices := m.tracker.Devices()
-	total := len(devices)
+	allDevices := m.tracker.Devices()
+	total := len(allDevices)
 	online := 0
-	for _, d := range devices {
+	for _, d := range allDevices {
 		if d.Online {
 			online++
 		}
 	}
-	allDevices := devices
+	devices := filterDevices(allDevices, m.filter)
 	devTitle := fmt.Sprintf("DEVICES · %d online / %d known", online, total)
+	if m.filtering {
+		devTitle += "  ·  filter: " + m.filter + "▌"
+	} else if m.filter != "" {
+		devTitle += fmt.Sprintf("  ·  filter %q (%d match)", m.filter, len(devices))
+	}
 
 	// LOG panel at the bottom: a running trace of the dashboard's own work
 	// (scans, speedtests, connectivity changes), so you can see what it's doing.

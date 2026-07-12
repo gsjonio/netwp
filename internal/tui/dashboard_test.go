@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/gsjonio/netwp/internal/core"
 )
 
@@ -119,6 +121,37 @@ func TestDashboardLogsScanLifecycle(t *testing.T) {
 	m = u.(dashModel)
 	if !strings.Contains(strings.Join(m.ops, "\n"), "scan done · 1 devices") {
 		t.Errorf("scanMsg should log a 'scan done' line, got %v", m.ops)
+	}
+}
+
+// TestDashboardFilter drives the DEVICES-table filter: "/" then typing narrows
+// the table; Esc clears it.
+func TestDashboardFilter(t *testing.T) {
+	tr := core.NewTracker(30 * time.Second)
+	mac1, _ := net.ParseMAC("aa:bb:cc:dd:ee:01")
+	mac2, _ := net.ParseMAC("aa:bb:cc:dd:ee:02")
+	tr.Observe([]core.Device{
+		{IP: net.IPv4(192, 168, 1, 5), MAC: mac1, Alias: "Meu PC"},
+		{IP: net.IPv4(192, 168, 1, 6), MAC: mac2, Alias: "Alexa"},
+	}, time.Now())
+	m := dashModel{tracker: tr, info: core.InterfaceInfo{Name: "eth0"}, start: time.Now(), width: 112, height: 40}
+
+	u, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	m = u.(dashModel)
+	u, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("alexa")})
+	m = u.(dashModel)
+	if m.filter != "alexa" {
+		t.Fatalf("filter = %q, want alexa", m.filter)
+	}
+	out := m.View()
+	if !strings.Contains(out, "Alexa") || strings.Contains(out, "Meu PC") {
+		t.Errorf("filtered dashboard should show Alexa and hide Meu PC")
+	}
+
+	u, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = u.(dashModel)
+	if m.filtering || m.filter != "" {
+		t.Errorf("esc should clear filter, got filtering=%v filter=%q", m.filtering, m.filter)
 	}
 }
 

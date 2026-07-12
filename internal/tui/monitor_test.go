@@ -6,8 +6,46 @@ import (
 	"testing"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/gsjonio/netwp/internal/core"
 )
+
+// TestMonitorFilter drives the interactive filter: "/" enters filter mode,
+// typing narrows the table, and Esc clears it.
+func TestMonitorFilter(t *testing.T) {
+	tr := core.NewTracker(30 * time.Second)
+	mac1, _ := net.ParseMAC("aa:bb:cc:dd:ee:01")
+	mac2, _ := net.ParseMAC("aa:bb:cc:dd:ee:02")
+	tr.Observe([]core.Device{
+		{IP: net.IPv4(192, 168, 1, 5), MAC: mac1, Alias: "Meu PC"},
+		{IP: net.IPv4(192, 168, 1, 6), MAC: mac2, Alias: "Alexa"},
+	}, time.Now())
+	_, cidr, _ := net.ParseCIDR("192.168.1.0/24")
+	m := monitorModel{tracker: tr, network: core.Network{CIDR: cidr}, interval: time.Second}
+
+	u, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	m = u.(monitorModel)
+	if !m.filtering {
+		t.Fatal("expected filter mode after '/'")
+	}
+
+	u, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("alexa")})
+	m = u.(monitorModel)
+	if m.filter != "alexa" {
+		t.Fatalf("filter = %q, want alexa", m.filter)
+	}
+	out := m.View()
+	if !strings.Contains(out, "Alexa") || strings.Contains(out, "Meu PC") {
+		t.Errorf("filtered view should show Alexa and hide Meu PC:\n%s", out)
+	}
+
+	u, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = u.(monitorModel)
+	if m.filtering || m.filter != "" {
+		t.Errorf("esc should clear filter, got filtering=%v filter=%q", m.filtering, m.filter)
+	}
+}
 
 // Smoke test the render path without a TTY: it exercises the lipgloss table and
 // StyleFunc row indexing, which would panic if the row/device mapping is wrong.

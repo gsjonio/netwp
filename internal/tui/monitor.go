@@ -99,6 +99,9 @@ type monitorModel struct {
 	frame     int
 	err       error
 	height    int
+
+	filter    string // active device-table filter query
+	filtering bool   // true while the user is typing the filter
 }
 
 type scanDoneMsg struct {
@@ -151,9 +154,35 @@ func (m monitorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 
 	case tea.KeyMsg:
+		if m.filtering {
+			// While typing a filter, keys edit the query instead of triggering
+			// shortcuts (so "q" is a literal character, not quit).
+			switch msg.Type {
+			case tea.KeyCtrlC:
+				return m, tea.Quit
+			case tea.KeyEsc:
+				m.filtering, m.filter = false, "" // esc discards the filter
+			case tea.KeyEnter:
+				m.filtering = false // enter keeps it applied
+			case tea.KeyBackspace:
+				m.filter = applyFilterKey(m.filter, nil, true)
+			case tea.KeyRunes, tea.KeySpace:
+				m.filter = applyFilterKey(m.filter, msg.Runes, false)
+			}
+			return m, nil
+		}
 		switch msg.String() {
-		case "q", "ctrl+c", "esc":
+		case "q", "ctrl+c":
 			return m, tea.Quit
+		case "esc":
+			if m.filter != "" {
+				m.filter = "" // esc clears an applied filter before it quits
+				return m, nil
+			}
+			return m, tea.Quit
+		case "/":
+			m.filtering = true
+			return m, nil
 		case "r":
 			if !m.scanning {
 				m.scanning = true
@@ -224,16 +253,23 @@ func (m monitorModel) bandwidthLine() string {
 }
 
 func (m monitorModel) View() string {
-	devices := m.tracker.Devices()
-	total := len(devices)
+	all := m.tracker.Devices()
+	total := len(all)
 	online := 0
-	for _, d := range devices {
+	for _, d := range all {
 		if d.Online {
 			online++
 		}
 	}
+	devices := filterDevices(all, m.filter)
+
 	summary := fmt.Sprintf("%s  %s · %d online / %d known",
 		styTitle.Render("netwp monitor"), m.network.CIDR, online, total)
+	if m.filtering {
+		summary += "  ·  " + styTitle.Render("filter: ") + m.filter + styOffline.Render("▌")
+	} else if m.filter != "" {
+		summary += styOffline.Render(fmt.Sprintf("  ·  filter %q (%d match, esc clears)", m.filter, len(devices)))
+	}
 
 	var activity string
 	if len(m.log) > 0 {
@@ -247,7 +283,7 @@ func (m monitorModel) View() string {
 	} else {
 		state = styOffline.Render(fmt.Sprintf("idle · next in %s", time.Until(m.lastScan.Add(m.interval)).Round(time.Second)))
 	}
-	footer := state + styOffline.Render("   ·   r rescan   ·   q quit")
+	footer := state + styOffline.Render("   ·   / filter   ·   r rescan   ·   q quit")
 	bwLine := m.bandwidthLine()
 
 	// Trim the device table to whatever vertical room is left, so the
