@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"net"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -30,12 +31,72 @@ var discriminantServices = []string{
 	"_hap._tcp.local.",            // HomeKit accessories (smart home)
 }
 
-// ServiceScanner implements core.ServiceScanner via a single mDNS DNS-SD sweep.
-type ServiceScanner struct{}
+// serviceCacheTTL bounds how stale the service map may be. The sweep fires 12
+// multicast queries and listens ~1.2s; re-running it on every 10-15s scan is
+// wasteful multicast traffic for data (which device advertises what) that
+// rarely changes. Caching it for a few minutes cuts that to one sweep per TTL.
+const serviceCacheTTL = 5 * time.Minute
 
-func NewServiceScanner() ServiceScanner { return ServiceScanner{} }
+// ServiceScanner implements core.ServiceScanner via a single mDNS DNS-SD sweep,
+// with the result cached for serviceCacheTTL.
+type ServiceScanner struct {
+	cache *serviceCache
+	// sweep does the real mDNS work; overridable in tests to exercise the
+	// cache without touching the network. Defaults to mdnsSweep.
+	sweep func(ctx context.Context) map[string][]string
+}
 
-// Services broadcasts a PTR query for each discriminant service type, listens
+func NewServiceScanner() ServiceScanner {
+	return ServiceScanner{cache: newServiceCache(serviceCacheTTL), sweep: mdnsSweep}
+}
+
+// Services returns the cached service map if still fresh, otherwise runs a
+// fresh sweep and caches its result (a failed sweep, which returns nil, is not
+// cached, so the next scan retries).
+func (s ServiceScanner) Services(ctx context.Context) map[string][]string {
+	if s.cache != nil {
+		if m, ok := s.cache.get(); ok {
+			return m
+		}
+	}
+	sweep := s.sweep
+	if sweep == nil {
+		sweep = mdnsSweep
+	}
+	m := sweep(ctx)
+	if s.cache != nil && m != nil {
+		s.cache.put(m)
+	}
+	return m
+}
+
+// serviceCache holds one network-wide service map with an expiry.
+type serviceCache struct {
+	mu      sync.Mutex
+	ttl     time.Duration
+	result  map[string][]string
+	expires time.Time
+}
+
+func newServiceCache(ttl time.Duration) *serviceCache { return &serviceCache{ttl: ttl} }
+
+func (c *serviceCache) get() (map[string][]string, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.result == nil || time.Now().After(c.expires) {
+		return nil, false
+	}
+	return c.result, true
+}
+
+func (c *serviceCache) put(m map[string][]string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.result = m
+	c.expires = time.Now().Add(c.ttl)
+}
+
+// mdnsSweep broadcasts a PTR query for each discriminant service type, listens
 // briefly, and maps each responding host's IP to the service labels it
 // answered for (e.g. "192.168.1.5" -> ["_googlecast"]).
 //
@@ -43,7 +104,7 @@ func NewServiceScanner() ServiceScanner { return ServiceScanner{} }
 // service type off the PTR answer's own name and skips the SRV/A chasing a
 // full DNS-SD resolver does. Best-effort classification input: a device with
 // no mDNS responder simply contributes nothing.
-func (ServiceScanner) Services(ctx context.Context) map[string][]string {
+func mdnsSweep(ctx context.Context) map[string][]string {
 	conn, err := net.ListenUDP("udp4", nil)
 	if err != nil {
 		return nil
