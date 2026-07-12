@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"errors"
 	"net"
 	"strings"
 	"testing"
@@ -118,6 +119,21 @@ func TestDashboardLogsScanLifecycle(t *testing.T) {
 	m = u.(dashModel)
 	if !strings.Contains(strings.Join(m.ops, "\n"), "scan done · 1 devices") {
 		t.Errorf("scanMsg should log a 'scan done' line, got %v", m.ops)
+	}
+}
+
+// TestDashboardLogsScanError checks a failed scan surfaces in the LOG panel
+// instead of vanishing silently.
+func TestDashboardLogsScanError(t *testing.T) {
+	m := dashModel{tracker: core.NewTracker(30 * time.Second), start: time.Now()}
+	u, _ := m.Update(scanMsg{err: errors.New("no route to host"), at: time.Now()})
+	m = u.(dashModel)
+	joined := strings.Join(m.ops, "\n")
+	if !strings.Contains(joined, "scan failed: no route to host") {
+		t.Errorf("expected a 'scan failed' line in the LOG, got %v", m.ops)
+	}
+	if strings.Contains(joined, "scan done") {
+		t.Error("a failed scan must not log 'scan done'")
 	}
 }
 

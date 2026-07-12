@@ -150,6 +150,7 @@ type (
 	scanMsg     struct {
 		devices []core.Device
 		at      time.Time
+		err     error
 	}
 	scanTickMsg struct{}
 	speedMsg    struct {
@@ -181,8 +182,8 @@ func (m dashModel) readWifi() tea.Msg {
 func (m dashModel) scan() tea.Msg {
 	ctx, cancel := context.WithTimeout(context.Background(), dashScanBudget)
 	defer cancel()
-	devices, _ := m.discovery.Run(ctx, m.network)
-	return scanMsg{devices: devices, at: time.Now()}
+	devices, err := m.discovery.Run(ctx, m.network)
+	return scanMsg{devices: devices, at: time.Now(), err: err}
 }
 
 func (m dashModel) runSpeed() tea.Msg {
@@ -248,6 +249,12 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case scanMsg:
 		m.lastScan = msg.at
+		if msg.err != nil {
+			// A failed scan used to vanish silently (devices, _ := Run). Surface
+			// it in the LOG panel and keep the last good device list on screen.
+			m.ops = appendLog(m.ops, opLine("scan failed: "+msg.err.Error()), opsLimit)
+			return m, tick(dashScanEvery, scanTickMsg{})
+		}
 		m.ops = appendLog(m.ops, opLine(fmt.Sprintf("scan done · %d devices", len(msg.devices))), opsLimit)
 		alert := false
 		for _, e := range m.tracker.Observe(msg.devices, msg.at) {
