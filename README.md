@@ -149,7 +149,7 @@ internal/tui     legible table output
 | Command | What it does |
 | --- | --- |
 | *(none)* / `help` / `-h` / `--help` | Print usage |
-| `scan` / `scan --json` / `scan --diff` | One-shot scan, with per-device RTT; `--json` for machine-readable output, `--diff` to print only what changed since the last scan |
+| `scan` / `scan --json` / `scan --diff` / `scan --ports=<list>` | One-shot scan, with per-device RTT; `--json` for machine-readable output, `--diff` to print only what changed since the last scan, `--ports=22,80,443` to probe a custom TCP port set |
 | `monitor` / `monitor --alert-down=<rate>` | Live TUI: devices joining/leaving in real time (`q` to quit); `--alert-down` flags a download rate drop, e.g. `--alert-down=50Mbps` |
 | `dashboard` | Full dashboard: Wi-Fi + live bandwidth + speedtest + devices + an operations log |
 | `speedtest` | Download/upload throughput |
@@ -162,7 +162,7 @@ internal/tui     legible table output
 | `ports <ip>` | Open ports + RTT + TTL for one device |
 | `wake <ip\|mac\|alias>` | Send a Wake-on-LAN magic packet to power on a device |
 | `doctor` | Diagnose connectivity: interface, gateway, internet, DNS, Wi-Fi |
-| `events [n]` | Print the last n join/leave events (default 20) |
+| `events [n]` / `events --device=<x>` | Print the last n join/leave events (default 20); `--device=<alias-or-mac>` filters to one device |
 | `version` | Installed version |
 | `update` | Update to the latest version (needs Go) |
 | `uninstall` | Remove netwp's local data (asks to confirm); prints how to remove the binary |
@@ -252,6 +252,10 @@ people who already know networking.
 - `netwp monitor`/`dashboard` log every join/leave to
   `<user-config-dir>/netwp/events.jsonl`; `netwp events [n]` reads them
   back.
+- In `monitor`/`dashboard`, press `/` to filter the device table by a
+  substring of any field (IP, alias, hostname, vendor, MAC, class); Enter
+  keeps the filter, Esc clears it. The online/known counts still reflect the
+  whole network.
 
 Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md). This project
 follows the [Code of Conduct](CODE_OF_CONDUCT.md).

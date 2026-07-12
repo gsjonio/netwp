@@ -152,7 +152,7 @@ internal/tui     saída em tabela legível
 | Comando | O que faz |
 | --- | --- |
 | *(nenhum)* / `help` / `-h` / `--help` | Mostra a ajuda |
-| `scan` / `scan --json` / `scan --diff` | Varredura única, com RTT por dispositivo; `--json` pra saída legível por máquina, `--diff` pra imprimir só o que mudou desde a última varredura |
+| `scan` / `scan --json` / `scan --diff` / `scan --ports=<lista>` | Varredura única, com RTT por dispositivo; `--json` pra saída legível por máquina, `--diff` pra imprimir só o que mudou, `--ports=22,80,443` pra sondar um conjunto de portas custom |
 | `monitor` / `monitor --alert-down=<taxa>` | TUI ao vivo: dispositivos entrando/saindo em tempo real (`q` sai); `--alert-down` avisa sobre queda na taxa de download, ex.: `--alert-down=50Mbps` |
 | `dashboard` | Dashboard completo: WiFi + banda ao vivo + speedtest + dispositivos + um log de operações |
 | `speedtest` | Teste de download/upload |
@@ -165,7 +165,7 @@ internal/tui     saída em tabela legível
 | `ports <ip>` | Portas abertas + RTT + TTL de um dispositivo |
 | `wake <ip\|mac\|apelido>` | Envia um pacote Wake-on-LAN pra ligar um dispositivo |
 | `doctor` | Diagnostica a conexão: interface, gateway, internet, DNS, Wi-Fi |
-| `events [n]` | Mostra os últimos n eventos de entrada/saída (padrão 20) |
+| `events [n]` / `events --device=<x>` | Mostra os últimos n eventos de entrada/saída (padrão 20); `--device=<apelido-ou-mac>` filtra por um dispositivo |
 | `version` | Versão instalada |
 | `update` | Atualiza pra última versão (precisa do Go) |
 | `uninstall` | Remove os dados locais do netwp (pede confirmação); mostra como remover o binário |
@@ -249,6 +249,10 @@ quem já manja de redes.
 - `netwp monitor`/`dashboard` gravam cada entrada/saída em
   `<pasta-de-config-do-usuário>/netwp/events.jsonl`; `netwp events [n]`
   mostra esse histórico.
+- No `monitor`/`dashboard`, aperte `/` pra filtrar a tabela por um trecho de
+  qualquer campo (IP, apelido, hostname, fabricante, MAC, classe); Enter
+  mantém o filtro, Esc limpa. As contagens online/conhecidos continuam
+  refletindo a rede inteira.
 - O painel DEVICES do dashboard mostra um resumo por classe do que está
   online (ex.: "2 Media · 1 Router"), sem contar "This device" e hosts não
   classificados.
