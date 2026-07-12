@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gsjonio/netwp/internal/core"
@@ -74,8 +75,9 @@ func (l Logger) Log(e core.Event) error {
 }
 
 // Tail returns the last n entries in path, oldest first, skipping any
-// corrupt lines. A missing file returns no entries and no error: no events
-// logged yet is not exceptional.
+// corrupt lines. n <= 0 returns every entry (used when a caller needs the full
+// history to filter it). A missing file returns no entries and no error: no
+// events logged yet is not exceptional.
 func Tail(path string, n int) ([]Entry, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -90,7 +92,7 @@ func Tail(path string, n int) ([]Entry, error) {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
-		if len(lines) > n {
+		if n > 0 && len(lines) > n {
 			lines = lines[1:]
 		}
 	}
@@ -106,4 +108,19 @@ func Tail(path string, n int) ([]Entry, error) {
 		}
 	}
 	return entries, nil
+}
+
+// FilterByDevice keeps only the entries for one device. It matches an entry
+// whose MAC equals mac (the caller resolves an alias name to its MAC), or whose
+// Name matches device case-insensitively (so it still works for events logged
+// before an alias was set, by the name shown at the time). mac may be empty.
+func FilterByDevice(entries []Entry, device, mac string) []Entry {
+	mac = strings.ToLower(mac)
+	out := make([]Entry, 0, len(entries))
+	for _, e := range entries {
+		if (mac != "" && strings.ToLower(e.MAC) == mac) || strings.EqualFold(e.Name, device) {
+			out = append(out, e)
+		}
+	}
+	return out
 }

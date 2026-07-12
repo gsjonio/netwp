@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -99,13 +100,19 @@ func runDoctor() error {
 }
 
 // runEvents prints the last n recorded presence-change events (newest last),
-// n defaulting to 20. Usage: netwp events [n]
+// n defaulting to 20. --device=<alias-or-mac> restricts to one device.
+// Usage: netwp events [n] [--device=<alias-or-mac>]
 func runEvents() error {
 	n := 20
-	if args := os.Args[2:]; len(args) > 0 {
-		v, err := strconv.Atoi(args[0])
+	device := ""
+	for _, a := range os.Args[2:] {
+		if v, ok := strings.CutPrefix(a, "--device="); ok {
+			device = v
+			continue
+		}
+		v, err := strconv.Atoi(a)
 		if err != nil || v <= 0 {
-			return fmt.Errorf("invalid count %q: expected a positive integer", args[0])
+			return fmt.Errorf("invalid argument %q: expected a positive count or --device=<alias-or-mac>", a)
 		}
 		n = v
 	}
@@ -114,12 +121,30 @@ func runEvents() error {
 	if err != nil {
 		return err
 	}
-	entries, err := eventlog.Tail(path, n)
+
+	// With a device filter, read the whole history so the match isn't limited
+	// to the last n lines; then keep the last n of what matches.
+	readN := n
+	if device != "" {
+		readN = 0
+	}
+	entries, err := eventlog.Tail(path, readN)
 	if err != nil {
 		return err
 	}
+	if device != "" {
+		entries = eventlog.FilterByDevice(entries, device, deviceMAC(device))
+		if len(entries) > n {
+			entries = entries[len(entries)-n:]
+		}
+	}
+
 	if len(entries) == 0 {
-		fmt.Println("no events recorded yet. Run `netwp monitor` or `netwp dashboard` to start logging.")
+		if device != "" {
+			fmt.Printf("no events recorded for %q.\n", device)
+		} else {
+			fmt.Println("no events recorded yet. Run `netwp monitor` or `netwp dashboard` to start logging.")
+		}
 		return nil
 	}
 	for _, e := range entries {
@@ -130,6 +155,23 @@ func runEvents() error {
 		fmt.Printf("%s  %-6s %s (%s)\n", e.At.Local().Format("2006-01-02 15:04:05"), e.Kind, name, e.IP)
 	}
 	return nil
+}
+
+// deviceMAC resolves a device argument to a canonical MAC when possible: a MAC
+// literal directly, or an alias name via the alias store. Returns "" if it's
+// neither (the filter then matches on the logged Name alone).
+func deviceMAC(device string) string {
+	if mac, err := net.ParseMAC(device); err == nil {
+		return mac.String()
+	}
+	if store, err := openAliasStore(); err == nil {
+		for _, a := range store.List() {
+			if strings.EqualFold(a.Name, device) {
+				return a.MAC.String()
+			}
+		}
+	}
+	return ""
 }
 
 // parseRate parses a bits-per-second rate like "50Mbps" or "1.5Gbps" into

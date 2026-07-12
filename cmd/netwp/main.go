@@ -143,7 +143,7 @@ Commands:
   ports <ip>                                      open ports + RTT for one device
   wake <ip-or-mac-or-alias>                       send a Wake-on-LAN magic packet to power on a device
   doctor                                          diagnose connectivity (interface, gateway, internet, DNS, Wi-Fi)
-  events [n]                                      show the last n join/leave events (default 20)
+  events [n] [--device=<alias-or-mac>]            show the last n join/leave events (default 20; --device filters to one)
   version                                         show the installed version
   update                                          update to the latest version (needs the Go toolchain)
   uninstall                                       remove netwp's local data (asks to confirm)
