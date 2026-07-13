@@ -18,7 +18,8 @@ inspeção de interface. Windows primeiro, portável para Linux.
 
 Nunca mexeu com redes? Comece pelo [guia para iniciantes](docs/GUIDE.pt-BR.md)
 ([EN](docs/GUIDE.md)): explica cada termo e coluna da tabela em linguagem
-simples.
+simples. O [wiki](https://github.com/gsjonio/netwp/wiki) tem referência completa
+de comandos, FAQ e troubleshooting.
 
 ## Sumário
 

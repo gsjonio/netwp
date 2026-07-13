@@ -18,7 +18,8 @@ inspection. Windows-first, portable to Linux.
 
 New to networking? Start with the [beginner's guide](docs/GUIDE.md)
 ([pt-BR](docs/GUIDE.pt-BR.md)) instead: it explains every term and table
-column in plain language.
+column in plain language. The [wiki](https://github.com/gsjonio/netwp/wiki) has
+a full command reference, FAQ, and troubleshooting.
 
 ## Table of Contents
 
