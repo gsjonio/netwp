@@ -40,7 +40,7 @@ func Path(file string) (string, error) {
 		return "", err
 	}
 	dir = filepath.Join(dir, "netwp")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return "", err
 	}
 	return filepath.Join(dir, file), nil
@@ -124,7 +124,7 @@ func (s *Map[V]) save() error {
 		return err
 	}
 	tmp := s.path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+	if err := os.WriteFile(tmp, data, 0o600); err != nil {
 		return err
 	}
 	return os.Rename(tmp, s.path)

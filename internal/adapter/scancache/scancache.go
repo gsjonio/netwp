@@ -25,7 +25,7 @@ func DefaultPath() (string, error) {
 		return "", err
 	}
 	dir = filepath.Join(dir, "netwp")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return "", err
 	}
 	return filepath.Join(dir, "lastscan.json"), nil
@@ -55,7 +55,7 @@ func Save(path string, devices []core.Device) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0o644)
+	return os.WriteFile(path, data, 0o600)
 }
 
 // Load reads back the last snapshot saved by Save, as []core.Device with only

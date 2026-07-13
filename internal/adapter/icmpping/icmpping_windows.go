@@ -56,6 +56,7 @@ func (Pinger) Ping(ip net.IP, timeout time.Duration) (time.Duration, int, bool) 
 	reply := make([]byte, 128)
 	dest := uintptr(binary.LittleEndian.Uint32(ip4)) // IPAddr, network byte order
 
+	//nolint:gosec // G115: timeout is a small, caller-set value (sub-second here), never near uint32 overflow.
 	ms := uint32(timeout / time.Millisecond)
 	if ms == 0 {
 		ms = 1000

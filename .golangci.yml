@@ -1,5 +1,7 @@
 version: "2"
 linters:
+  enable:
+    - gosec
   settings:
     errcheck:
       exclude-functions:
@@ -13,8 +15,26 @@ linters:
         - io.WriteString
         - (io.Writer).Write
         - (*testing.common).Helper
+    gosec:
+      # Rules excluded because they flag patterns that are inherent to this
+      # codebase and reviewed as safe, not real issues:
+      excludes:
+        # G103: unsafe.Pointer is required for the Windows syscalls the ARP/ICMP
+        # adapters make (SendARP, IcmpSendEcho); there is no safe alternative.
+        - G103
+        # G204: the only subprocesses are fixed OS command templates (powershell,
+        # ping, netsh) with OS-derived arguments (interface names, validated
+        # IPs), never user- or network-controlled shell input.
+        - G204
+        # G304: every file path comes from the per-user config dir (DefaultPath)
+        # or a fixed system path, never from network or user input.
+        - G304
+        # G104: "unhandled errors" duplicates errcheck, which is configured
+        # above with its own curated exclusions; one owner for that check.
+        - G104
   exclusions:
     rules:
       - path: _test\.go
         linters:
           - errcheck
+          - gosec

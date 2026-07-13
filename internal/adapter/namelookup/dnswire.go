@@ -20,6 +20,7 @@ func buildDNSQuery(name string, qtype uint16) []byte {
 func encodeName(name string) []byte {
 	var buf []byte
 	for _, label := range strings.Split(strings.TrimSuffix(name, "."), ".") {
+		//nolint:gosec // G115: labels are our own short service names and IP octets, well under the 255 a byte holds.
 		buf = append(buf, byte(len(label)))
 		buf = append(buf, label...)
 	}

@@ -25,7 +25,7 @@ func DefaultPath() (string, error) {
 		return "", err
 	}
 	dir = filepath.Join(dir, "netwp")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return "", err
 	}
 	return filepath.Join(dir, "events.jsonl"), nil
@@ -52,7 +52,7 @@ func New(path string) Logger { return Logger{Path: path} }
 // Log appends e to the log file, opening and closing it each call: join/leave
 // events are rare enough that this isn't worth a held-open file handle.
 func (l Logger) Log(e core.Event) error {
-	f, err := os.OpenFile(l.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile(l.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return err
 	}
