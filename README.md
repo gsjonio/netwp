@@ -8,6 +8,7 @@
 [![Go version](https://img.shields.io/github/go-mod/go-version/gsjonio/netwp)](go.mod)
 [![Release](https://img.shields.io/github/v/release/gsjonio/netwp)](https://github.com/gsjonio/netwp/releases/latest)
 [![License: MIT](https://img.shields.io/github/license/gsjonio/netwp)](LICENSE)
+[![Wiki](https://img.shields.io/badge/docs-wiki-blue?logo=github)](https://github.com/gsjonio/netwp/wiki)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-gugamenezes-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/gugamenezes)
 
 **netwp**: *Internet / Rede Well Played* ("rede" is Portuguese for network).
