@@ -197,6 +197,10 @@ netwp scan --json | ConvertFrom-Json | Where-Object reachable
 netwp alias set 192.168.1.20 "Living Room TV"
 ```
 
+The CLI is built on [cobra](https://github.com/spf13/cobra): every command has
+its own `--help` (e.g. `netwp scan --help`), and `netwp completion <bash|zsh|fish|powershell>`
+generates a shell-completion script.
+
 ## Notes
 
 See [SECURITY.md](SECURITY.md) for scanning safety and reporting a

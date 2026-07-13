@@ -200,6 +200,10 @@ netwp scan --json | ConvertFrom-Json | Where-Object reachable
 netwp alias set 192.168.1.20 "TV da Sala"
 ```
 
+A CLI é construída sobre o [cobra](https://github.com/spf13/cobra): cada comando
+tem seu próprio `--help` (ex.: `netwp scan --help`), e `netwp completion
+<bash|zsh|fish|powershell>` gera um script de autocompletar do shell.
+
 ## Notas
 
 Veja [SECURITY.md](SECURITY.md) pra segurança da varredura e como reportar
