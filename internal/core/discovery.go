@@ -58,6 +58,15 @@ func NewDiscovery(d DiscoveryDeps) *Discovery {
 	}
 }
 
+// ResetResolverCache clears any cached hostnames so the next Run re-resolves
+// them fresh. It's a no-op unless the name resolver supports it (the production
+// namelookup.Resolver does; test fakes need not). A manual rescan triggers it.
+func (d *Discovery) ResetResolverCache() {
+	if r, ok := d.names.(interface{ ResetCache() }); ok {
+		r.ResetCache()
+	}
+}
+
 // Run scans the target network and returns the enriched, classified devices.
 func (d *Discovery) Run(ctx context.Context, target Network) ([]Device, error) {
 	devices, err := d.scanner.Scan(ctx, target)

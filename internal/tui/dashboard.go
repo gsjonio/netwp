@@ -243,6 +243,9 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "r":
 			m.ops = appendLog(m.ops, opLine("running scan (manual)…"), opsLimit)
+			// A manual rescan re-resolves names instead of serving the cache,
+			// so a stale hostname is what pressing r actually refreshes.
+			m.discovery.ResetResolverCache()
 			return m, m.scan
 		}
 	case tea.WindowSizeMsg:

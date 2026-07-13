@@ -187,6 +187,9 @@ func (m monitorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if !m.scanning {
 				m.scanning = true
 				m.scanStart = time.Now()
+				// A manual rescan should re-resolve names, not reuse the cache:
+				// the user often presses r precisely because a name is stale.
+				m.discovery.ResetResolverCache()
 				return m, m.scanNow
 			}
 		}

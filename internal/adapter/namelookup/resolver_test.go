@@ -52,6 +52,21 @@ func TestResolverCachesResult(t *testing.T) {
 	}
 }
 
+// TestResolverResetCache proves a manual rescan re-queries the primary: after
+// ResetCache, a previously cached IP is looked up again instead of served stale.
+func TestResolverResetCache(t *testing.T) {
+	p := &countingPrimary{name: "host.local"}
+	r := New(p)
+	ip := net.IPv4(192, 168, 1, 42)
+
+	r.Hostname(ip) // populates the cache (calls == 1)
+	r.ResetCache() // a manual rescan drops it
+	r.Hostname(ip) // must re-query, not serve the cache
+	if p.calls != 2 {
+		t.Errorf("primary queried %d times, want 2 (ResetCache should force a re-query)", p.calls)
+	}
+}
+
 func TestHostCacheExpiry(t *testing.T) {
 	c := newHostCache(time.Minute)
 	c.put("10.0.0.1", "a.local")

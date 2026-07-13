@@ -52,6 +52,15 @@ func (r Resolver) Hostname(ip net.IP) string {
 	return name
 }
 
+// ResetCache drops every cached name so the next lookup re-resolves from
+// scratch. A manual rescan calls this: the user asking again is a signal they
+// want fresh names now, not the up-to-5-minute-cached ones.
+func (r Resolver) ResetCache() {
+	if r.cache != nil {
+		r.cache.reset()
+	}
+}
+
 func (r Resolver) resolve(ip net.IP) string {
 	if r.primary != nil {
 		if name := r.primary.Hostname(ip); name != "" {
@@ -102,4 +111,10 @@ func (c *hostCache) put(key, name string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.m[key] = hostEntry{name: name, expires: time.Now().Add(c.ttl)}
+}
+
+func (c *hostCache) reset() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.m = map[string]hostEntry{}
 }
