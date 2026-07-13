@@ -33,21 +33,21 @@ simples.
 
 ## Features
 
-**Descoberta & monitoramento** — varredura ARP ativa com hostname (DNS
+**Descoberta & monitoramento.** Varredura ARP ativa com hostname (DNS
 reverso, depois fallback mDNS/NetBIOS), fabricante por OUI, palpite de classe,
 RTT e TTL por dispositivo (com palpite de família de SO) e detalhe de portas
 abertas (as sensíveis como SSH/SMB/RDP destacadas), tudo acompanhado
 continuamente numa TUI ao vivo com alerta de dispositivo novo.
 
-**Dashboard** — WiFi, banda em tempo real, speedtest e dispositivos numa única
+**Dashboard.** WiFi, banda em tempo real, speedtest e dispositivos numa única
 tela ao vivo, com recomendação de canal WiFi por congestionamento de APs
 vizinhos.
 
-**Configuração de interface & rede** — inspeção de IP somente leitura em
+**Configuração de interface & rede.** Inspeção de IP somente leitura em
 qualquer plataforma; configuração estático/DHCP no Windows. Suporte a Linux
 via ARP cru (`AF_PACKET`).
 
-**Persistência & ferramentas** — apelidos de dispositivo que sobrevivem a
+**Persistência & ferramentas.** Apelidos de dispositivo que sobrevivem a
 trocas de IP pelo DHCP, exportação JSON (`netwp scan --json`), e
 auto-atualização (`netwp update` / `netwp version`).
 
@@ -121,8 +121,8 @@ instalado (não importa como você instalou o netwp), o caminho mais fácil é:
 netwp update
 ```
 
-É um wrapper fino em cima do `go install github.com/gsjonio/netwp/cmd/netwp@latest`
-— o mesmo comando de baixo, só sem precisar redigitar o caminho do módulo.
+É um wrapper fino em cima do `go install github.com/gsjonio/netwp/cmd/netwp@latest`:
+o mesmo comando de baixo, só sem precisar redigitar o caminho do módulo.
 Sobrescrever o binário em execução funciona até no Windows.
 
 Fora isso, atualize do mesmo jeito que instalou:
@@ -234,56 +234,62 @@ uma vulnerabilidade.
 
 Novo em termos como MAC, TTL, ou "dispositivo desconhecido"? O
 [guia para iniciantes](docs/GUIDE.pt-BR.md) ([EN](docs/GUIDE.md)) explica o
-que cada coisa na tela significa. Esta seção é trivia de implementação pra
-quem já manja de redes.
+que cada coisa na tela significa. As notas abaixo são trivia de implementação
+pra quem já manja de redes.
+
+#### Descoberta & classificação
 
 - A resolução de hostname cai para mDNS/NetBIOS quando o DNS reverso não
   retorna nada; alguns dispositivos continuam sem nome. O mecanismo está
   no [CONTRIBUTING.md](CONTRIBUTING.md).
 - RTT e TTL vêm do mesmo ICMP echo por dispositivo, então um com firewall
   (responde ARP mas não ICMP) aparece online sem nenhum dos dois.
-- A sugestão de canal WiFi é uma contagem simples de congestionamento sobre
-  os APs visíveis, não um planejador de RF.
 - Uma máquina com mais de uma interface ativa (ex.: Ethernet e WiFi ao
   mesmo tempo) é reconhecida como "This device" em todas elas.
-- O teste de banda usa o `speed.cloudflare.com` anycast; o `netwp
-  speedtest` mostra qual edge respondeu.
-- `netwp ports <ip>` sonda um único dispositivo diretamente em vez de um
-  scan completo, sem histórico de portas entre execuções.
 - O palpite de CLASS combina serviços mDNS anunciados (um Chromecast,
   impressora ou iPhone dizem o que são), depois ~29 portas sondadas, depois o
   fabricante. Quando ainda erra (um celular com MAC aleatório e sem portas
-  abertas), fixe com `netwp class set <ip|mac> <classe>` — o pin manual
-  sempre vence.
+  abertas), fixe com `netwp class set <ip|mac> <classe>`; o pin manual sempre
+  vence.
+
+#### Monitor & dashboard
+
+- Aperte `/` pra filtrar a tabela por um trecho de qualquer campo (IP,
+  apelido, hostname, fabricante, MAC, classe); Enter mantém o filtro, Esc
+  limpa. As contagens online/conhecidos continuam refletindo a rede inteira.
+- Dois eventos tocam o bipe do terminal e destacam a linha do log: um
+  dispositivo desconhecido entrando (sem apelido) e um dispositivo da lista do
+  `netwp watch` saindo. O resto fica quieto.
+- O painel DEVICES mostra um resumo por classe do que está online (ex.:
+  "2 Media · 1 Router"), sem contar "This device" e hosts não classificados.
+- O painel LOG (embaixo) mostra o que o dashboard mesmo está fazendo: scans
+  começando e terminando, speedtests, e mudanças de estado de internet/Wi-Fi.
+  Num terminal curto ele encolhe, depois some, pra a tabela de dispositivos e o
+  rodapé terem prioridade. (Diferente do painel ACTIVITY, que lista
+  entradas/saídas de dispositivos.)
+- A sugestão de canal WiFi é uma contagem simples de congestionamento sobre
+  os APs visíveis, não um planejador de RF.
+- `netwp monitor --alert-down=<taxa>` (ex.: `50Mbps`) destaca a linha de
+  banda quando o download cai abaixo desse limiar. Sem a flag, o monitor se
+  comporta exatamente como antes.
+- `monitor`/`dashboard` gravam cada entrada/saída em
+  `<pasta-de-config-do-usuário>/netwp/events.jsonl`; `netwp events [n]` mostra
+  esse histórico.
+
+#### Comandos
+
+- `netwp scan --diff` compara com a varredura anterior (identidade pelo MAC)
+  e imprime só o que mudou, incluindo possíveis conflitos de IP/MAC.
+- `netwp ports <ip>` sonda um único dispositivo diretamente em vez de um scan
+  completo, sem histórico de portas entre execuções.
 - `netwp wake` só liga um dispositivo que ficou com Wake-on-LAN habilitado
   (uma opção de BIOS/SO). Ele faz broadcast e não recebe resposta, então
   reporta "enviado", não "acordou". Um apelido ou IP em cache resolve mesmo
   com o alvo desligado.
 - `netwp doctor` checa de cima pra baixo (interface → gateway → internet →
   DNS); o primeiro ✗ costuma ser a causa raiz e explica os de baixo.
-- No `monitor`/`dashboard`, dois eventos tocam o bipe do terminal e destacam
-  a linha do log: um dispositivo desconhecido entrando (sem apelido) e um
-  dispositivo da lista do `netwp watch` saindo. O resto fica quieto.
-- `netwp monitor --alert-down=<taxa>` (ex.: `50Mbps`) destaca a linha de
-  banda quando o download cai abaixo desse limiar. Sem a flag, o monitor se
-  comporta exatamente como antes.
-- `netwp scan --diff` compara com a varredura anterior (identidade pelo
-  MAC) e imprime só o que mudou, incluindo possíveis conflitos de IP/MAC.
-- `netwp monitor`/`dashboard` gravam cada entrada/saída em
-  `<pasta-de-config-do-usuário>/netwp/events.jsonl`; `netwp events [n]`
-  mostra esse histórico.
-- No `monitor`/`dashboard`, aperte `/` pra filtrar a tabela por um trecho de
-  qualquer campo (IP, apelido, hostname, fabricante, MAC, classe); Enter
-  mantém o filtro, Esc limpa. As contagens online/conhecidos continuam
-  refletindo a rede inteira.
-- O painel DEVICES do dashboard mostra um resumo por classe do que está
-  online (ex.: "2 Media · 1 Router"), sem contar "This device" e hosts não
-  classificados.
-- O painel LOG do dashboard (embaixo) mostra o que ele mesmo está fazendo —
-  scans começando e terminando, speedtests, e mudanças de estado de
-  internet/Wi-Fi. Num terminal curto ele encolhe, depois some, pra a tabela
-  de dispositivos e o rodapé terem prioridade. (Diferente do painel ACTIVITY,
-  que lista entradas/saídas de dispositivos.)
+- O teste de banda usa o `speed.cloudflare.com` anycast; o `netwp speedtest`
+  mostra qual edge respondeu.
 
 Quer contribuir? Veja [CONTRIBUTING.md](CONTRIBUTING.md). Este projeto
 segue o [Código de Conduta](CODE_OF_CONDUCT.md).
@@ -291,7 +297,7 @@ segue o [Código de Conduta](CODE_OF_CONDUCT.md).
 ## Apoie o projeto
 
 O netwp é livre e de código aberto. Se ele te economiza tempo, você pode
-apoiar o desenvolvimento com um café — obrigado! ☕
+apoiar o desenvolvimento com um café. Obrigado! ☕
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-gugamenezes-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/gugamenezes)
 

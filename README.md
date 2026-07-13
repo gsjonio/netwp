@@ -10,7 +10,7 @@
 [![License: MIT](https://img.shields.io/github/license/gsjonio/netwp)](LICENSE)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-gugamenezes-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/gugamenezes)
 
-**netwp** — *Internet / Rede Well Played* ("rede" is Portuguese for network).
+**netwp**: *Internet / Rede Well Played* ("rede" is Portuguese for network).
 
 A terminal network manager written in Go: active local-network device discovery
 (ARP), live monitoring, a full dashboard, bandwidth testing, and interface
@@ -33,19 +33,19 @@ column in plain language.
 
 ## Features
 
-**Discovery & monitoring** — active ARP scan with hostname (reverse DNS, then
+**Discovery & monitoring.** Active ARP scan with hostname (reverse DNS, then
 mDNS/NetBIOS fallback), vendor by OUI, device-class guess, per-device RTT and
 TTL (with an OS-family hint) and open-port detail (sensitive ones like
 SSH/SMB/RDP flagged), all continuously tracked in a live TUI with new-device
 alerts.
 
-**Dashboard** — Wi-Fi, real-time bandwidth, speedtest and devices in one live
+**Dashboard.** Wi-Fi, real-time bandwidth, speedtest and devices in one live
 view, with Wi-Fi channel recommendations from nearby AP congestion.
 
-**Interface & network config** — read-only IP inspection everywhere; static/DHCP
+**Interface & network config.** Read-only IP inspection everywhere; static/DHCP
 configuration on Windows. Linux support via raw ARP (`AF_PACKET`).
 
-**Persistence & tooling** — device aliases that survive DHCP IP changes, JSON
+**Persistence & tooling.** Device aliases that survive DHCP IP changes, JSON
 export (`netwp scan --json`), and self-update (`netwp update` / `netwp
 version`).
 
@@ -119,9 +119,9 @@ Check what you have with `netwp version`. If you have the Go toolchain
 netwp update
 ```
 
-It's a thin wrapper around `go install github.com/gsjonio/netwp/cmd/netwp@latest`
-— same command as below, just without retyping the module path. Overwriting
-the running binary works even on Windows.
+It's a thin wrapper around `go install github.com/gsjonio/netwp/cmd/netwp@latest`:
+the same command as below, without retyping the module path. Overwriting the
+running binary works even on Windows.
 
 Otherwise, update the same way you installed:
 
@@ -215,7 +215,7 @@ vulnerability.
 ### Platform support
 
 - **Windows** is the primary, most-verified platform: ARP scan via
-  `SendARP`, ICMP via `IcmpSendEcho` — neither needs admin rights. `iface
+  `SendARP`, ICMP via `IcmpSendEcho`, neither needing admin rights. `iface
   static`/`iface dhcp` do need an elevated terminal and always ask for a
   typed "yes"; verified end-to-end on real hardware.
 - **Linux** support works but is less battle-tested: the raw-ARP scanner
@@ -230,55 +230,58 @@ vulnerability.
 
 New to terms like MAC, TTL, or "unknown device"? The
 [beginner's guide](docs/GUIDE.md) ([pt-BR](docs/GUIDE.pt-BR.md)) explains
-what everything on screen means. This section is implementation trivia for
+what everything on screen means. The notes below are implementation trivia for
 people who already know networking.
+
+#### Discovery & classification
 
 - Hostname resolution falls back to mDNS/NetBIOS when reverse DNS has
   nothing; some devices still won't show a name. Mechanics are in
   [CONTRIBUTING.md](CONTRIBUTING.md).
 - RTT and TTL come from the same ICMP echo per device, so a firewalled
   device (answers ARP but not ICMP) shows online with neither.
-- The Wi-Fi channel suggestion is a simple congestion count over visible
-  APs, not an RF planner.
 - A machine with more than one active interface (e.g. Ethernet and Wi-Fi at
   once) is recognized as "This device" on all of them.
-- The speed test hits Cloudflare's anycast `speed.cloudflare.com`; `netwp
-  speedtest` prints which edge answered.
-- `netwp ports <ip>` re-probes one device directly instead of a full scan,
-  with no port history across runs.
 - The CLASS guess combines advertised mDNS services (a Chromecast, printer,
   or iPhone announces what it is), then ~29 probed ports, then vendor. When
   it's still wrong (a phone with a random MAC and no open ports), pin it with
-  `netwp class set <ip|mac> <class>` — a manual pin always wins.
-- `netwp wake` only powers on a device that was left with Wake-on-LAN
-  enabled (a BIOS/OS setting). It broadcasts and gets no reply, so it reports
-  "sent", not "woke". An alias or a cached IP resolves even while the target
-  is off.
-- `netwp doctor` checks top-down (interface → gateway → internet → DNS); the
-  topmost ✗ is usually the root cause and explains the ones below it.
-- In `monitor`/`dashboard`, two events ring the terminal bell and highlight
-  their log line: an unrecognized device joining (no alias set), and a
-  `netwp watch`-listed device leaving. Everything else stays quiet.
-- The dashboard's DEVICES panel shows a per-class breakdown of what's
-  online (e.g. "2 Media · 1 Router"), skipping "This device" and
-  unclassified hosts.
-- The dashboard's LOG panel (bottom) traces its own work — scans starting
-  and finishing, speedtests, and internet/Wi-Fi state changes — so you can
-  see what it's doing. On a short terminal it shrinks, then hides, so the
-  device table and footer keep priority. (Distinct from the ACTIVITY panel,
-  which lists device joins/leaves.)
+  `netwp class set <ip|mac> <class>`; a manual pin always wins.
+
+#### Monitor & dashboard
+
+- Press `/` to filter the device table by a substring of any field (IP,
+  alias, hostname, vendor, MAC, class); Enter keeps the filter, Esc clears
+  it. The online/known counts still reflect the whole network.
+- Two events ring the terminal bell and highlight their log line: an
+  unrecognized device joining (no alias set), and a `netwp watch`-listed
+  device leaving. Everything else stays quiet.
+- The DEVICES panel shows a per-class breakdown of what's online (e.g.
+  "2 Media · 1 Router"), skipping "This device" and unclassified hosts.
+- The LOG panel (bottom) traces the dashboard's own work: scans starting and
+  finishing, speedtests, and internet/Wi-Fi state changes. On a short terminal
+  it shrinks, then hides, so the device table and footer keep priority.
+  (Distinct from the ACTIVITY panel, which lists device joins/leaves.)
+- The Wi-Fi channel suggestion is a simple congestion count over visible APs,
+  not an RF planner.
 - `netwp monitor --alert-down=<rate>` (e.g. `50Mbps`) highlights the
-  bandwidth line when download drops below that threshold. Omit it and
-  monitor behaves exactly as before.
+  bandwidth line when download drops below that threshold. Omit it and monitor
+  behaves exactly as before.
+- `monitor`/`dashboard` log every join/leave to
+  `<user-config-dir>/netwp/events.jsonl`; `netwp events [n]` reads them back.
+
+#### Commands
+
 - `netwp scan --diff` compares against the previous scan (identity by MAC)
   and prints only what changed, including possible IP/MAC conflicts.
-- `netwp monitor`/`dashboard` log every join/leave to
-  `<user-config-dir>/netwp/events.jsonl`; `netwp events [n]` reads them
-  back.
-- In `monitor`/`dashboard`, press `/` to filter the device table by a
-  substring of any field (IP, alias, hostname, vendor, MAC, class); Enter
-  keeps the filter, Esc clears it. The online/known counts still reflect the
-  whole network.
+- `netwp ports <ip>` re-probes one device directly instead of a full scan,
+  with no port history across runs.
+- `netwp wake` only powers on a device that was left with Wake-on-LAN enabled
+  (a BIOS/OS setting). It broadcasts and gets no reply, so it reports "sent",
+  not "woke". An alias or a cached IP resolves even while the target is off.
+- `netwp doctor` checks top-down (interface → gateway → internet → DNS); the
+  topmost ✗ is usually the root cause and explains the ones below it.
+- The speed test hits Cloudflare's anycast `speed.cloudflare.com`; `netwp
+  speedtest` prints which edge answered.
 
 Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md). This project
 follows the [Code of Conduct](CODE_OF_CONDUCT.md).
@@ -286,7 +289,7 @@ follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 ## Support
 
 netwp is free and open source. If it saves you time, you can support its
-development with a coffee — thank you! ☕
+development with a coffee. Thank you! ☕
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-gugamenezes-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/gugamenezes)
 
