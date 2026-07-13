@@ -124,8 +124,9 @@ Usage:
 
 Commands:
   scan [--json] [--diff] [--ports=<list>]         one-shot ARP scan of the local network, with per-device RTT
-                                                   --diff prints only what changed since the last scan
+  [--class=<class>]                                --diff prints only what changed since the last scan
                                                    --ports=22,80,443 probes a custom TCP port set instead of the default
+                                                   --class=media shows only devices of one class (router|computer|mobile|media|printer|iot)
   monitor [--quiet]                               live TUI: devices joining/leaving in real time (q to quit)
                                                    --quiet runs headless (no UI): one line per event to stdout, for a service/logfile
   dashboard                                       full dashboard: wifi + live bandwidth + speedtest + devices

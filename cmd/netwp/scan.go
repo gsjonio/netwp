@@ -25,6 +25,12 @@ func runScan(asJSON, diff bool) error {
 	if err != nil {
 		return err
 	}
+	// Validate --class before scanning, so a typo fails fast instead of after a
+	// full scan. Applied to the displayed set further down.
+	class, filtered, err := classFilter(os.Args[2:])
+	if err != nil {
+		return err
+	}
 	discovery, network, err := discoveryContext(ports)
 	if err != nil {
 		return err
@@ -45,6 +51,13 @@ func runScan(asJSON, diff bool) error {
 	// before Save below overwrites it with this scan's.
 	cachePath, cacheErr := scancache.DefaultPath()
 
+	// --class filters the displayed set only; the cache below still stores the
+	// full snapshot so alias/--diff keep working against every device.
+	shown := devices
+	if filtered {
+		shown = filterByClass(devices, class)
+	}
+
 	switch {
 	case diff:
 		var previous []core.Device
@@ -53,12 +66,16 @@ func runScan(asJSON, diff bool) error {
 		}
 		printDiff(os.Stdout, core.Diff(previous, devices))
 	case asJSON:
-		if err := tui.RenderDevicesJSON(os.Stdout, devices); err != nil {
+		if err := tui.RenderDevicesJSON(os.Stdout, shown); err != nil {
 			return err
 		}
 	default:
-		tui.RenderDevices(os.Stdout, devices)
-		fmt.Printf("\n%d device(s) found.\n", len(devices))
+		tui.RenderDevices(os.Stdout, shown)
+		if filtered {
+			fmt.Printf("\n%d of %d device(s) match class %q.\n", len(shown), len(devices), class)
+		} else {
+			fmt.Printf("\n%d device(s) found.\n", len(devices))
+		}
 	}
 
 	// Cache the scan snapshot so `alias set <ip>` and the next `--diff` can
@@ -127,6 +144,34 @@ func portsFlag(args []string) ([]int, error) {
 		}
 	}
 	return nil, nil
+}
+
+// classFilter reads "--class=<name>" from the scan arguments. Returns
+// (class, false, nil) when the flag is absent, and an error when the name isn't
+// one of the known classes, so a typo fails loudly instead of silently showing
+// nothing.
+func classFilter(args []string) (core.DeviceClass, bool, error) {
+	for _, a := range args {
+		if v, ok := strings.CutPrefix(a, "--class="); ok {
+			class, ok := core.ParseClass(v)
+			if !ok {
+				return 0, false, fmt.Errorf("unknown class %q: expected one of router, computer, mobile, media, printer, iot", v)
+			}
+			return class, true, nil
+		}
+	}
+	return 0, false, nil
+}
+
+// filterByClass keeps only devices of the given class.
+func filterByClass(devices []core.Device, class core.DeviceClass) []core.Device {
+	out := make([]core.Device, 0, len(devices))
+	for _, d := range devices {
+		if d.Class == class {
+			out = append(out, d)
+		}
+	}
+	return out
 }
 
 // parsePorts turns "22,80,443" into a port slice. Comma-separated individual

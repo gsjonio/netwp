@@ -173,7 +173,7 @@ internal/tui      terminal rendering: scan table, monitor, dashboard
 | Command | What it does |
 | --- | --- |
 | *(none)* / `help` / `-h` / `--help` | Print usage |
-| `scan` / `scan --json` / `scan --diff` / `scan --ports=<list>` | One-shot scan, with per-device RTT; `--json` for machine-readable output, `--diff` to print only what changed since the last scan, `--ports=22,80,443` to probe a custom TCP port set |
+| `scan` / `scan --json` / `scan --diff` / `scan --ports=<list>` / `scan --class=<class>` | One-shot scan, with per-device RTT; `--json` for machine-readable output, `--diff` to print only what changed since the last scan, `--ports=22,80,443` to probe a custom TCP port set, `--class=media` to show only devices of one class (router/computer/mobile/media/printer/iot) |
 | `monitor` / `monitor --alert-down=<rate>` / `monitor --quiet` | Live TUI: devices joining/leaving in real time (`q` to quit); `--alert-down` flags a download rate drop, e.g. `--alert-down=50Mbps`; `--quiet` runs headless (no UI), one line per event to stdout for a service or logfile |
 | `dashboard` | Full dashboard: Wi-Fi + live bandwidth + speedtest + devices + an operations log |
 | `speedtest` / `speedtest --json` | Download/upload throughput; `--json` for machine-readable output |

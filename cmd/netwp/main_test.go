@@ -43,6 +43,34 @@ func TestPortsTargetIP(t *testing.T) {
 	}
 }
 
+func TestClassFilter(t *testing.T) {
+	class, ok, err := classFilter([]string{"--json", "--class=media"})
+	if err != nil || !ok || class != core.ClassMedia {
+		t.Errorf("classFilter = (%v, %v, %v), want (media, true, nil)", class, ok, err)
+	}
+	if _, ok, err := classFilter([]string{"--json"}); ok || err != nil {
+		t.Errorf("classFilter with no --class = (ok=%v, err=%v), want (false, nil)", ok, err)
+	}
+	if _, _, err := classFilter([]string{"--class=bogus"}); err == nil {
+		t.Error("expected an error for an unknown class")
+	}
+}
+
+func TestFilterByClass(t *testing.T) {
+	devices := []core.Device{
+		{IP: net.IPv4(192, 168, 1, 1), Class: core.ClassRouter},
+		{IP: net.IPv4(192, 168, 1, 2), Class: core.ClassMedia},
+		{IP: net.IPv4(192, 168, 1, 3), Class: core.ClassMedia},
+	}
+	got := filterByClass(devices, core.ClassMedia)
+	if len(got) != 2 {
+		t.Fatalf("filterByClass(media) = %d devices, want 2", len(got))
+	}
+	if filterByClass(devices, core.ClassPrinter) == nil {
+		t.Error("filterByClass should return an empty non-nil slice, not nil")
+	}
+}
+
 func TestPlainEvent(t *testing.T) {
 	mac, _ := net.ParseMAC("aa:bb:cc:dd:ee:ff")
 	dev := func(alias string) core.Device {
