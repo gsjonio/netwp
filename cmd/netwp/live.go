@@ -81,9 +81,14 @@ func runDoctor() error {
 		return err
 	}
 	doctor := core.NewDoctor(info, icmpping.New(), netinfo.DNSResolver{}, wifi.New())
+	checks := doctor.Run()
+
+	if hasArg("--json") {
+		return printJSON(doctorJSON(checks))
+	}
 
 	failed := 0
-	for _, c := range doctor.Run() {
+	for _, c := range checks {
 		mark := "\x1b[32m✓\x1b[0m"
 		if !c.OK {
 			mark = "\x1b[31m✗\x1b[0m"

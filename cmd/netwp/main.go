@@ -128,7 +128,7 @@ Commands:
                                                    --ports=22,80,443 probes a custom TCP port set instead of the default
   monitor                                         live TUI: devices joining/leaving in real time (q to quit)
   dashboard                                       full dashboard: wifi + live bandwidth + speedtest + devices
-  speedtest                                       download/upload throughput test
+  speedtest [--json]                              download/upload throughput test
   iface                                           inspect the active interface's IP config
   iface static <ip>/<bits> <gateway> [dns...]     set a static IP (asks to confirm)
   iface dhcp                                      switch back to DHCP (asks to confirm)
@@ -141,9 +141,9 @@ Commands:
   watch add <ip-or-mac>                           alert when this device leaves (monitor/dashboard)
   watch ls                                        list watched devices
   watch rm <ip-or-mac>                            stop watching a device
-  ports <ip>                                      open ports + RTT for one device
+  ports <ip> [--json]                             open ports + RTT for one device
   wake <ip-or-mac-or-alias>                       send a Wake-on-LAN magic packet to power on a device
-  doctor                                          diagnose connectivity (interface, gateway, internet, DNS, Wi-Fi)
+  doctor [--json]                                 diagnose connectivity (interface, gateway, internet, DNS, Wi-Fi)
   events [n] [--device=<alias-or-mac>]            show the last n join/leave events (default 20; --device filters to one)
   version                                         show the installed version
   update                                          update to the latest version (needs the Go toolchain)

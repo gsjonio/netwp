@@ -152,17 +152,29 @@ func parsePorts(s string) ([]int, error) {
 	return ports, nil
 }
 
+// portsTargetIP returns the first non-flag argument parsed as an IP, so `netwp
+// ports <ip> --json` and `netwp ports --json <ip>` both work.
+func portsTargetIP(args []string) (net.IP, error) {
+	for _, a := range args {
+		if strings.HasPrefix(a, "-") {
+			continue
+		}
+		ip := net.ParseIP(a)
+		if ip == nil {
+			return nil, fmt.Errorf("invalid IP %q", a)
+		}
+		return ip, nil
+	}
+	return nil, errors.New("usage: netwp ports <ip> [--json]")
+}
+
 // runPorts probes a single IP directly: ICMP reachability plus the same
 // well-known TCP ports a scan checks for classification, but reported in
 // full instead of being folded into a class guess.
 func runPorts() error {
-	args := os.Args[2:]
-	if len(args) < 1 {
-		return errors.New("usage: netwp ports <ip>")
-	}
-	ip := net.ParseIP(args[0])
-	if ip == nil {
-		return fmt.Errorf("invalid IP %q", args[0])
+	ip, err := portsTargetIP(os.Args[2:])
+	if err != nil {
+		return err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), scanTimeout)
@@ -183,6 +195,19 @@ func runPorts() error {
 		rtt, ttl, reachable = icmpping.New().Ping(ip, 500*time.Millisecond)
 	}()
 	wg.Wait()
+
+	if hasArg("--json") {
+		result := portsResultJSON{IP: ip.String(), Reachable: reachable, Ports: make([]portJSON, 0, len(open))}
+		if reachable {
+			ms := float64(rtt.Microseconds()) / 1000
+			result.RTTMillis = &ms
+			result.TTL = ttl
+		}
+		for _, p := range open {
+			result.Ports = append(result.Ports, portJSON{Port: p, Name: portName(p)})
+		}
+		return printJSON(result)
+	}
 
 	if reachable {
 		fmt.Printf("%s: reachable, RTT %s, TTL %s\n", ip, rtt.Round(time.Millisecond), tui.TTLText(ttl))
@@ -214,9 +239,17 @@ func runSpeedtest() error {
 	if err != nil {
 		return err
 	}
+	edge := tester.Colo(ctx)
+	if hasArg("--json") {
+		return printJSON(speedtestResultJSON{
+			DownloadMbps: result.DownloadMbps,
+			UploadMbps:   result.UploadMbps,
+			Edge:         edge,
+		})
+	}
 	tui.RenderBandwidth(os.Stdout, result)
-	if colo := tester.Colo(ctx); colo != "" {
-		fmt.Printf("via Cloudflare edge: %s (nearest of ~300, picked automatically)\n", colo)
+	if edge != "" {
+		fmt.Printf("via Cloudflare edge: %s (nearest of ~300, picked automatically)\n", edge)
 	}
 	return nil
 }

@@ -6,7 +6,42 @@ import (
 	"runtime/debug"
 	"strings"
 	"testing"
+
+	"github.com/gsjonio/netwp/internal/core"
 )
+
+func TestDoctorJSON(t *testing.T) {
+	checks := []core.Check{
+		{Name: "Gateway", OK: true, Detail: "responds"},
+		{Name: "DNS", OK: false, Detail: "no resolve"},
+	}
+	got := doctorJSON(checks)
+	if len(got) != 2 {
+		t.Fatalf("got %d, want 2", len(got))
+	}
+	if got[0].Name != "Gateway" || !got[0].OK || got[0].Detail != "responds" {
+		t.Errorf("got[0] = %+v", got[0])
+	}
+	if got[1].OK {
+		t.Errorf("got[1].OK = true, want false")
+	}
+}
+
+func TestPortsTargetIP(t *testing.T) {
+	// The IP is found whether it comes before or after the flag.
+	for _, args := range [][]string{{"192.168.1.1", "--json"}, {"--json", "192.168.1.1"}} {
+		ip, err := portsTargetIP(args)
+		if err != nil || !ip.Equal(net.ParseIP("192.168.1.1")) {
+			t.Errorf("portsTargetIP(%v) = (%v, %v), want 192.168.1.1", args, ip, err)
+		}
+	}
+	if _, err := portsTargetIP([]string{"--json"}); err == nil {
+		t.Error("expected an error when no IP is given")
+	}
+	if _, err := portsTargetIP([]string{"notanip"}); err == nil {
+		t.Error("expected an error for a non-IP argument")
+	}
+}
 
 func TestParsePorts(t *testing.T) {
 	got, err := parsePorts("22, 80,443")
