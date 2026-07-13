@@ -12,22 +12,6 @@ import (
 	"github.com/gsjonio/netwp/internal/tui"
 )
 
-// runIface dispatches "iface" (inspect) and its "static"/"dhcp" subcommands.
-func runIface() error {
-	args := os.Args[2:]
-	if len(args) == 0 {
-		return runIfaceInspect()
-	}
-	switch args[0] {
-	case "static":
-		return runIfaceSetStatic(args[1:])
-	case "dhcp":
-		return runIfaceSetDHCP()
-	default:
-		return fmt.Errorf("unknown iface subcommand %q (use: iface | iface static <ip>/<bits> <gateway> [dns...] | iface dhcp)", args[0])
-	}
-}
-
 func runIfaceInspect() error {
 	info, err := netinfo.Interface{}.Inspect()
 	if err != nil {

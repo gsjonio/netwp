@@ -20,17 +20,10 @@ import (
 	"github.com/gsjonio/netwp/internal/tui"
 )
 
-func runScan(asJSON, diff bool) error {
-	ports, err := portsFlag(os.Args[2:])
-	if err != nil {
-		return err
-	}
-	// Validate --class before scanning, so a typo fails fast instead of after a
-	// full scan. Applied to the displayed set further down.
-	class, filtered, err := classFilter(os.Args[2:])
-	if err != nil {
-		return err
-	}
+// runScan runs a one-shot scan. ports overrides the probed TCP set (nil = the
+// curated default); when filtered, only devices of class are displayed (the
+// cache still stores the full set). asJSON/diff pick the output format.
+func runScan(asJSON, diff bool, ports []int, class core.DeviceClass, filtered bool) error {
 	discovery, network, err := discoveryContext(ports)
 	if err != nil {
 		return err
@@ -135,34 +128,6 @@ func withSpinner(label string, fn func() error) error {
 	return err
 }
 
-// portsFlag reads "--ports=<list>" from the scan arguments, returning the
-// custom port set or nil (default set) when the flag is absent.
-func portsFlag(args []string) ([]int, error) {
-	for _, a := range args {
-		if v, ok := strings.CutPrefix(a, "--ports="); ok {
-			return parsePorts(v)
-		}
-	}
-	return nil, nil
-}
-
-// classFilter reads "--class=<name>" from the scan arguments. Returns
-// (class, false, nil) when the flag is absent, and an error when the name isn't
-// one of the known classes, so a typo fails loudly instead of silently showing
-// nothing.
-func classFilter(args []string) (core.DeviceClass, bool, error) {
-	for _, a := range args {
-		if v, ok := strings.CutPrefix(a, "--class="); ok {
-			class, ok := core.ParseClass(v)
-			if !ok {
-				return 0, false, fmt.Errorf("unknown class %q: expected one of router, computer, mobile, media, printer, iot", v)
-			}
-			return class, true, nil
-		}
-	}
-	return 0, false, nil
-}
-
 // filterByClass keeps only devices of the given class.
 func filterByClass(devices []core.Device, class core.DeviceClass) []core.Device {
 	out := make([]core.Device, 0, len(devices))
@@ -197,31 +162,10 @@ func parsePorts(s string) ([]int, error) {
 	return ports, nil
 }
 
-// portsTargetIP returns the first non-flag argument parsed as an IP, so `netwp
-// ports <ip> --json` and `netwp ports --json <ip>` both work.
-func portsTargetIP(args []string) (net.IP, error) {
-	for _, a := range args {
-		if strings.HasPrefix(a, "-") {
-			continue
-		}
-		ip := net.ParseIP(a)
-		if ip == nil {
-			return nil, fmt.Errorf("invalid IP %q", a)
-		}
-		return ip, nil
-	}
-	return nil, errors.New("usage: netwp ports <ip> [--json]")
-}
-
 // runPorts probes a single IP directly: ICMP reachability plus the same
 // well-known TCP ports a scan checks for classification, but reported in
 // full instead of being folded into a class guess.
-func runPorts() error {
-	ip, err := portsTargetIP(os.Args[2:])
-	if err != nil {
-		return err
-	}
-
+func runPorts(ip net.IP, asJSON bool) error {
 	ctx, cancel := context.WithTimeout(context.Background(), scanTimeout)
 	defer cancel()
 
@@ -241,7 +185,7 @@ func runPorts() error {
 	}()
 	wg.Wait()
 
-	if hasArg("--json") {
+	if asJSON {
 		result := portsResultJSON{IP: ip.String(), Reachable: reachable, Ports: make([]portJSON, 0, len(open))}
 		if reachable {
 			ms := float64(rtt.Microseconds()) / 1000
@@ -270,7 +214,7 @@ func runPorts() error {
 	return nil
 }
 
-func runSpeedtest() error {
+func runSpeedtest(asJSON bool) error {
 	ctx, cancel := context.WithTimeout(context.Background(), speedtestTimeout)
 	defer cancel()
 
@@ -285,7 +229,7 @@ func runSpeedtest() error {
 		return err
 	}
 	edge := tester.Colo(ctx)
-	if hasArg("--json") {
+	if asJSON {
 		return printJSON(speedtestResultJSON{
 			DownloadMbps: result.DownloadMbps,
 			UploadMbps:   result.UploadMbps,

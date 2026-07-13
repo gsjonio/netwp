@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -81,183 +80,175 @@ Thanks for trying netwp. If you'd like to leave a review or feedback:
 	return nil
 }
 
-// runAlias dispatches the alias subcommands: set, ls, rm. Inline switch to
-// match runClass/runWatch (the three store commands share this shape).
-func runAlias() error {
-	args := os.Args[2:]
-	if len(args) == 0 {
-		return errors.New("usage: netwp alias set <ip-or-mac> <name> | alias ls | alias rm <ip-or-mac>")
-	}
+// aliasSet nicknames a device. nameParts are joined with spaces so an unquoted
+// multi-word name still works. The alias is keyed by MAC, so it survives DHCP.
+func aliasSet(idOrMac string, nameParts []string) error {
 	store, err := openAliasStore()
 	if err != nil {
 		return err
 	}
-	switch args[0] {
-	case "ls", "list":
-		list := store.List()
-		if len(list) == 0 {
-			fmt.Println("no aliases set.")
-			return nil
-		}
-		for _, a := range list {
-			fmt.Printf("%-17s  %s\n", a.MAC, a.Name)
-		}
-		return nil
-	case "set":
-		if len(args) < 3 {
-			return errors.New("usage: netwp alias set <ip-or-mac> <name>")
-		}
-		mac, err := resolveMAC(args[1])
-		if err != nil {
-			return err
-		}
-		name := strings.Join(args[2:], " ")
-		if err := store.Set(mac, name); err != nil {
-			return err
-		}
-		fmt.Printf("aliased %s → %q\n", mac, name)
-		return nil
-	case "rm", "remove", "del":
-		if len(args) < 2 {
-			return errors.New("usage: netwp alias rm <ip-or-mac>")
-		}
-		mac, err := resolveMAC(args[1])
-		if err != nil {
-			return err
-		}
-		if err := store.Delete(mac); err != nil {
-			return err
-		}
-		fmt.Printf("removed alias for %s\n", mac)
-		return nil
-	default:
-		return fmt.Errorf("unknown alias subcommand %q (use: set | ls | rm)", args[0])
+	mac, err := resolveMAC(idOrMac)
+	if err != nil {
+		return err
 	}
+	name := strings.Join(nameParts, " ")
+	if err := store.Set(mac, name); err != nil {
+		return err
+	}
+	fmt.Printf("aliased %s → %q\n", mac, name)
+	return nil
 }
 
-// runClass dispatches the class-override subcommands: set, ls, rm.
-func runClass() error {
-	args := os.Args[2:]
-	if len(args) == 0 {
-		return errors.New("usage: netwp class set <ip-or-mac> <class> | class ls | class rm <ip-or-mac>\nclasses: router, computer, mobile, media, printer, iot")
+func aliasList() error {
+	store, err := openAliasStore()
+	if err != nil {
+		return err
+	}
+	list := store.List()
+	if len(list) == 0 {
+		fmt.Println("no aliases set.")
+		return nil
+	}
+	for _, a := range list {
+		fmt.Printf("%-17s  %s\n", a.MAC, a.Name)
+	}
+	return nil
+}
+
+func aliasRemove(idOrMac string) error {
+	store, err := openAliasStore()
+	if err != nil {
+		return err
+	}
+	mac, err := resolveMAC(idOrMac)
+	if err != nil {
+		return err
+	}
+	if err := store.Delete(mac); err != nil {
+		return err
+	}
+	fmt.Printf("removed alias for %s\n", mac)
+	return nil
+}
+
+// classSet pins a device's class when the automatic guess is wrong; the pin is
+// kept by MAC and always wins over the guess.
+func classSet(idOrMac, className string) error {
+	class, ok := core.ParseClass(className)
+	if !ok {
+		return fmt.Errorf("unknown class %q (use: router | computer | mobile | media | printer | iot)", className)
 	}
 	store, err := openClassStore()
 	if err != nil {
 		return err
 	}
-	switch args[0] {
-	case "ls", "list":
-		list := store.List()
-		if len(list) == 0 {
-			fmt.Println("no class overrides set.")
-			return nil
-		}
-		for _, c := range list {
-			fmt.Printf("%-17s  %s\n", c.MAC, c.Class)
-		}
-		return nil
-	case "set":
-		if len(args) < 3 {
-			return errors.New("usage: netwp class set <ip-or-mac> <class> (router|computer|mobile|media|printer|iot)")
-		}
-		class, ok := core.ParseClass(args[2])
-		if !ok {
-			return fmt.Errorf("unknown class %q (use: router | computer | mobile | media | printer | iot)", args[2])
-		}
-		mac, err := resolveMAC(args[1])
-		if err != nil {
-			return err
-		}
-		if err := store.Set(mac, class); err != nil {
-			return err
-		}
-		fmt.Printf("pinned %s → %s\n", mac, class)
-		return nil
-	case "rm", "remove", "del":
-		if len(args) < 2 {
-			return errors.New("usage: netwp class rm <ip-or-mac>")
-		}
-		mac, err := resolveMAC(args[1])
-		if err != nil {
-			return err
-		}
-		if err := store.Delete(mac); err != nil {
-			return err
-		}
-		fmt.Printf("removed class override for %s\n", mac)
-		return nil
-	default:
-		return fmt.Errorf("unknown class subcommand %q (use: set | ls | rm)", args[0])
+	mac, err := resolveMAC(idOrMac)
+	if err != nil {
+		return err
 	}
+	if err := store.Set(mac, class); err != nil {
+		return err
+	}
+	fmt.Printf("pinned %s → %s\n", mac, class)
+	return nil
 }
 
-// runWatch dispatches the watch-list subcommands: add, ls, rm. A watched
+func classList() error {
+	store, err := openClassStore()
+	if err != nil {
+		return err
+	}
+	list := store.List()
+	if len(list) == 0 {
+		fmt.Println("no class overrides set.")
+		return nil
+	}
+	for _, c := range list {
+		fmt.Printf("%-17s  %s\n", c.MAC, c.Class)
+	}
+	return nil
+}
+
+func classRemove(idOrMac string) error {
+	store, err := openClassStore()
+	if err != nil {
+		return err
+	}
+	mac, err := resolveMAC(idOrMac)
+	if err != nil {
+		return err
+	}
+	if err := store.Delete(mac); err != nil {
+		return err
+	}
+	fmt.Printf("removed class override for %s\n", mac)
+	return nil
+}
+
+// openWatchStore opens the persistent watch list at its default path. A watched
 // device triggers a highlighted alert (and a terminal bell) when it leaves
 // during `netwp monitor` or `netwp dashboard`.
-func runWatch() error {
-	args := os.Args[2:]
-	if len(args) == 0 {
-		return errors.New("usage: netwp watch add <ip-or-mac> | watch ls | watch rm <ip-or-mac>")
-	}
+func openWatchStore() (*watchstore.Store, error) {
 	path, err := watchstore.DefaultPath()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	store, err := watchstore.Open(path)
+	return watchstore.Open(path)
+}
+
+func watchAdd(idOrMac string) error {
+	store, err := openWatchStore()
 	if err != nil {
 		return err
 	}
-	switch args[0] {
-	case "ls", "list":
-		list := store.List()
-		if len(list) == 0 {
-			fmt.Println("no watched devices.")
-			return nil
-		}
-		for _, mac := range list {
-			fmt.Println(mac)
-		}
-		return nil
-	case "add":
-		if len(args) < 2 {
-			return errors.New("usage: netwp watch add <ip-or-mac>")
-		}
-		mac, err := resolveMAC(args[1])
-		if err != nil {
-			return err
-		}
-		if err := store.Add(mac); err != nil {
-			return err
-		}
-		fmt.Printf("watching %s\n", mac)
-		return nil
-	case "rm", "remove", "del":
-		if len(args) < 2 {
-			return errors.New("usage: netwp watch rm <ip-or-mac>")
-		}
-		mac, err := resolveMAC(args[1])
-		if err != nil {
-			return err
-		}
-		if err := store.Remove(mac); err != nil {
-			return err
-		}
-		fmt.Printf("stopped watching %s\n", mac)
-		return nil
-	default:
-		return fmt.Errorf("unknown watch subcommand %q (use: add | ls | rm)", args[0])
+	mac, err := resolveMAC(idOrMac)
+	if err != nil {
+		return err
 	}
+	if err := store.Add(mac); err != nil {
+		return err
+	}
+	fmt.Printf("watching %s\n", mac)
+	return nil
+}
+
+func watchList() error {
+	store, err := openWatchStore()
+	if err != nil {
+		return err
+	}
+	list := store.List()
+	if len(list) == 0 {
+		fmt.Println("no watched devices.")
+		return nil
+	}
+	for _, mac := range list {
+		fmt.Println(mac)
+	}
+	return nil
+}
+
+func watchRemove(idOrMac string) error {
+	store, err := openWatchStore()
+	if err != nil {
+		return err
+	}
+	mac, err := resolveMAC(idOrMac)
+	if err != nil {
+		return err
+	}
+	if err := store.Remove(mac); err != nil {
+		return err
+	}
+	fmt.Printf("stopped watching %s\n", mac)
+	return nil
 }
 
 // runWake sends a Wake-on-LAN magic packet to a device named by MAC, IP, or
 // alias. WoL is for devices that are asleep/offline, so an alias or a cached
 // IP resolves even when the device won't answer an ARP sweep.
-func runWake() error {
-	args := os.Args[2:]
-	if len(args) < 1 {
-		return errors.New("usage: netwp wake <ip-or-mac-or-alias>")
-	}
-	mac, err := resolveWakeTarget(args[0])
+func runWake(target string) error {
+	mac, err := resolveWakeTarget(target)
 	if err != nil {
 		return err
 	}

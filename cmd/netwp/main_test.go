@@ -27,35 +27,6 @@ func TestDoctorJSON(t *testing.T) {
 	}
 }
 
-func TestPortsTargetIP(t *testing.T) {
-	// The IP is found whether it comes before or after the flag.
-	for _, args := range [][]string{{"192.168.1.1", "--json"}, {"--json", "192.168.1.1"}} {
-		ip, err := portsTargetIP(args)
-		if err != nil || !ip.Equal(net.ParseIP("192.168.1.1")) {
-			t.Errorf("portsTargetIP(%v) = (%v, %v), want 192.168.1.1", args, ip, err)
-		}
-	}
-	if _, err := portsTargetIP([]string{"--json"}); err == nil {
-		t.Error("expected an error when no IP is given")
-	}
-	if _, err := portsTargetIP([]string{"notanip"}); err == nil {
-		t.Error("expected an error for a non-IP argument")
-	}
-}
-
-func TestClassFilter(t *testing.T) {
-	class, ok, err := classFilter([]string{"--json", "--class=media"})
-	if err != nil || !ok || class != core.ClassMedia {
-		t.Errorf("classFilter = (%v, %v, %v), want (media, true, nil)", class, ok, err)
-	}
-	if _, ok, err := classFilter([]string{"--json"}); ok || err != nil {
-		t.Errorf("classFilter with no --class = (ok=%v, err=%v), want (false, nil)", ok, err)
-	}
-	if _, _, err := classFilter([]string{"--class=bogus"}); err == nil {
-		t.Error("expected an error for an unknown class")
-	}
-}
-
 func TestFilterByClass(t *testing.T) {
 	devices := []core.Device{
 		{IP: net.IPv4(192, 168, 1, 1), Class: core.ClassRouter},
@@ -116,24 +87,29 @@ func TestParsePortsInvalid(t *testing.T) {
 	}
 }
 
-func TestPortsFlag(t *testing.T) {
-	got, err := portsFlag([]string{"--json", "--ports=8080,3000"})
-	if err != nil || len(got) != 2 || got[0] != 8080 || got[1] != 3000 {
-		t.Errorf("portsFlag = (%v, %v), want [8080 3000]", got, err)
+func TestRootCmdHasCommands(t *testing.T) {
+	root := newRootCmd()
+	have := map[string]bool{}
+	for _, c := range root.Commands() {
+		have[c.Name()] = true
 	}
-	if got, _ := portsFlag([]string{"--json"}); got != nil {
-		t.Errorf("portsFlag with no --ports = %v, want nil (default set)", got)
+	// The documented subcommands must all be registered (cobra adds `help` and
+	// `completion` on its own).
+	for _, want := range []string{"scan", "monitor", "dashboard", "speedtest", "iface", "alias", "class", "watch", "ports", "wake", "doctor", "events", "version", "update", "uninstall"} {
+		if !have[want] {
+			t.Errorf("root command is missing subcommand %q", want)
+		}
 	}
 }
 
-func TestPrintUsageListsCommands(t *testing.T) {
-	var buf bytes.Buffer
-	printUsage(&buf)
-	out := buf.String()
-	for _, want := range []string{"scan", "monitor", "dashboard", "speedtest", "iface", "alias", "ports", "version", "update", "help"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("usage output missing command %q:\n%s", want, out)
-		}
+func TestRootCmdValidates(t *testing.T) {
+	// A bad flag value should surface as an error through Execute, not panic.
+	root := newRootCmd()
+	root.SetArgs([]string{"scan", "--class=bogus"})
+	root.SetOut(&bytes.Buffer{})
+	root.SetErr(&bytes.Buffer{})
+	if err := root.Execute(); err == nil {
+		t.Error("expected an error for an unknown --class value")
 	}
 }
 
@@ -235,21 +211,6 @@ func TestParseRateInvalid(t *testing.T) {
 		if _, err := parseRate(in); err == nil {
 			t.Errorf("parseRate(%q): expected error, got nil", in)
 		}
-	}
-}
-
-func TestParseAlertFlag(t *testing.T) {
-	got, err := parseAlertFlag([]string{"--alert-down=50Mbps"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if want := 50e6 / 8; got != want {
-		t.Errorf("parseAlertFlag = %v, want %v", got, want)
-	}
-
-	got, err = parseAlertFlag(nil)
-	if err != nil || got != 0 {
-		t.Errorf("parseAlertFlag(nil) = (%v, %v), want (0, nil)", got, err)
 	}
 }
 

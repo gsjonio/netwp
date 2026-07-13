@@ -21,8 +21,10 @@ import (
 	"github.com/gsjonio/netwp/internal/tui"
 )
 
-func runMonitor() error {
-	if hasArg("--quiet") {
+// runMonitor starts the live monitor. quiet runs it headless (no TUI); alertDown
+// (bytes/sec, 0 = off) enables the bandwidth-drop alert.
+func runMonitor(quiet bool, alertDown float64) error {
+	if quiet {
 		return runMonitorQuiet()
 	}
 
@@ -32,10 +34,6 @@ func runMonitor() error {
 	}
 	tracker := core.NewTracker(offlineAfter)
 
-	alertDown, err := parseAlertFlag(os.Args[2:])
-	if err != nil {
-		return err
-	}
 	var reader core.CounterReader
 	if alertDown > 0 {
 		info, err := netinfo.Interface{}.Inspect()
@@ -154,7 +152,7 @@ func runDashboard() error {
 
 // runDoctor runs a quick connectivity diagnosis (interface, gateway,
 // internet, DNS, Wi-Fi) and prints each check with a hint on failure.
-func runDoctor() error {
+func runDoctor(asJSON bool) error {
 	info, err := netinfo.Interface{}.Inspect()
 	if err != nil {
 		return err
@@ -162,7 +160,7 @@ func runDoctor() error {
 	doctor := core.NewDoctor(info, icmpping.New(), netinfo.DNSResolver{}, wifi.New())
 	checks := doctor.Run()
 
-	if hasArg("--json") {
+	if asJSON {
 		return printJSON(doctorJSON(checks))
 	}
 
@@ -183,24 +181,9 @@ func runDoctor() error {
 	return nil
 }
 
-// runEvents prints the last n recorded presence-change events (newest last),
-// n defaulting to 20. --device=<alias-or-mac> restricts to one device.
-// Usage: netwp events [n] [--device=<alias-or-mac>]
-func runEvents() error {
-	n := 20
-	device := ""
-	for _, a := range os.Args[2:] {
-		if v, ok := strings.CutPrefix(a, "--device="); ok {
-			device = v
-			continue
-		}
-		v, err := strconv.Atoi(a)
-		if err != nil || v <= 0 {
-			return fmt.Errorf("invalid argument %q: expected a positive count or --device=<alias-or-mac>", a)
-		}
-		n = v
-	}
-
+// runEvents prints the last n recorded presence-change events (newest last).
+// device (alias or MAC), when non-empty, restricts the output to one device.
+func runEvents(n int, device string) error {
 	path, err := eventlog.DefaultPath()
 	if err != nil {
 		return err
@@ -278,15 +261,4 @@ func parseRate(s string) (float64, error) {
 		}
 	}
 	return 0, fmt.Errorf("invalid rate %q: expected a suffix like Mbps, Kbps, Gbps, bps", s)
-}
-
-// parseAlertFlag reads "--alert-down=<rate>" out of the monitor subcommand's
-// arguments. Returns 0 (alert disabled) when the flag isn't present.
-func parseAlertFlag(args []string) (float64, error) {
-	for _, a := range args {
-		if v, ok := strings.CutPrefix(a, "--alert-down="); ok {
-			return parseRate(v)
-		}
-	}
-	return 0, nil
 }
