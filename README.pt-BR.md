@@ -177,18 +177,18 @@ internal/tui      renderização no terminal: tabela do scan, monitor, dashboard
 | --- | --- |
 | *(nenhum)* / `help` / `-h` / `--help` | Mostra a ajuda |
 | `scan` / `scan --json` / `scan --diff` / `scan --ports=<lista>` | Varredura única, com RTT por dispositivo; `--json` pra saída legível por máquina, `--diff` pra imprimir só o que mudou, `--ports=22,80,443` pra sondar um conjunto de portas custom |
-| `monitor` / `monitor --alert-down=<taxa>` | TUI ao vivo: dispositivos entrando/saindo em tempo real (`q` sai); `--alert-down` avisa sobre queda na taxa de download, ex.: `--alert-down=50Mbps` |
+| `monitor` / `monitor --alert-down=<taxa>` / `monitor --quiet` | TUI ao vivo: dispositivos entrando/saindo em tempo real (`q` sai); `--alert-down` avisa sobre queda na taxa de download, ex.: `--alert-down=50Mbps`; `--quiet` roda headless (sem interface), uma linha por evento no stdout, pra um serviço ou arquivo de log |
 | `dashboard` | Dashboard completo: WiFi + banda ao vivo + speedtest + dispositivos + um log de operações |
-| `speedtest` | Teste de download/upload |
+| `speedtest` / `speedtest --json` | Teste de download/upload; `--json` para saída legível por máquina |
 | `iface` | Inspeciona o IP da interface ativa |
 | `iface static <ip>/<bits> <gw> [dns...]` | Define IP estático (pede confirmação) |
 | `iface dhcp` | Volta para DHCP (pede confirmação) |
 | `alias set <ip\|mac> <nome>` / `ls` / `rm <ip\|mac>` | Apelida um dispositivo / lista / remove |
 | `class set <ip\|mac> <classe>` / `ls` / `rm <ip\|mac>` | Fixa a classe de um dispositivo quando o palpite erra (router/computer/mobile/media/printer/iot) |
 | `watch add <ip\|mac>` / `ls` / `rm <ip\|mac>` | Alerta (destaque + bipe) quando um dispositivo sai durante o monitor/dashboard |
-| `ports <ip>` | Portas abertas + RTT + TTL de um dispositivo |
+| `ports <ip>` / `ports <ip> --json` | Portas abertas + RTT + TTL de um dispositivo; `--json` para saída legível por máquina |
 | `wake <ip\|mac\|apelido>` | Envia um pacote Wake-on-LAN pra ligar um dispositivo |
-| `doctor` | Diagnostica a conexão: interface, gateway, internet, DNS, Wi-Fi |
+| `doctor` / `doctor --json` | Diagnostica a conexão: interface, gateway, internet, DNS, Wi-Fi; `--json` para saída legível por máquina |
 | `events [n]` / `events --device=<x>` | Mostra os últimos n eventos de entrada/saída (padrão 20); `--device=<apelido-ou-mac>` filtra por um dispositivo |
 | `version` | Versão instalada |
 | `update` | Atualiza pra última versão (precisa do Go) |
@@ -273,9 +273,11 @@ pra quem já manja de redes.
 - `netwp monitor --alert-down=<taxa>` (ex.: `50Mbps`) destaca a linha de
   banda quando o download cai abaixo desse limiar. Sem a flag, o monitor se
   comporta exatamente como antes.
-- `monitor`/`dashboard` gravam cada entrada/saída em
+- `monitor`/`dashboard` (e `monitor --quiet`) gravam cada entrada/saída em
   `<pasta-de-config-do-usuário>/netwp/events.jsonl`; `netwp events [n]` mostra
-  esse histórico.
+  esse histórico. O arquivo é limitado: quando passa de ~1 MB, é reduzido aos
+  5000 eventos mais recentes, então um monitor rodando por muito tempo não faz
+  ele crescer sem limite.
 
 #### Comandos
 

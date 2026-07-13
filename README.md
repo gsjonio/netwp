@@ -174,18 +174,18 @@ internal/tui      terminal rendering: scan table, monitor, dashboard
 | --- | --- |
 | *(none)* / `help` / `-h` / `--help` | Print usage |
 | `scan` / `scan --json` / `scan --diff` / `scan --ports=<list>` | One-shot scan, with per-device RTT; `--json` for machine-readable output, `--diff` to print only what changed since the last scan, `--ports=22,80,443` to probe a custom TCP port set |
-| `monitor` / `monitor --alert-down=<rate>` | Live TUI: devices joining/leaving in real time (`q` to quit); `--alert-down` flags a download rate drop, e.g. `--alert-down=50Mbps` |
+| `monitor` / `monitor --alert-down=<rate>` / `monitor --quiet` | Live TUI: devices joining/leaving in real time (`q` to quit); `--alert-down` flags a download rate drop, e.g. `--alert-down=50Mbps`; `--quiet` runs headless (no UI), one line per event to stdout for a service or logfile |
 | `dashboard` | Full dashboard: Wi-Fi + live bandwidth + speedtest + devices + an operations log |
-| `speedtest` | Download/upload throughput |
+| `speedtest` / `speedtest --json` | Download/upload throughput; `--json` for machine-readable output |
 | `iface` | Inspect the active interface's IP config |
 | `iface static <ip>/<bits> <gw> [dns...]` | Set a static address (asks to confirm) |
 | `iface dhcp` | Switch back to DHCP (asks to confirm) |
 | `alias set <ip\|mac> <name>` / `ls` / `rm <ip\|mac>` | Nickname a device / list / remove |
 | `class set <ip\|mac> <class>` / `ls` / `rm <ip\|mac>` | Pin a device's class when the guess is wrong (router/computer/mobile/media/printer/iot) |
 | `watch add <ip\|mac>` / `ls` / `rm <ip\|mac>` | Alert (highlight + bell) when a device leaves during monitor/dashboard |
-| `ports <ip>` | Open ports + RTT + TTL for one device |
+| `ports <ip>` / `ports <ip> --json` | Open ports + RTT + TTL for one device; `--json` for machine-readable output |
 | `wake <ip\|mac\|alias>` | Send a Wake-on-LAN magic packet to power on a device |
-| `doctor` | Diagnose connectivity: interface, gateway, internet, DNS, Wi-Fi |
+| `doctor` / `doctor --json` | Diagnose connectivity: interface, gateway, internet, DNS, Wi-Fi; `--json` for machine-readable output |
 | `events [n]` / `events --device=<x>` | Print the last n join/leave events (default 20); `--device=<alias-or-mac>` filters to one device |
 | `version` | Installed version |
 | `update` | Update to the latest version (needs Go) |
@@ -267,8 +267,10 @@ people who already know networking.
 - `netwp monitor --alert-down=<rate>` (e.g. `50Mbps`) highlights the
   bandwidth line when download drops below that threshold. Omit it and monitor
   behaves exactly as before.
-- `monitor`/`dashboard` log every join/leave to
+- `monitor`/`dashboard` (and `monitor --quiet`) log every join/leave to
   `<user-config-dir>/netwp/events.jsonl`; `netwp events [n]` reads them back.
+  The file is bounded: once it passes ~1 MB it is trimmed to the most recent
+  5000 events, so a long-running monitor can't grow it without limit.
 
 #### Commands
 
