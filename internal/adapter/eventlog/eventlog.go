@@ -1,9 +1,10 @@
 // Package eventlog appends device presence-change events (join/leave) to a
 // JSONL file, and reads back the most recent ones for `netwp events`.
 //
-// ponytail: append-only, no rotation, no query engine -- a flat diagnostic
-// log, not a database. If this needs bounded size or querying later, that's
-// a different feature.
+// ponytail: a flat append-only log, not a database and no query engine. It is
+// size-bounded (see rotation) so a long-running monitor can't grow it without
+// limit, but that's the only concession; richer querying would be a different
+// feature.
 package eventlog
 
 import (
@@ -49,9 +50,20 @@ type Logger struct {
 
 func New(path string) Logger { return Logger{Path: path} }
 
+// Rotation bounds the log so a long-running monitor can't grow it forever.
+// Vars, not consts, so tests can shrink them. Trim by lines but trigger by
+// size (a cheap stat, not a full read, on the common path): the file drifts
+// between ~maxEventLines and rotateAtBytes, then snaps back.
+var (
+	maxEventLines       = 5000
+	rotateAtBytes int64 = 1 << 20 // ~1 MB
+)
+
 // Log appends e to the log file, opening and closing it each call: join/leave
 // events are rare enough that this isn't worth a held-open file handle.
 func (l Logger) Log(e core.Event) error {
+	l.rotateIfLarge()
+
 	f, err := os.OpenFile(l.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return err
@@ -72,6 +84,46 @@ func (l Logger) Log(e core.Event) error {
 	}
 	_, err = f.Write(append(data, '\n'))
 	return err
+}
+
+// rotateIfLarge rewrites the log with just its most recent maxEventLines once
+// it passes rotateAtBytes. Best-effort: any failure leaves the log untouched,
+// so a rotation problem never blocks logging the event itself.
+func (l Logger) rotateIfLarge() {
+	info, err := os.Stat(l.Path)
+	if err != nil || info.Size() < rotateAtBytes {
+		return
+	}
+	lines, err := lastRawLines(l.Path, maxEventLines)
+	if err != nil {
+		return
+	}
+	tmp := l.Path + ".tmp"
+	if err := os.WriteFile(tmp, []byte(strings.Join(lines, "\n")+"\n"), 0o600); err != nil {
+		return
+	}
+	_ = os.Rename(tmp, l.Path) //nolint:errcheck // best-effort; a failed rename leaves the old log in place
+}
+
+// lastRawLines returns the last n lines of a file, unparsed, so rotation
+// preserves exact bytes instead of re-marshaling (and drops nothing on a line
+// that no longer parses).
+func lastRawLines(path string, n int) ([]string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close() //nolint:errcheck // best-effort cleanup
+
+	var lines []string
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+		if len(lines) > n {
+			lines = lines[1:]
+		}
+	}
+	return lines, scanner.Err()
 }
 
 // Tail returns the last n entries in path, oldest first, skipping any

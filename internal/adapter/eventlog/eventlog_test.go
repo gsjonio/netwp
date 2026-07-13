@@ -99,6 +99,34 @@ func TestTailLimitsCount(t *testing.T) {
 	}
 }
 
+func TestRotation(t *testing.T) {
+	// Shrink the bounds so a handful of events triggers a rotation.
+	defer func(l int, b int64) { maxEventLines, rotateAtBytes = l, b }(maxEventLines, rotateAtBytes)
+	maxEventLines, rotateAtBytes = 3, 1 // any non-empty file rotates
+
+	path := filepath.Join(t.TempDir(), "events.jsonl")
+	l := New(path)
+	mac, _ := net.ParseMAC("aa:bb:cc:dd:ee:ff")
+	for i := 0; i < 10; i++ {
+		if err := l.Log(core.Event{Kind: core.Joined, Device: core.Device{IP: net.IPv4(192, 168, 1, byte(i)), MAC: mac}, At: time.Now()}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	entries, err := Tail(path, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Rotation keeps the last maxEventLines, then the current Log appends one.
+	if len(entries) > maxEventLines+1 {
+		t.Errorf("log grew to %d entries, want the file bounded near %d", len(entries), maxEventLines)
+	}
+	// The most recent event must survive.
+	if entries[len(entries)-1].IP != "192.168.1.9" {
+		t.Errorf("newest entry = %q, want 192.168.1.9", entries[len(entries)-1].IP)
+	}
+}
+
 func TestTailMissingFile(t *testing.T) {
 	entries, err := Tail(filepath.Join(t.TempDir(), "nope.jsonl"), 10)
 	if err != nil {
