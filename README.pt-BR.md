@@ -136,16 +136,34 @@ Fora isso, atualize do mesmo jeito que instalou:
 
 ## Arquitetura
 
-Hexagonal (Ports & Adapters). O pacote `core` é domínio puro + casos de uso e
-nunca importa código de SO/rede; os adapters implementam as portas e são
-escolhidos em tempo de compilação por build tags.
+O netwp é hexagonal (Ports & Adapters). O `internal/core` é o domínio puro: os
+casos de uso (descoberta de dispositivos, classificação, diff de varredura, o
+doctor de conectividade) e a pequena interface de porta de que cada um depende.
+Ele nunca importa `net`, `os/exec` ou `syscall`, só tipos de dados simples, então
+o domínio inteiro roda contra fakes nos testes sem tocar numa placa de rede real.
+
+Os adapters em `internal/adapter/*` implementam essas portas contra o sistema de
+verdade. Os específicos de plataforma (scan ARP, ping ICMP, config de interface,
+info de Wi-Fi) são escolhidos em tempo de compilação por build tags, nunca em
+runtime: no Windows o scan ARP é `SendARP` e o ping é `IcmpSendEcho`; no Linux o
+scanner é um socket `AF_PACKET` cru. O core não sabe com qual deles está falando.
+
+O `cmd/netwp` é a raiz de composição: liga os adapters concretos aos casos de uso
+do core e despacha a CLI. O `internal/tui` renderiza os tipos do core no terminal
+(a tabela do scan, o monitor ao vivo e o dashboard).
 
 ```text
-cmd/netwp        raiz de composição
-internal/core    domínio + portas + casos de uso (puro)
-internal/adapter arpscan · netinfo · oui (tocam o SO)
-internal/tui     saída em tabela legível
+cmd/netwp         raiz de composição: dispatch da CLI + wiring dos adapters
+internal/core     domínio puro: casos de uso + portas (sem imports de SO/rede)
+internal/adapter  adapters que tocam o SO/rede (arpscan, icmpping, netinfo,
+                  oui, tcpprobe, namelookup, wifi, ...)
+internal/tui      renderização no terminal: tabela do scan, monitor, dashboard
 ```
+
+Uma varredura flui numa direção só: o `cmd` monta um `core.Discovery` a partir
+dos adapters e chama `Run`; o caso de uso enriquece cada host (hostname,
+fabricante, portas abertas, RTT, serviços mDNS) concorrentemente, classifica, e
+entrega o resultado ao `internal/tui`.
 
 ## Uso
 

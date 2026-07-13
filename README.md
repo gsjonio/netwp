@@ -133,16 +133,34 @@ Otherwise, update the same way you installed:
 
 ## Architecture
 
-Hexagonal (Ports & Adapters). The `core` package is pure domain + use cases and
-never imports OS/network code; adapters implement its ports and are selected at
-build time via Go build tags.
+netwp is hexagonal (Ports & Adapters). `internal/core` is the pure domain: the
+use cases (device discovery, classification, scan diffing, the connectivity
+doctor) and the small port interface each one depends on. It never imports
+`net`, `os/exec`, or `syscall`, only plain data types, so the whole domain runs
+against fakes in tests without touching a real network card.
+
+Adapters in `internal/adapter/*` implement those ports against the real system.
+The platform-specific ones (ARP scan, ICMP ping, interface config, Wi-Fi info)
+are chosen at build time by Go build tags, never at runtime: on Windows the ARP
+scan is `SendARP` and ping is `IcmpSendEcho`; on Linux the scanner is a raw
+`AF_PACKET` socket. The core cannot tell which one it is talking to.
+
+`cmd/netwp` is the composition root: it wires concrete adapters into the core
+use cases and dispatches the CLI. `internal/tui` renders core types to the
+terminal (the scan table, the live monitor, and the dashboard).
 
 ```text
-cmd/netwp        composition root
-internal/core    domain + ports + use cases (pure)
-internal/adapter arpscan · netinfo · oui (touch the OS)
-internal/tui     legible table output
+cmd/netwp         composition root: CLI dispatch + adapter wiring
+internal/core     pure domain: use cases + port interfaces (no OS/net imports)
+internal/adapter  adapters that touch the OS/network (arpscan, icmpping,
+                  netinfo, oui, tcpprobe, namelookup, wifi, ...)
+internal/tui      terminal rendering: scan table, monitor, dashboard
 ```
+
+A scan flows one way: `cmd` builds a `core.Discovery` from the adapters and
+calls `Run`; the use case enriches each host (hostname, vendor, open ports, RTT,
+mDNS services) concurrently, classifies it, and hands the result to
+`internal/tui`.
 
 ## Usage
 
