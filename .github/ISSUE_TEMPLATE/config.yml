@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or usage help
+    url: https://github.com/gsjonio/netwp/wiki
+    about: The wiki has a command reference, FAQ, and troubleshooting. Check there first.
+  - name: Report a security vulnerability
+    url: https://github.com/gsjonio/netwp/security/advisories/new
+    about: Do not open a public issue for security reports. Use a private advisory.
