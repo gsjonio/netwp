@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/gsjonio/netwp/internal/adapter/eventlog"
 	"github.com/gsjonio/netwp/internal/adapter/httpspeed"
@@ -18,6 +22,10 @@ import (
 )
 
 func runMonitor() error {
+	if hasArg("--quiet") {
+		return runMonitorQuiet()
+	}
+
 	discovery, network, err := discoveryContext(nil)
 	if err != nil {
 		return err
@@ -47,6 +55,77 @@ func runMonitor() error {
 		Logger:     defaultEventLogger(),
 		Watchlist:  defaultWatchlist(),
 	})
+}
+
+// runMonitorQuiet runs the same scan/track/log loop as the TUI monitor but with
+// no interface: it prints a plain line per join/leave to stdout and persists
+// each event, so it can run headless (a systemd/Task Scheduler service, or piped
+// to a file). Ctrl-C or SIGTERM stops it cleanly between scans.
+func runMonitorQuiet() error {
+	discovery, network, err := discoveryContext(nil)
+	if err != nil {
+		return err
+	}
+	tracker := core.NewTracker(offlineAfter)
+	logger := defaultEventLogger()
+	watchlist := defaultWatchlist()
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	fmt.Fprintf(os.Stderr, "netwp monitor (headless) on %s, scanning every %s — Ctrl-C to stop\n", network.CIDR, monitorEvery)
+
+	ticker := time.NewTicker(monitorEvery)
+	defer ticker.Stop()
+	for {
+		scanCtx, cancel := context.WithTimeout(ctx, monitorScanBudget)
+		devices, scanErr := discovery.Run(scanCtx, network)
+		cancel()
+		if ctx.Err() != nil {
+			return nil // stopped mid-scan
+		}
+		if scanErr != nil {
+			fmt.Fprintln(os.Stderr, "scan error:", scanErr)
+		} else {
+			for _, e := range tracker.Observe(devices, time.Now()) {
+				watched := watchlist != nil && watchlist.IsWatched(e.Device.MAC)
+				fmt.Println(plainEvent(e, watched))
+				if logger != nil {
+					_ = logger.Log(e)
+				}
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+		}
+	}
+}
+
+// plainEvent renders an event as an unstyled, timestamped line for headless
+// output: no ANSI, since this typically lands in a log file or journal. The
+// (unknown)/(watched) tags carry what the TUI shows with color instead.
+func plainEvent(e core.Event, watched bool) string {
+	name := e.Device.Alias
+	if name == "" {
+		name = e.Device.Hostname
+	}
+	if name == "" {
+		name = e.Device.IP.String()
+	}
+	ts := e.At.Format("2006-01-02 15:04:05")
+	switch {
+	case e.Kind == core.Joined && e.Device.Alias == "":
+		return fmt.Sprintf("%s  joined  %s (%s) (unknown)", ts, name, e.Device.IP)
+	case e.Kind == core.Joined:
+		return fmt.Sprintf("%s  joined  %s (%s)", ts, name, e.Device.IP)
+	case e.Kind == core.Left && watched:
+		return fmt.Sprintf("%s  left    %s (%s) (watched)", ts, name, e.Device.IP)
+	default:
+		return fmt.Sprintf("%s  left    %s (%s)", ts, name, e.Device.IP)
+	}
 }
 
 func runDashboard() error {

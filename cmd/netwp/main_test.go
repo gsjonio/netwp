@@ -43,6 +43,33 @@ func TestPortsTargetIP(t *testing.T) {
 	}
 }
 
+func TestPlainEvent(t *testing.T) {
+	mac, _ := net.ParseMAC("aa:bb:cc:dd:ee:ff")
+	dev := func(alias string) core.Device {
+		return core.Device{IP: net.IPv4(192, 168, 1, 7), MAC: mac, Alias: alias}
+	}
+	cases := []struct {
+		kind    core.EventKind
+		alias   string
+		watched bool
+		want    string // substring the line must contain
+	}{
+		{core.Joined, "", false, "joined  192.168.1.7 (192.168.1.7) (unknown)"},
+		{core.Joined, "PC", false, "joined  PC (192.168.1.7)"},
+		{core.Left, "PC", true, "left    PC (192.168.1.7) (watched)"},
+		{core.Left, "PC", false, "left    PC (192.168.1.7)"},
+	}
+	for _, c := range cases {
+		got := plainEvent(core.Event{Kind: c.kind, Device: dev(c.alias)}, c.watched)
+		if !strings.Contains(got, c.want) {
+			t.Errorf("plainEvent(%v, watched=%v) = %q, want it to contain %q", c.kind, c.watched, got, c.want)
+		}
+		if strings.Contains(got, "\x1b") {
+			t.Errorf("plainEvent produced ANSI escapes: %q", got)
+		}
+	}
+}
+
 func TestParsePorts(t *testing.T) {
 	got, err := parsePorts("22, 80,443")
 	if err != nil {
