@@ -102,6 +102,7 @@ type monitorModel struct {
 
 	filter    string // active device-table filter query
 	filtering bool   // true while the user is typing the filter
+	sort      sortKey
 }
 
 type scanDoneMsg struct {
@@ -182,6 +183,9 @@ func (m monitorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "/":
 			m.filtering = true
+			return m, nil
+		case "s":
+			m.sort = m.sort.next()
 			return m, nil
 		case "r":
 			if !m.scanning {
@@ -265,6 +269,7 @@ func (m monitorModel) View() string {
 		}
 	}
 	devices := filterDevices(all, m.filter)
+	sortDevices(devices, m.sort)
 
 	summary := fmt.Sprintf("%s  %s · %d online / %d known",
 		styTitle.Render("netwp monitor"), m.network.CIDR, online, total)
@@ -286,7 +291,7 @@ func (m monitorModel) View() string {
 	} else {
 		state = styOffline.Render(fmt.Sprintf("idle · next in %s", time.Until(m.lastScan.Add(m.interval)).Round(time.Second)))
 	}
-	footer := state + styOffline.Render("   ·   / filter   ·   r rescan   ·   q quit")
+	footer := state + styOffline.Render(fmt.Sprintf("   ·   / filter   ·   s sort: %s   ·   r rescan   ·   q quit", m.sort))
 	bwLine := m.bandwidthLine()
 
 	// Trim the device table to whatever vertical room is left, so the

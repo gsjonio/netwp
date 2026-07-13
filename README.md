@@ -253,6 +253,9 @@ people who already know networking.
 - Press `/` to filter the device table by a substring of any field (IP,
   alias, hostname, vendor, MAC, class); Enter keeps the filter, Esc clears
   it. The online/known counts still reflect the whole network.
+- Press `s` to cycle the sort column (IP, RTT, name, class); online devices
+  always sort ahead of offline ones, so `s` orders within each group. The
+  active column shows in the footer.
 - Two events ring the terminal bell and highlight their log line: an
   unrecognized device joining (no alias set), and a `netwp watch`-listed
   device leaving. Everything else stays quiet.

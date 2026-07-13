@@ -103,6 +103,7 @@ type dashModel struct {
 
 	filter    string // active DEVICES-table filter query
 	filtering bool   // true while the user is typing the filter
+	sort      sortKey
 }
 
 // opsLimit is how many operation-log lines the LOG panel keeps on screen.
@@ -241,6 +242,9 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "/":
 			m.filtering = true
 			return m, nil
+		case "s":
+			m.sort = m.sort.next()
+			return m, nil
 		case "r":
 			m.ops = appendLog(m.ops, opLine("running scan (manual)…"), opsLimit)
 			// A manual rescan re-resolves names instead of serving the cache,
@@ -365,7 +369,7 @@ func (m dashModel) View() string {
 			panel("SPEEDTEST", m.renderSpeed(), colW),
 		)
 	}
-	footer := styOffline.Render("/ filter · r rescan · q quit")
+	footer := styOffline.Render(fmt.Sprintf("/ filter · s sort: %s · r rescan · q quit", m.sort))
 
 	var activity string
 	if len(m.log) > 0 {
@@ -381,6 +385,7 @@ func (m dashModel) View() string {
 		}
 	}
 	devices := filterDevices(allDevices, m.filter)
+	sortDevices(devices, m.sort)
 	devTitle := fmt.Sprintf("DEVICES · %d online / %d known", online, total)
 	if m.filtering {
 		devTitle += "  ·  filter: " + m.filter + "▌"

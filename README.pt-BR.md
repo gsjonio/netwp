@@ -258,6 +258,9 @@ pra quem já manja de redes.
 - Aperte `/` pra filtrar a tabela por um trecho de qualquer campo (IP,
   apelido, hostname, fabricante, MAC, classe); Enter mantém o filtro, Esc
   limpa. As contagens online/conhecidos continuam refletindo a rede inteira.
+- Aperte `s` pra alternar a coluna de ordenação (IP, RTT, nome, classe); os
+  dispositivos online sempre ficam antes dos offline, então o `s` ordena
+  dentro de cada grupo. A coluna ativa aparece no rodapé.
 - Dois eventos tocam o bipe do terminal e destacam a linha do log: um
   dispositivo desconhecido entrando (sem apelido) e um dispositivo da lista do
   `netwp watch` saindo. O resto fica quieto.
