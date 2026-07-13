@@ -25,6 +25,7 @@ column in plain language.
 - [Features](#features)
 - [Install](#install)
 - [Architecture](#architecture)
+- [Project Structure](#project-structure)
 - [Usage](#usage)
 - [Notes](#notes)
 - [Support](#support)
@@ -149,6 +150,15 @@ scan is `SendARP` and ping is `IcmpSendEcho`; on Linux the scanner is a raw
 use cases and dispatches the CLI. `internal/tui` renders core types to the
 terminal (the scan table, the live monitor, and the dashboard).
 
+A scan flows one way: `cmd` builds a `core.Discovery` from the adapters and
+calls `Run`; the use case enriches each host (hostname, vendor, open ports, RTT,
+mDNS services) concurrently, classifies it, and hands the result to
+`internal/tui`.
+
+## Project Structure
+
+The layout follows the standard Go `cmd` + `internal` split:
+
 ```text
 cmd/netwp         composition root: CLI dispatch + adapter wiring
 internal/core     pure domain: use cases + port interfaces (no OS/net imports)
@@ -156,11 +166,6 @@ internal/adapter  adapters that touch the OS/network (arpscan, icmpping,
                   netinfo, oui, tcpprobe, namelookup, wifi, ...)
 internal/tui      terminal rendering: scan table, monitor, dashboard
 ```
-
-A scan flows one way: `cmd` builds a `core.Discovery` from the adapters and
-calls `Run`; the use case enriches each host (hostname, vendor, open ports, RTT,
-mDNS services) concurrently, classifies it, and hands the result to
-`internal/tui`.
 
 ## Usage
 

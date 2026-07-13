@@ -25,6 +25,7 @@ simples.
 - [Features](#features)
 - [Instalação](#instalação)
 - [Arquitetura](#arquitetura)
+- [Estrutura do projeto](#estrutura-do-projeto)
 - [Uso](#uso)
 - [Notas](#notas)
 - [Apoie o projeto](#apoie-o-projeto)
@@ -152,6 +153,15 @@ O `cmd/netwp` é a raiz de composição: liga os adapters concretos aos casos de
 do core e despacha a CLI. O `internal/tui` renderiza os tipos do core no terminal
 (a tabela do scan, o monitor ao vivo e o dashboard).
 
+Uma varredura flui numa direção só: o `cmd` monta um `core.Discovery` a partir
+dos adapters e chama `Run`; o caso de uso enriquece cada host (hostname,
+fabricante, portas abertas, RTT, serviços mDNS) concorrentemente, classifica, e
+entrega o resultado ao `internal/tui`.
+
+## Estrutura do projeto
+
+O layout segue a divisão padrão de Go `cmd` + `internal`:
+
 ```text
 cmd/netwp         raiz de composição: dispatch da CLI + wiring dos adapters
 internal/core     domínio puro: casos de uso + portas (sem imports de SO/rede)
@@ -159,11 +169,6 @@ internal/adapter  adapters que tocam o SO/rede (arpscan, icmpping, netinfo,
                   oui, tcpprobe, namelookup, wifi, ...)
 internal/tui      renderização no terminal: tabela do scan, monitor, dashboard
 ```
-
-Uma varredura flui numa direção só: o `cmd` monta um `core.Discovery` a partir
-dos adapters e chama `Run`; o caso de uso enriquece cada host (hostname,
-fabricante, portas abertas, RTT, serviços mDNS) concorrentemente, classifica, e
-entrega o resultado ao `internal/tui`.
 
 ## Uso
 
