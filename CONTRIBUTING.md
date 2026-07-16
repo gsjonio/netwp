@@ -18,6 +18,28 @@ go vet ./...
 `gofmt -l .` should print nothing; run `gofmt -w <file>` on anything it
 flags before committing.
 
+## Branching (gitflow)
+
+The repo follows [gitflow](https://nvie.com/posts/a-successful-git-branching-model/).
+Two long-lived branches, both protected (pull requests only, no direct pushes):
+
+- **`develop`** is the default branch and the integration target. Day-to-day
+  work branches off it and merges back into it.
+- **`main`** holds released code only. It receives `release/*` and `hotfix/*`
+  merges, and every commit on it is tagged.
+
+Short-lived branches:
+
+- **`feature/<name>`** — branch off `develop`, PR back into `develop`.
+- **`release/<version>`** — branch off `develop` to stabilize a release, then
+  PR into `main`; tag `main` (`vX.Y.Z`), and merge back into `develop`.
+- **`hotfix/<version>`** — branch off `main` for an urgent fix, PR into `main`,
+  tag, then merge back into `develop`.
+
+Pushing a `vX.Y.Z` tag triggers the release workflow, which builds the Windows
+and Linux binaries and attaches them to the GitHub Release. So a normal release
+is: merge the `release/*` PR into `main`, then push the tag.
+
 ## Architecture
 
 netwp is hexagonal (ports & adapters):
