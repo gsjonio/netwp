@@ -1,0 +1,19 @@
+# Categories for GitHub's auto-generated release notes (--generate-notes).
+changelog:
+  exclude:
+    labels: ["type: chore", "type: ci"]
+  categories:
+    - title: Breaking changes
+      labels: ["semver: major"]
+    - title: Features
+      labels: ["type: feat"]
+    - title: Fixes
+      labels: ["type: fix"]
+    - title: Performance
+      labels: ["performance"]
+    - title: Security
+      labels: ["security"]
+    - title: Documentation
+      labels: ["type: docs"]
+    - title: Other changes
+      labels: ["*"]

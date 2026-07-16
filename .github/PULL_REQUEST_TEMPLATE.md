@@ -4,10 +4,17 @@
 
 <!-- What does this change and what problem does it solve? -->
 
+Closes #
+
+## Risks
+
+<!-- Security and performance impact. Write "none" if there is none - do not leave blank. -->
+
 ## Checklist
 
-- [ ] `go build ./...`, `go vet ./...`, `go test ./...` pass
-- [ ] `gofmt -l .` prints nothing and `golangci-lint run ./...` is clean
-- [ ] `GOOS=linux go build ./...` still compiles (both OS paths)
+- [ ] Build, vet/lint, and tests pass
 - [ ] New non-trivial logic has a test
-- [ ] Docs updated if a command/flag changed (both `README.md` and `README.pt-BR.md` stay in sync)
+- [ ] Commits follow Conventional Commits and carry no Claude co-author trailer
+- [ ] If documented behavior changed: `README.md` **and** `README.pt-BR.md` updated in this PR
+- [ ] If a beginner-facing term changed: `docs/GUIDE.md` and `docs/GUIDE.pt-BR.md` updated
+- [ ] Issue has a milestone

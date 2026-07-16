@@ -1,18 +1,26 @@
 name: Feature request
-description: Suggest a command, flag, or behavior for netwp.
-labels: ["enhancement"]
+description: Suggest a capability for netwp.
+labels: ["type: feat", "semver: minor"]
 body:
   - type: textarea
     id: problem
     attributes:
       label: The problem
-      description: What are you trying to do that netwp does not cover today?
+      description: What are you trying to do that netwp makes hard or impossible?
     validations:
       required: true
   - type: textarea
-    id: idea
+    id: proposal
     attributes:
-      label: What you have in mind
-      description: A command, flag, or behavior. A rough sketch is fine.
+      label: Proposed solution
+      description: What should it do? A concrete command or flag helps.
     validations:
-      required: false
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This is one topic, not several bundled together.
+          required: true
+        - label: I checked this does not need a new external dependency (or I explained why it does).
