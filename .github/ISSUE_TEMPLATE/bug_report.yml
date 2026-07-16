@@ -1,6 +1,6 @@
 name: Bug report
 description: Something in netwp does not work as documented.
-labels: ["bug"]
+labels: ["type: fix", "semver: patch"]
 body:
   - type: textarea
     id: what-happened
@@ -8,7 +8,7 @@ body:
       label: What happened
       description: What you ran, what you expected, and what you got instead.
       placeholder: |
-        I ran `netwp scan` and ...
+        I ran `...`
         I expected ...
         Instead ...
     validations:
@@ -16,9 +16,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: netwp version
+      label: Version
       description: Output of `netwp version`.
-      placeholder: netwp v1.19.0
     validations:
       required: true
   - type: dropdown
@@ -28,13 +27,10 @@ body:
       options:
         - Windows
         - Linux
-        - Other (say which below)
     validations:
       required: true
   - type: textarea
-    id: extra
+    id: logs
     attributes:
-      label: Anything else
-      description: Terminal, network setup, logs, or output. Redact anything private.
-    validations:
-      required: false
+      label: Output or logs
+      render: shell

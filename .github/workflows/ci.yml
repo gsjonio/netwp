@@ -63,3 +63,16 @@ jobs:
       - uses: golangci/golangci-lint-action@v9
         with:
           version: v2.12.2
+
+  # Aggregate gate: the single "CI" status check the branch rulesets require.
+  # It stays green only when every job above passed, so one required check
+  # covers the whole matrix without pinning the ruleset to each job's name.
+  ci:
+    name: CI
+    needs: [build, race, fuzz, lint]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: echo "a required CI job failed" && exit 1
+      - run: echo "all CI jobs passed"
