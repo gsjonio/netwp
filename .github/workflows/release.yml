@@ -1,0 +1,42 @@
+name: Release
+
+# Pushing a version tag builds the Windows + Linux amd64 binaries and publishes
+# them on the matching GitHub Release. No cgo is needed for a normal build, so
+# both targets cross-compile from one ubuntu runner.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the release and upload assets
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.24"
+
+      - name: Build binaries
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          mkdir -p dist
+          ldflags="-s -w -X main.version=${GITHUB_REF_NAME}"
+          GOOS=windows GOARCH=amd64 go build -ldflags "$ldflags" -o dist/netwp-windows-amd64.exe ./cmd/netwp
+          GOOS=linux   GOARCH=amd64 go build -ldflags "$ldflags" -o dist/netwp-linux-amd64 ./cmd/netwp
+
+      # Attach the binaries to the release. If the tag's release already exists
+      # (e.g. pre-created with hand-written notes), just upload the assets;
+      # otherwise create it with auto-generated notes.
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes
+          fi

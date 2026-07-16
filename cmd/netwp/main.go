@@ -70,10 +70,19 @@ func main() {
 	}
 }
 
-// versionString reports the version embedded by `go install module@vX.Y.Z`,
-// or falls back to the VCS commit `go build` embeds automatically (Go 1.18+)
-// when built from a local source tree instead of a tagged module.
+// version names the release when set at build time via
+// -ldflags "-X main.version=vX.Y.Z" (release.yml does this on a tag). It wins
+// over the build-info lookup below, so a downloaded release binary reports its
+// tag instead of the "(devel)" a plain `go build` embeds.
+var version string
+
+// versionString reports the release set via ldflags, else the version embedded
+// by `go install module@vX.Y.Z`, else the VCS commit `go build` embeds
+// automatically (Go 1.18+) when built from a local source tree.
 func versionString() string {
+	if version != "" {
+		return "netwp " + version
+	}
 	info, ok := debug.ReadBuildInfo()
 	if !ok {
 		return "netwp (unknown version)"
