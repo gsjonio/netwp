@@ -293,6 +293,9 @@ people who already know networking.
   topmost ✗ is usually the root cause and explains the ones below it.
 - The speed test hits Cloudflare's anycast `speed.cloudflare.com`; `netwp
   speedtest` prints which edge answered.
+- Setting the `NO_COLOR` environment variable (to any value) turns off colored
+  output everywhere — the scan table and the live views — per the
+  [no-color.org](https://no-color.org) convention.
 
 Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md). This project
 follows the [Code of Conduct](CODE_OF_CONDUCT.md).

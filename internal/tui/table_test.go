@@ -45,6 +45,33 @@ func TestRenderAlignment(t *testing.T) {
 	}
 }
 
+// TestRenderDevicesHonorsNoColor proves the plain table drops all ANSI when
+// NO_COLOR is set, even for cells that would normally be coloured (online
+// status, a sensitive port).
+func TestRenderDevicesHonorsNoColor(t *testing.T) {
+	t.Setenv("NO_COLOR", "1")
+	mac, _ := net.ParseMAC("30:56:0f:33:80:cc")
+	devices := []core.Device{
+		{IP: net.ParseIP("192.168.0.1"), MAC: mac, Hostname: "router.local", Vendor: "TP-Link", Online: true, Ports: []int{22, 443}},
+	}
+	var buf bytes.Buffer
+	RenderDevices(&buf, devices)
+	if ansi.MatchString(buf.String()) {
+		t.Errorf("NO_COLOR is set, but the table has ANSI escapes:\n%q", buf.String())
+	}
+}
+
+func TestColorEnabled(t *testing.T) {
+	t.Setenv("NO_COLOR", "")
+	if colorEnabled() {
+		t.Error("colorEnabled() = true with NO_COLOR set (empty value still counts)")
+	}
+	t.Setenv("NO_COLOR", "1")
+	if colorEnabled() {
+		t.Error("colorEnabled() = true with NO_COLOR=1")
+	}
+}
+
 // TestPortsCellColorsSensitivePorts checks portsCell (the raw-ANSI table.go
 // renderer, unlike lipgloss-based portsCellText) actually applies colorWarn
 // when a sensitive port is present, and leaves an ordinary port list plain.
