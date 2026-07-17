@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -41,6 +42,15 @@ type cell struct {
 	color string // "" means no colour
 }
 
+// colorEnabled reports whether the plain table should emit ANSI color. It
+// honors the NO_COLOR convention (https://no-color.org): if NO_COLOR is set to
+// any value, the table renders without escapes. The live monitor/dashboard use
+// lipgloss, which honors NO_COLOR on its own.
+func colorEnabled() bool {
+	_, noColor := os.LookupEnv("NO_COLOR")
+	return !noColor
+}
+
 // RenderDevices writes a table of devices sorted by IP address to w.
 func RenderDevices(w io.Writer, devices []core.Device) {
 	sort.Slice(devices, func(i, j int) bool {
@@ -68,9 +78,10 @@ func RenderDevices(w io.Writer, devices []core.Device) {
 	}
 
 	widths := columnWidths(header, rows)
-	writeRow(w, header, widths)
+	colorize := colorEnabled()
+	writeRow(w, header, widths, colorize)
 	for _, row := range rows {
-		writeRow(w, row, widths)
+		writeRow(w, row, widths, colorize)
 	}
 }
 
@@ -87,11 +98,11 @@ func columnWidths(header []cell, rows [][]cell) []int {
 	return widths
 }
 
-func writeRow(w io.Writer, cells []cell, widths []int) {
+func writeRow(w io.Writer, cells []cell, widths []int, colorize bool) {
 	parts := make([]string, len(cells))
 	for i, c := range cells {
 		padded := c.text + strings.Repeat(" ", widths[i]-utf8.RuneCountInString(c.text))
-		if c.color != "" {
+		if colorize && c.color != "" {
 			padded = c.color + padded + colorReset
 		}
 		parts[i] = padded
