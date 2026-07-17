@@ -301,6 +301,9 @@ pra quem já manja de redes.
   DNS); o primeiro ✗ costuma ser a causa raiz e explica os de baixo.
 - O teste de banda usa o `speed.cloudflare.com` anycast; o `netwp speedtest`
   mostra qual edge respondeu.
+- Definir a variável de ambiente `NO_COLOR` (com qualquer valor) desliga a saída
+  colorida em tudo — a tabela do scan e as views ao vivo — seguindo a convenção
+  [no-color.org](https://no-color.org).
 
 Quer contribuir? Veja [CONTRIBUTING.md](CONTRIBUTING.md). Este projeto
 segue o [Código de Conduta](CODE_OF_CONDUCT.md).
