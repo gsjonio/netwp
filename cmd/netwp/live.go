@@ -183,7 +183,8 @@ func runDoctor(asJSON bool) error {
 
 // runEvents prints the last n recorded presence-change events (newest last).
 // device (alias or MAC), when non-empty, restricts the output to one device.
-func runEvents(n int, device string) error {
+// asJSON emits the entries as a JSON array instead of the human-readable lines.
+func runEvents(n int, device string, asJSON bool) error {
 	path, err := eventlog.DefaultPath()
 	if err != nil {
 		return err
@@ -206,6 +207,10 @@ func runEvents(n int, device string) error {
 		}
 	}
 
+	if asJSON {
+		return printJSON(eventsForJSON(entries))
+	}
+
 	if len(entries) == 0 {
 		if device != "" {
 			fmt.Printf("no events recorded for %q.\n", device)
@@ -222,6 +227,16 @@ func runEvents(n int, device string) error {
 		fmt.Printf("%s  %-6s %s (%s)\n", e.At.Local().Format("2006-01-02 15:04:05"), e.Kind, name, e.IP)
 	}
 	return nil
+}
+
+// eventsForJSON returns entries as a non-nil slice, so `events --json` always
+// emits a JSON array (`[]` on an empty history), never `null`. eventlog.Entry
+// already carries JSON tags, so no separate DTO is needed.
+func eventsForJSON(entries []eventlog.Entry) []eventlog.Entry {
+	if entries == nil {
+		return []eventlog.Entry{}
+	}
+	return entries
 }
 
 // deviceMAC resolves a device argument to a canonical MAC when possible: a MAC
