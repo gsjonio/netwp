@@ -187,7 +187,7 @@ internal/tui      terminal rendering: scan table, monitor, dashboard
 | `ports <ip>` / `ports <ip> --json` | Open ports + RTT + TTL for one device; `--json` for machine-readable output |
 | `wake <ip\|mac\|alias>` | Send a Wake-on-LAN magic packet to power on a device |
 | `doctor` / `doctor --json` | Diagnose connectivity: interface, gateway, internet, DNS, Wi-Fi; `--json` for machine-readable output |
-| `events [n]` / `events --device=<x>` | Print the last n join/leave events (default 20); `--device=<alias-or-mac>` filters to one device |
+| `events [n]` / `events --device=<x>` / `events --json` | Print the last n join/leave events (default 20); `--device=<alias-or-mac>` filters to one device; `--json` for machine-readable output |
 | `version` | Installed version |
 | `update` | Update to the latest version (needs Go) |
 | `uninstall` | Remove netwp's local data (asks to confirm); prints how to remove the binary |
