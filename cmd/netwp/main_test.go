@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gsjonio/netwp/internal/adapter/eventlog"
 	"github.com/gsjonio/netwp/internal/core"
 )
 
@@ -39,6 +40,18 @@ func TestFilterByClass(t *testing.T) {
 	}
 	if filterByClass(devices, core.ClassPrinter) == nil {
 		t.Error("filterByClass should return an empty non-nil slice, not nil")
+	}
+}
+
+func TestEventsForJSON(t *testing.T) {
+	// A nil slice (missing log) must become an empty array, not null, so
+	// `events --json` always emits valid JSON.
+	if got := eventsForJSON(nil); got == nil || len(got) != 0 {
+		t.Errorf("eventsForJSON(nil) = %v, want a non-nil empty slice", got)
+	}
+	in := []eventlog.Entry{{Kind: "joined", IP: "192.168.1.5"}}
+	if got := eventsForJSON(in); len(got) != 1 || got[0].IP != "192.168.1.5" {
+		t.Errorf("eventsForJSON passthrough = %v, want the one entry", got)
 	}
 }
 

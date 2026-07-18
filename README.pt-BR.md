@@ -190,7 +190,7 @@ internal/tui      renderização no terminal: tabela do scan, monitor, dashboard
 | `ports <ip>` / `ports <ip> --json` | Portas abertas + RTT + TTL de um dispositivo; `--json` para saída legível por máquina |
 | `wake <ip\|mac\|apelido>` | Envia um pacote Wake-on-LAN pra ligar um dispositivo |
 | `doctor` / `doctor --json` | Diagnostica a conexão: interface, gateway, internet, DNS, Wi-Fi; `--json` para saída legível por máquina |
-| `events [n]` / `events --device=<x>` | Mostra os últimos n eventos de entrada/saída (padrão 20); `--device=<apelido-ou-mac>` filtra por um dispositivo |
+| `events [n]` / `events --device=<x>` / `events --json` | Mostra os últimos n eventos de entrada/saída (padrão 20); `--device=<apelido-ou-mac>` filtra por um dispositivo; `--json` para saída legível por máquina |
 | `version` | Versão instalada |
 | `update` | Atualiza pra última versão (precisa do Go) |
 | `uninstall` | Remove os dados locais do netwp (pede confirmação); mostra como remover o binário |

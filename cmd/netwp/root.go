@@ -270,6 +270,7 @@ func newDoctorCmd() *cobra.Command {
 
 func newEventsCmd() *cobra.Command {
 	var device string
+	var asJSON bool
 	c := &cobra.Command{
 		Use:   "events [n]",
 		Short: "show the last n join/leave events (default 20)",
@@ -283,10 +284,11 @@ func newEventsCmd() *cobra.Command {
 				}
 				n = v
 			}
-			return runEvents(n, device)
+			return runEvents(n, device, asJSON)
 		},
 	}
 	c.Flags().StringVar(&device, "device", "", "filter to one device (alias or MAC)")
+	c.Flags().BoolVar(&asJSON, "json", false, "machine-readable JSON output")
 	return c
 }
 
