@@ -148,6 +148,22 @@ func newIfaceCmd() *cobra.Command {
 	return c
 }
 
+// newListCmd builds the `ls` subcommand shared by alias/class/watch: same shape
+// (ls/list alias, no args, a --json flag), differing only in the description and
+// the list function it delegates to.
+func newListCmd(short string, list func(asJSON bool) error) *cobra.Command {
+	var asJSON bool
+	c := &cobra.Command{
+		Use:     "ls",
+		Aliases: []string{"list"},
+		Short:   short,
+		Args:    cobra.NoArgs,
+		RunE:    func(_ *cobra.Command, _ []string) error { return list(asJSON) },
+	}
+	c.Flags().BoolVar(&asJSON, "json", false, "machine-readable JSON output")
+	return c
+}
+
 func newAliasCmd() *cobra.Command {
 	c := &cobra.Command{Use: "alias", Short: "nickname a device"}
 	c.AddCommand(
@@ -157,13 +173,7 @@ func newAliasCmd() *cobra.Command {
 			Args:  cobra.MinimumNArgs(2),
 			RunE:  func(_ *cobra.Command, args []string) error { return aliasSet(args[0], args[1:]) },
 		},
-		&cobra.Command{
-			Use:     "ls",
-			Aliases: []string{"list"},
-			Short:   "list nicknames",
-			Args:    cobra.NoArgs,
-			RunE:    func(_ *cobra.Command, _ []string) error { return aliasList() },
-		},
+		newListCmd("list nicknames", aliasList),
 		&cobra.Command{
 			Use:     "rm <ip-or-mac>",
 			Aliases: []string{"remove", "del"},
@@ -184,13 +194,7 @@ func newClassCmd() *cobra.Command {
 			Args:  cobra.ExactArgs(2),
 			RunE:  func(_ *cobra.Command, args []string) error { return classSet(args[0], args[1]) },
 		},
-		&cobra.Command{
-			Use:     "ls",
-			Aliases: []string{"list"},
-			Short:   "list class overrides",
-			Args:    cobra.NoArgs,
-			RunE:    func(_ *cobra.Command, _ []string) error { return classList() },
-		},
+		newListCmd("list class overrides", classList),
 		&cobra.Command{
 			Use:     "rm <ip-or-mac>",
 			Aliases: []string{"remove", "del"},
@@ -211,13 +215,7 @@ func newWatchCmd() *cobra.Command {
 			Args:  cobra.ExactArgs(1),
 			RunE:  func(_ *cobra.Command, args []string) error { return watchAdd(args[0]) },
 		},
-		&cobra.Command{
-			Use:     "ls",
-			Aliases: []string{"list"},
-			Short:   "list watched devices",
-			Args:    cobra.NoArgs,
-			RunE:    func(_ *cobra.Command, _ []string) error { return watchList() },
-		},
+		newListCmd("list watched devices", watchList),
 		&cobra.Command{
 			Use:     "rm <ip-or-mac>",
 			Aliases: []string{"remove", "del"},

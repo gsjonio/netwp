@@ -181,9 +181,9 @@ internal/tui      terminal rendering: scan table, monitor, dashboard
 | `iface` | Inspect the active interface's IP config |
 | `iface static <ip>/<bits> <gw> [dns...]` | Set a static address (asks to confirm) |
 | `iface dhcp` | Switch back to DHCP (asks to confirm) |
-| `alias set <ip\|mac> <name>` / `ls` / `rm <ip\|mac>` | Nickname a device / list / remove |
-| `class set <ip\|mac> <class>` / `ls` / `rm <ip\|mac>` | Pin a device's class when the guess is wrong (router/computer/mobile/media/printer/iot) |
-| `watch add <ip\|mac>` / `ls` / `rm <ip\|mac>` | Alert (highlight + bell) when a device leaves during monitor/dashboard |
+| `alias set <ip\|mac> <name>` / `ls [--json]` / `rm <ip\|mac>` | Nickname a device / list / remove |
+| `class set <ip\|mac> <class>` / `ls [--json]` / `rm <ip\|mac>` | Pin a device's class when the guess is wrong (router/computer/mobile/media/printer/iot) |
+| `watch add <ip\|mac>` / `ls [--json]` / `rm <ip\|mac>` | Alert (highlight + bell) when a device leaves during monitor/dashboard |
 | `ports <ip>` / `ports <ip> --json` | Open ports + RTT + TTL for one device; `--json` for machine-readable output |
 | `wake <ip\|mac\|alias>` | Send a Wake-on-LAN magic packet to power on a device |
 | `doctor` / `doctor --json` | Diagnose connectivity: interface, gateway, internet, DNS, Wi-Fi; `--json` for machine-readable output |

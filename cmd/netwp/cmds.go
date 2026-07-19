@@ -99,12 +99,15 @@ func aliasSet(idOrMac string, nameParts []string) error {
 	return nil
 }
 
-func aliasList() error {
+func aliasList(asJSON bool) error {
 	store, err := openAliasStore()
 	if err != nil {
 		return err
 	}
 	list := store.List()
+	if asJSON {
+		return printJSON(aliasesJSON(list))
+	}
 	if len(list) == 0 {
 		fmt.Println("no aliases set.")
 		return nil
@@ -153,12 +156,15 @@ func classSet(idOrMac, className string) error {
 	return nil
 }
 
-func classList() error {
+func classList(asJSON bool) error {
 	store, err := openClassStore()
 	if err != nil {
 		return err
 	}
 	list := store.List()
+	if asJSON {
+		return printJSON(classesJSON(list))
+	}
 	if len(list) == 0 {
 		fmt.Println("no class overrides set.")
 		return nil
@@ -212,12 +218,15 @@ func watchAdd(idOrMac string) error {
 	return nil
 }
 
-func watchList() error {
+func watchList(asJSON bool) error {
 	store, err := openWatchStore()
 	if err != nil {
 		return err
 	}
 	list := store.List()
+	if asJSON {
+		return printJSON(watchedJSON(list))
+	}
 	if len(list) == 0 {
 		fmt.Println("no watched devices.")
 		return nil

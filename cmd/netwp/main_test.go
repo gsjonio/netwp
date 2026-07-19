@@ -43,6 +43,33 @@ func TestFilterByClass(t *testing.T) {
 	}
 }
 
+func TestListJSONMappers(t *testing.T) {
+	mac1, _ := net.ParseMAC("aa:bb:cc:dd:ee:01")
+	mac2, _ := net.ParseMAC("aa:bb:cc:dd:ee:02")
+
+	// Empty stores must map to a non-nil slice, so --json emits [] not null.
+	if got := aliasesJSON(nil); got == nil || len(got) != 0 {
+		t.Errorf("aliasesJSON(nil) = %v, want non-nil empty", got)
+	}
+	if got := classesJSON(nil); got == nil || len(got) != 0 {
+		t.Errorf("classesJSON(nil) = %v, want non-nil empty", got)
+	}
+	if got := watchedJSON(nil); got == nil || len(got) != 0 {
+		t.Errorf("watchedJSON(nil) = %v, want non-nil empty", got)
+	}
+
+	// MACs serialize as their canonical string; class as its label.
+	if got := aliasesJSON([]core.Alias{{MAC: mac1, Name: "PC"}}); got[0].MAC != "aa:bb:cc:dd:ee:01" || got[0].Name != "PC" {
+		t.Errorf("aliasesJSON = %+v", got[0])
+	}
+	if got := classesJSON([]core.ClassPin{{MAC: mac1, Class: core.ClassMobile}}); got[0].MAC != "aa:bb:cc:dd:ee:01" || got[0].Class != "mobile" {
+		t.Errorf("classesJSON = %+v", got[0])
+	}
+	if got := watchedJSON([]net.HardwareAddr{mac1, mac2}); len(got) != 2 || got[1].MAC != "aa:bb:cc:dd:ee:02" {
+		t.Errorf("watchedJSON = %+v", got)
+	}
+}
+
 func TestEventsForJSON(t *testing.T) {
 	// A nil slice (missing log) must become an empty array, not null, so
 	// `events --json` always emits valid JSON.
