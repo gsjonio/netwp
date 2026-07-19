@@ -184,9 +184,9 @@ internal/tui      renderização no terminal: tabela do scan, monitor, dashboard
 | `iface` | Inspeciona o IP da interface ativa |
 | `iface static <ip>/<bits> <gw> [dns...]` | Define IP estático (pede confirmação) |
 | `iface dhcp` | Volta para DHCP (pede confirmação) |
-| `alias set <ip\|mac> <nome>` / `ls` / `rm <ip\|mac>` | Apelida um dispositivo / lista / remove |
-| `class set <ip\|mac> <classe>` / `ls` / `rm <ip\|mac>` | Fixa a classe de um dispositivo quando o palpite erra (router/computer/mobile/media/printer/iot) |
-| `watch add <ip\|mac>` / `ls` / `rm <ip\|mac>` | Alerta (destaque + bipe) quando um dispositivo sai durante o monitor/dashboard |
+| `alias set <ip\|mac> <nome>` / `ls [--json]` / `rm <ip\|mac>` | Apelida um dispositivo / lista / remove |
+| `class set <ip\|mac> <classe>` / `ls [--json]` / `rm <ip\|mac>` | Fixa a classe de um dispositivo quando o palpite erra (router/computer/mobile/media/printer/iot) |
+| `watch add <ip\|mac>` / `ls [--json]` / `rm <ip\|mac>` | Alerta (destaque + bipe) quando um dispositivo sai durante o monitor/dashboard |
 | `ports <ip>` / `ports <ip> --json` | Portas abertas + RTT + TTL de um dispositivo; `--json` para saída legível por máquina |
 | `wake <ip\|mac\|apelido>` | Envia um pacote Wake-on-LAN pra ligar um dispositivo |
 | `doctor` / `doctor --json` | Diagnostica a conexão: interface, gateway, internet, DNS, Wi-Fi; `--json` para saída legível por máquina |
