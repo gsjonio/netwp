@@ -8,12 +8,10 @@
 package tui
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net"
 	"os"
-	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -51,12 +49,10 @@ func colorEnabled() bool {
 	return !noColor
 }
 
-// RenderDevices writes a table of devices sorted by IP address to w.
+// RenderDevices writes a table of devices to w, in the order given. The caller
+// orders them (see SortDevices), so `scan --sort` and the default IP order go
+// through the same path.
 func RenderDevices(w io.Writer, devices []core.Device) {
-	sort.Slice(devices, func(i, j int) bool {
-		return bytes.Compare(devices[i].IP.To4(), devices[j].IP.To4()) < 0
-	})
-
 	header := []cell{
 		{"STATUS", colorBold}, {"IP", colorBold}, {"ALIAS", colorBold}, {"RTT", colorBold}, {"TTL", colorBold},
 		{"MAC", colorBold}, {"CLASS", colorBold}, {"HOSTNAME", colorBold}, {"VENDOR", colorBold}, {"PORTS", colorBold},

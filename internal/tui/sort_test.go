@@ -52,6 +52,54 @@ func TestSortDevicesByName(t *testing.T) {
 	}
 }
 
+func TestParseSortColumn(t *testing.T) {
+	for _, in := range []string{"ip", "RTT", " name ", "class"} {
+		if _, ok := ParseSortColumn(in); !ok {
+			t.Errorf("ParseSortColumn(%q) = not ok, want a valid column", in)
+		}
+	}
+	if _, ok := ParseSortColumn("bogus"); ok {
+		t.Error("ParseSortColumn(\"bogus\") = ok, want false so --sort fails fast")
+	}
+	// An empty flag falls back to IP without being reported as valid, so the
+	// caller can tell "not given" from "given but wrong".
+	if key, ok := ParseSortColumn(""); ok || key != sortIP {
+		t.Errorf("ParseSortColumn(\"\") = (%v, %v), want (IP, false)", key, ok)
+	}
+}
+
+// TestSortDevicesScanByRTT covers the exported []core.Device path used by
+// `scan --sort`, which shares its comparator with the live views.
+func TestSortDevicesScanByRTT(t *testing.T) {
+	devices := []core.Device{
+		{IP: net.IPv4(192, 168, 1, 1), RTT: 30 * time.Millisecond, Reachable: true, Online: true},
+		{IP: net.IPv4(192, 168, 1, 2), Reachable: false, Online: true}, // unreachable: last
+		{IP: net.IPv4(192, 168, 1, 3), RTT: 5 * time.Millisecond, Reachable: true, Online: true},
+	}
+	SortDevices(devices, sortRTT)
+	if devices[0].RTT != 5*time.Millisecond {
+		t.Errorf("fastest device should sort first, got %v", devices[0].RTT)
+	}
+	if devices[2].Reachable {
+		t.Error("unreachable device should sort last")
+	}
+}
+
+func TestSortDevicesOnlineFirstAndByIP(t *testing.T) {
+	devices := []core.Device{
+		{IP: net.IPv4(192, 168, 1, 9), Online: false},
+		{IP: net.IPv4(192, 168, 1, 5), Online: true},
+		{IP: net.IPv4(192, 168, 1, 2), Online: true},
+	}
+	SortDevices(devices, sortIP)
+	if !devices[0].Online || !devices[1].Online || devices[2].Online {
+		t.Errorf("online devices should sort first, got %+v", devices)
+	}
+	if devices[0].IP.String() != "192.168.1.2" {
+		t.Errorf("within online, IP order expected; got %v first", devices[0].IP)
+	}
+}
+
 func TestSortKeyCycles(t *testing.T) {
 	k := sortIP
 	seen := map[string]bool{}

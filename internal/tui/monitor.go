@@ -102,7 +102,7 @@ type monitorModel struct {
 
 	filter    string // active device-table filter query
 	filtering bool   // true while the user is typing the filter
-	sort      sortKey
+	sort      SortKey
 }
 
 type scanDoneMsg struct {

@@ -22,8 +22,9 @@ import (
 
 // runScan runs a one-shot scan. ports overrides the probed TCP set (nil = the
 // curated default); when filtered, only devices of class are displayed (the
-// cache still stores the full set). asJSON/diff pick the output format.
-func runScan(asJSON, diff bool, ports []int, class core.DeviceClass, filtered bool) error {
+// cache still stores the full set). sortBy orders the output (IP by default).
+// asJSON/diff pick the output format.
+func runScan(asJSON, diff bool, ports []int, class core.DeviceClass, filtered bool, sortBy tui.SortKey) error {
 	discovery, network, err := discoveryContext(ports)
 	if err != nil {
 		return err
@@ -50,6 +51,9 @@ func runScan(asJSON, diff bool, ports []int, class core.DeviceClass, filtered bo
 	if filtered {
 		shown = filterByClass(devices, class)
 	}
+	// The renderers print what they are given, so order here: this covers the
+	// table and --json alike (--diff reports changes, so order is irrelevant).
+	tui.SortDevices(shown, sortBy)
 
 	switch {
 	case diff:
