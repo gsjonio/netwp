@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/gsjonio/netwp/internal/core"
+	"github.com/gsjonio/netwp/internal/tui"
 )
 
 // newRootCmd builds the full netwp command tree. cobra provides per-command
@@ -46,7 +47,7 @@ func newRootCmd() *cobra.Command {
 
 func newScanCmd() *cobra.Command {
 	var asJSON, diff bool
-	var portsStr, classStr string
+	var portsStr, classStr, sortStr string
 	c := &cobra.Command{
 		Use:   "scan",
 		Short: "one-shot ARP scan of the local network, with per-device RTT",
@@ -69,13 +70,18 @@ func newScanCmd() *cobra.Command {
 				}
 				class, filtered = cl, true
 			}
-			return runScan(asJSON, diff, ports, class, filtered)
+			sortBy, ok := tui.ParseSortColumn(sortStr)
+			if sortStr != "" && !ok {
+				return fmt.Errorf("unknown sort column %q: expected one of ip, rtt, name, class", sortStr)
+			}
+			return runScan(asJSON, diff, ports, class, filtered, sortBy)
 		},
 	}
 	c.Flags().BoolVar(&asJSON, "json", false, "machine-readable JSON output")
 	c.Flags().BoolVar(&diff, "diff", false, "print only what changed since the last scan")
 	c.Flags().StringVar(&portsStr, "ports", "", "probe a custom TCP port set, e.g. 22,80,443")
 	c.Flags().StringVar(&classStr, "class", "", "show only devices of one class (router|computer|mobile|media|printer|iot)")
+	c.Flags().StringVar(&sortStr, "sort", "", "order the output by column (ip|rtt|name|class); default ip")
 	return c
 }
 

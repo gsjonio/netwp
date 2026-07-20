@@ -103,7 +103,7 @@ type dashModel struct {
 
 	filter    string // active DEVICES-table filter query
 	filtering bool   // true while the user is typing the filter
-	sort      sortKey
+	sort      SortKey
 }
 
 // opsLimit is how many operation-log lines the LOG panel keeps on screen.
