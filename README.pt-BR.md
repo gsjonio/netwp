@@ -178,7 +178,7 @@ internal/tui      renderização no terminal: tabela do scan, monitor, dashboard
 | --- | --- |
 | *(nenhum)* / `help` / `-h` / `--help` | Mostra a ajuda |
 | `scan` / `scan --json` / `scan --diff` / `scan --ports=<lista>` / `scan --class=<classe>` / `scan --sort=<coluna>` | Varredura única, com RTT por dispositivo; `--json` pra saída legível por máquina, `--diff` pra imprimir só o que mudou, `--ports=22,80,443` pra sondar um conjunto de portas custom, `--class=media` pra mostrar só dispositivos de uma classe (router/computer/mobile/media/printer/iot), `--sort=rtt` pra ordenar a saída por coluna (ip/rtt/name/class, padrão ip) |
-| `monitor` / `monitor --alert-down=<taxa>` / `monitor --quiet` | TUI ao vivo: dispositivos entrando/saindo em tempo real (`q` sai); `--alert-down` avisa sobre queda na taxa de download, ex.: `--alert-down=50Mbps`; `--quiet` roda headless (sem interface), uma linha por evento no stdout, pra um serviço ou arquivo de log |
+| `monitor` / `monitor --alert-down=<taxa>` / `monitor --interval=<duração>` / `monitor --quiet` | TUI ao vivo: dispositivos entrando/saindo em tempo real (`q` sai); `--alert-down` avisa sobre queda na taxa de download, ex.: `--alert-down=50Mbps`; `--interval=30s` define o intervalo entre varreduras (padrão 10s, mínimo 1s); `--quiet` roda headless (sem interface), uma linha por evento no stdout, pra um serviço ou arquivo de log |
 | `dashboard` | Dashboard completo: WiFi + banda ao vivo + speedtest + dispositivos + um log de operações |
 | `speedtest` / `speedtest --json` | Teste de download/upload; `--json` para saída legível por máquina |
 | `iface` | Inspeciona o IP da interface ativa |
@@ -281,6 +281,12 @@ pra quem já manja de redes.
 - `netwp monitor --alert-down=<taxa>` (ex.: `50Mbps`) destaca a linha de
   banda quando o download cai abaixo desse limiar. Sem a flag, o monitor se
   comporta exatamente como antes.
+- `netwp monitor --interval=<duração>` (ex.: `30s`, `2m`) define o intervalo
+  entre varreduras, útil numa rede grande ou parada; vale também pro loop
+  headless do `--quiet`. De ~30s pra cima ele também muda o que "offline"
+  significa na prática: um dispositivo mantém a linha por 30s depois de parar
+  de responder, então com um intervalo maior uma varredura perdida já marca
+  ele como offline, em vez de ser perdoada.
 - `monitor`/`dashboard` (e `monitor --quiet`) gravam cada entrada/saída em
   `<pasta-de-config-do-usuário>/netwp/events.jsonl`; `netwp events [n]` mostra
   esse histórico. O arquivo é limitado: quando passa de ~1 MB, é reduzido aos

@@ -22,10 +22,11 @@ import (
 )
 
 // runMonitor starts the live monitor. quiet runs it headless (no TUI); alertDown
-// (bytes/sec, 0 = off) enables the bandwidth-drop alert.
-func runMonitor(quiet bool, alertDown float64) error {
+// (bytes/sec, 0 = off) enables the bandwidth-drop alert; interval is the gap
+// between scans (see parseInterval).
+func runMonitor(quiet bool, alertDown float64, interval time.Duration) error {
 	if quiet {
-		return runMonitorQuiet()
+		return runMonitorQuiet(interval)
 	}
 
 	discovery, network, err := discoveryContext(nil)
@@ -46,7 +47,7 @@ func runMonitor(quiet bool, alertDown float64) error {
 		Discovery:  discovery,
 		Tracker:    tracker,
 		Network:    network,
-		Interval:   monitorEvery,
+		Interval:   interval,
 		ScanBudget: monitorScanBudget,
 		Reader:     reader,
 		AlertDown:  alertDown,
@@ -59,7 +60,7 @@ func runMonitor(quiet bool, alertDown float64) error {
 // no interface: it prints a plain line per join/leave to stdout and persists
 // each event, so it can run headless (a systemd/Task Scheduler service, or piped
 // to a file). Ctrl-C or SIGTERM stops it cleanly between scans.
-func runMonitorQuiet() error {
+func runMonitorQuiet(interval time.Duration) error {
 	discovery, network, err := discoveryContext(nil)
 	if err != nil {
 		return err
@@ -71,9 +72,9 @@ func runMonitorQuiet() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	fmt.Fprintf(os.Stderr, "netwp monitor (headless) on %s, scanning every %s — Ctrl-C to stop\n", network.CIDR, monitorEvery)
+	fmt.Fprintf(os.Stderr, "netwp monitor (headless) on %s, scanning every %s — Ctrl-C to stop\n", network.CIDR, interval)
 
-	ticker := time.NewTicker(monitorEvery)
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
 		scanCtx, cancel := context.WithTimeout(ctx, monitorScanBudget)
@@ -254,6 +255,25 @@ func deviceMAC(device string) string {
 		}
 	}
 	return ""
+}
+
+// minMonitorInterval is the floor for `monitor --interval`. Every scan is an
+// active ARP sweep of the whole subnet, and one takes a good fraction of a
+// second on its own, so a sub-second cadence just means back-to-back sweeps
+// with no gap: it reads as flooding the network and shows nothing new.
+const minMonitorInterval = 1 * time.Second
+
+// parseInterval parses a `monitor --interval` value like "30s" or "2m" into the
+// gap between scans, rejecting anything below minMonitorInterval.
+func parseInterval(s string) (time.Duration, error) {
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return 0, fmt.Errorf("invalid interval %q: expected a duration like 30s or 2m", s)
+	}
+	if d < minMonitorInterval {
+		return 0, fmt.Errorf("interval %s is too short: the minimum is %s", d, minMonitorInterval)
+	}
+	return d, nil
 }
 
 // parseRate parses a bits-per-second rate like "50Mbps" or "1.5Gbps" into

@@ -6,6 +6,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gsjonio/netwp/internal/adapter/eventlog"
 	"github.com/gsjonio/netwp/internal/core"
@@ -157,6 +158,20 @@ func TestPortsCmdRejectsBadPortSet(t *testing.T) {
 	}
 }
 
+// TestMonitorCmdRejectsBadInterval guards the --interval wiring: a bad value
+// must fail while handling the flag, before the monitor starts scanning.
+func TestMonitorCmdRejectsBadInterval(t *testing.T) {
+	for _, arg := range []string{"--interval=bogus", "--interval=10ms"} {
+		root := newRootCmd()
+		root.SetArgs([]string{"monitor", arg})
+		root.SetOut(&bytes.Buffer{})
+		root.SetErr(&bytes.Buffer{})
+		if err := root.Execute(); err == nil {
+			t.Errorf("monitor %s: expected an error, got nil", arg)
+		}
+	}
+}
+
 func TestRootCmdHasCommands(t *testing.T) {
 	root := newRootCmd()
 	have := map[string]bool{}
@@ -272,6 +287,37 @@ func TestParseRate(t *testing.T) {
 		}
 		if got != c.want {
 			t.Errorf("parseRate(%q) = %v, want %v", c.in, got, c.want)
+		}
+	}
+}
+
+func TestParseInterval(t *testing.T) {
+	cases := []struct {
+		in   string
+		want time.Duration
+	}{
+		{"1s", time.Second}, // exactly at the floor
+		{"30s", 30 * time.Second},
+		{"2m", 2 * time.Minute},
+		{"1h30m", 90 * time.Minute},
+	}
+	for _, c := range cases {
+		got, err := parseInterval(c.in)
+		if err != nil {
+			t.Errorf("parseInterval(%q): unexpected error: %v", c.in, err)
+		}
+		if got != c.want {
+			t.Errorf("parseInterval(%q) = %v, want %v", c.in, got, c.want)
+		}
+	}
+}
+
+func TestParseIntervalInvalid(t *testing.T) {
+	// Unparseable values, plus anything under the 1s floor: a sub-second
+	// cadence would sweep the subnet back to back.
+	for _, in := range []string{"", "30", "fast", "10ms", "999ms", "0s", "-5s"} {
+		if _, err := parseInterval(in); err == nil {
+			t.Errorf("parseInterval(%q): expected error, got nil", in)
 		}
 	}
 }
