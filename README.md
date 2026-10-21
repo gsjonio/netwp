@@ -175,7 +175,7 @@ internal/tui      terminal rendering: scan table, monitor, dashboard
 | --- | --- |
 | *(none)* / `help` / `-h` / `--help` | Print usage |
 | `scan` / `scan --json` / `scan --diff` / `scan --ports=<list>` / `scan --class=<class>` / `scan --sort=<column>` | One-shot scan, with per-device RTT; `--json` for machine-readable output, `--diff` to print only what changed since the last scan, `--ports=22,80,443` to probe a custom TCP port set, `--class=media` to show only devices of one class (router/computer/mobile/media/printer/iot), `--sort=rtt` to order the output by column (ip/rtt/name/class, default ip) |
-| `monitor` / `monitor --alert-down=<rate>` / `monitor --quiet` | Live TUI: devices joining/leaving in real time (`q` to quit); `--alert-down` flags a download rate drop, e.g. `--alert-down=50Mbps`; `--quiet` runs headless (no UI), one line per event to stdout for a service or logfile |
+| `monitor` / `monitor --alert-down=<rate>` / `monitor --interval=<duration>` / `monitor --quiet` | Live TUI: devices joining/leaving in real time (`q` to quit); `--alert-down` flags a download rate drop, e.g. `--alert-down=50Mbps`; `--interval=30s` sets the gap between scans (default 10s, minimum 1s); `--quiet` runs headless (no UI), one line per event to stdout for a service or logfile |
 | `dashboard` | Full dashboard: Wi-Fi + live bandwidth + speedtest + devices + an operations log |
 | `speedtest` / `speedtest --json` | Download/upload throughput; `--json` for machine-readable output |
 | `iface` | Inspect the active interface's IP config |
@@ -275,6 +275,12 @@ people who already know networking.
 - `netwp monitor --alert-down=<rate>` (e.g. `50Mbps`) highlights the
   bandwidth line when download drops below that threshold. Omit it and monitor
   behaves exactly as before.
+- `netwp monitor --interval=<duration>` (e.g. `30s`, `2m`) sets the gap
+  between scans, for a big or quiet network; it applies to the headless
+  `--quiet` loop too. From ~30s up it also shifts what "offline" means in
+  practice: a device keeps its row for 30s after it stops answering, so with
+  a longer interval one missed scan marks it offline right away instead of
+  being forgiven.
 - `monitor`/`dashboard` (and `monitor --quiet`) log every join/leave to
   `<user-config-dir>/netwp/events.jsonl`; `netwp events [n]` reads them back.
   The file is bounded: once it passes ~1 MB it is trimmed to the most recent

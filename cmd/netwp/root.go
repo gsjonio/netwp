@@ -83,7 +83,7 @@ func newScanCmd() *cobra.Command {
 
 func newMonitorCmd() *cobra.Command {
 	var quiet bool
-	var alertStr string
+	var alertStr, intervalStr string
 	c := &cobra.Command{
 		Use:   "monitor",
 		Short: "live TUI: devices joining/leaving in real time (q to quit)",
@@ -97,11 +97,20 @@ func newMonitorCmd() *cobra.Command {
 				}
 				alertDown = r
 			}
-			return runMonitor(quiet, alertDown)
+			interval := monitorEvery
+			if intervalStr != "" {
+				d, err := parseInterval(intervalStr)
+				if err != nil {
+					return err
+				}
+				interval = d
+			}
+			return runMonitor(quiet, alertDown, interval)
 		},
 	}
 	c.Flags().BoolVar(&quiet, "quiet", false, "run headless (no UI): one line per event to stdout, for a service/logfile")
 	c.Flags().StringVar(&alertStr, "alert-down", "", "flag a download rate drop, e.g. 50Mbps")
+	c.Flags().StringVar(&intervalStr, "interval", "", "gap between scans, e.g. 30s or 2m (default 10s, minimum 1s)")
 	return c
 }
 
