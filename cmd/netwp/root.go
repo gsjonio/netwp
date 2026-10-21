@@ -46,7 +46,7 @@ func newRootCmd() *cobra.Command {
 }
 
 func newScanCmd() *cobra.Command {
-	var asJSON, diff bool
+	var asJSON, asCSV, diff bool
 	var portsStr, classStr, sortStr string
 	c := &cobra.Command{
 		Use:   "scan",
@@ -70,14 +70,20 @@ func newScanCmd() *cobra.Command {
 			if sortStr != "" && !ok {
 				return fmt.Errorf("unknown sort column %q: expected one of ip, rtt, name, class", sortStr)
 			}
-			return runScan(asJSON, diff, ports, class, filtered, sortBy)
+			return runScan(asJSON, asCSV, diff, ports, class, filtered, sortBy)
 		},
 	}
 	c.Flags().BoolVar(&asJSON, "json", false, "machine-readable JSON output")
+	c.Flags().BoolVar(&asCSV, "csv", false, "CSV output, for a spreadsheet")
 	c.Flags().BoolVar(&diff, "diff", false, "print only what changed since the last scan")
 	c.Flags().StringVar(&portsStr, "ports", "", "probe a custom TCP port set, e.g. 22,80,443")
 	c.Flags().StringVar(&classStr, "class", "", "show only devices of one class (router|computer|mobile|media|printer|iot)")
 	c.Flags().StringVar(&sortStr, "sort", "", "order the output by column (ip|rtt|name|class); default ip")
+	// --csv is a second shape of the device list --json prints, and --diff
+	// prints a change list instead of devices: pairing --csv with either is a
+	// mistake worth an error, not a silently ignored flag.
+	c.MarkFlagsMutuallyExclusive("json", "csv")
+	c.MarkFlagsMutuallyExclusive("diff", "csv")
 	return c
 }
 

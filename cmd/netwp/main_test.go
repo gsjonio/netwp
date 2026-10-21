@@ -172,6 +172,24 @@ func TestMonitorCmdRejectsBadInterval(t *testing.T) {
 	}
 }
 
+// TestScanCmdRejectsConflictingOutput guards the --csv flag groups: cobra must
+// reject the combination up front, before a scan starts, rather than letting
+// one output flag silently win over the other.
+func TestScanCmdRejectsConflictingOutput(t *testing.T) {
+	for _, args := range [][]string{
+		{"scan", "--json", "--csv"},
+		{"scan", "--diff", "--csv"},
+	} {
+		root := newRootCmd()
+		root.SetArgs(args)
+		root.SetOut(&bytes.Buffer{})
+		root.SetErr(&bytes.Buffer{})
+		if err := root.Execute(); err == nil {
+			t.Errorf("%v: expected an error for conflicting output flags, got nil", args)
+		}
+	}
+}
+
 func TestRootCmdHasCommands(t *testing.T) {
 	root := newRootCmd()
 	have := map[string]bool{}

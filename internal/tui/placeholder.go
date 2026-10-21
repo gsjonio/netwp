@@ -134,9 +134,13 @@ func TTLText(ttl int) string {
 // (e.g. "80,443"), or the placeholder when none were found/probed. Full
 // per-port names are one level down, via `netwp ports <ip>`.
 func portsText(ports []int) string {
-	if len(ports) == 0 {
-		return dash
-	}
+	return orDash(portsList(ports))
+}
+
+// portsList joins ports as "80,443", or "" when there are none. Split out of
+// portsText so the CSV export can emit an empty cell where the table wants its
+// placeholder.
+func portsList(ports []int) string {
 	strs := make([]string, len(ports))
 	for i, p := range ports {
 		strs[i] = strconv.Itoa(p)
