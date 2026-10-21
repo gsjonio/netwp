@@ -48,8 +48,8 @@ view, with Wi-Fi channel recommendations from nearby AP congestion.
 configuration on Windows. Linux support via raw ARP (`AF_PACKET`).
 
 **Persistence & tooling.** Device aliases that survive DHCP IP changes, JSON
-export (`netwp scan --json`), and self-update (`netwp update` / `netwp
-version`).
+and CSV export (`netwp scan --json` / `--csv`), and self-update (`netwp update`
+/ `netwp version`).
 
 ## Install
 
@@ -174,7 +174,7 @@ internal/tui      terminal rendering: scan table, monitor, dashboard
 | Command | What it does |
 | --- | --- |
 | *(none)* / `help` / `-h` / `--help` | Print usage |
-| `scan` / `scan --json` / `scan --diff` / `scan --ports=<list>` / `scan --class=<class>` / `scan --sort=<column>` | One-shot scan, with per-device RTT; `--json` for machine-readable output, `--diff` to print only what changed since the last scan, `--ports=22,80,443` to probe a custom TCP port set, `--class=media` to show only devices of one class (router/computer/mobile/media/printer/iot), `--sort=rtt` to order the output by column (ip/rtt/name/class, default ip) |
+| `scan` / `scan --json` / `scan --csv` / `scan --diff` / `scan --ports=<list>` / `scan --class=<class>` / `scan --sort=<column>` | One-shot scan, with per-device RTT; `--json` for machine-readable output, `--csv` for a spreadsheet (header row plus one row per device; not combinable with `--json` or `--diff`), `--diff` to print only what changed since the last scan, `--ports=22,80,443` to probe a custom TCP port set, `--class=media` to show only devices of one class (router/computer/mobile/media/printer/iot), `--sort=rtt` to order the output by column (ip/rtt/name/class, default ip) |
 | `monitor` / `monitor --alert-down=<rate>` / `monitor --interval=<duration>` / `monitor --quiet` | Live TUI: devices joining/leaving in real time (`q` to quit); `--alert-down` flags a download rate drop, e.g. `--alert-down=50Mbps`; `--interval=30s` sets the gap between scans (default 10s, minimum 1s); `--quiet` runs headless (no UI), one line per event to stdout for a service or logfile |
 | `dashboard` | Full dashboard: Wi-Fi + live bandwidth + speedtest + devices + an operations log |
 | `speedtest` / `speedtest --json` | Download/upload throughput; `--json` for machine-readable output |
@@ -194,6 +194,7 @@ internal/tui      terminal rendering: scan table, monitor, dashboard
 
 ```powershell
 netwp scan --json | ConvertFrom-Json | Where-Object reachable
+netwp scan --csv > devices.csv
 netwp alias set 192.168.1.20 "Living Room TV"
 ```
 
