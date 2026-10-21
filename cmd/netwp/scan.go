@@ -166,12 +166,26 @@ func parsePorts(s string) ([]int, error) {
 	return ports, nil
 }
 
+// portSet resolves a --ports flag value to a probe set: nil when the flag is
+// absent (keep the curated default), else the parsed list. Shared by `scan` and
+// `ports`, which accept the same flag.
+func portSet(s string) ([]int, error) {
+	if s == "" {
+		return nil, nil
+	}
+	return parsePorts(s)
+}
+
 // runPorts probes a single IP directly: ICMP reachability plus the same
 // well-known TCP ports a scan checks for classification, but reported in
-// full instead of being folded into a class guess.
-func runPorts(ip net.IP, asJSON bool) error {
+// full instead of being folded into a class guess. ports overrides the probed
+// set (nil = the curated default), same as `scan --ports`.
+func runPorts(ip net.IP, asJSON bool, ports []int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), scanTimeout)
 	defer cancel()
+
+	prober := tcpprobe.New()
+	prober.Ports = ports
 
 	var open []int
 	var rtt time.Duration
@@ -181,7 +195,7 @@ func runPorts(ip net.IP, asJSON bool) error {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		open = tcpprobe.New().OpenPorts(ctx, ip)
+		open = prober.OpenPorts(ctx, ip)
 	}()
 	go func() {
 		defer wg.Done()
