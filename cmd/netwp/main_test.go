@@ -127,6 +127,36 @@ func TestParsePortsInvalid(t *testing.T) {
 	}
 }
 
+func TestPortSet(t *testing.T) {
+	// An absent flag must stay nil so the prober keeps its curated default.
+	got, err := portSet("")
+	if err != nil || got != nil {
+		t.Errorf("portSet(\"\") = %v, %v; want nil, nil", got, err)
+	}
+	got, err = portSet("22,443")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 2 || got[0] != 22 || got[1] != 443 {
+		t.Errorf("portSet = %v, want [22 443]", got)
+	}
+	if _, err := portSet("nope"); err == nil {
+		t.Error("portSet(\"nope\"): expected an error, got nil")
+	}
+}
+
+// TestPortsCmdRejectsBadPortSet guards the --ports wiring on `netwp ports`: an
+// invalid list must fail while handling the flag, before any probe is dialed.
+func TestPortsCmdRejectsBadPortSet(t *testing.T) {
+	root := newRootCmd()
+	root.SetArgs([]string{"ports", "192.168.1.1", "--ports=bogus"})
+	root.SetOut(&bytes.Buffer{})
+	root.SetErr(&bytes.Buffer{})
+	if err := root.Execute(); err == nil {
+		t.Error("expected an error for an invalid --ports value")
+	}
+}
+
 func TestRootCmdHasCommands(t *testing.T) {
 	root := newRootCmd()
 	have := map[string]bool{}

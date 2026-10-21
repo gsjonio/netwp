@@ -187,7 +187,7 @@ internal/tui      renderização no terminal: tabela do scan, monitor, dashboard
 | `alias set <ip\|mac> <nome>` / `ls [--json]` / `rm <ip\|mac>` | Apelida um dispositivo / lista / remove |
 | `class set <ip\|mac> <classe>` / `ls [--json]` / `rm <ip\|mac>` | Fixa a classe de um dispositivo quando o palpite erra (router/computer/mobile/media/printer/iot) |
 | `watch add <ip\|mac>` / `ls [--json]` / `rm <ip\|mac>` | Alerta (destaque + bipe) quando um dispositivo sai durante o monitor/dashboard |
-| `ports <ip>` / `ports <ip> --json` | Portas abertas + RTT + TTL de um dispositivo; `--json` para saída legível por máquina |
+| `ports <ip>` / `ports <ip> --json` / `ports <ip> --ports=<lista>` | Portas abertas + RTT + TTL de um dispositivo; `--json` para saída legível por máquina, `--ports=22,443` pra sondar um conjunto de portas TCP custom em vez do padrão curado |
 | `wake <ip\|mac\|apelido>` | Envia um pacote Wake-on-LAN pra ligar um dispositivo |
 | `doctor` / `doctor --json` | Diagnostica a conexão: interface, gateway, internet, DNS, Wi-Fi; `--json` para saída legível por máquina |
 | `events [n]` / `events --device=<x>` / `events --json` | Mostra os últimos n eventos de entrada/saída (padrão 20); `--device=<apelido-ou-mac>` filtra por um dispositivo; `--json` para saída legível por máquina |

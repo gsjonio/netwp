@@ -53,13 +53,9 @@ func newScanCmd() *cobra.Command {
 		Short: "one-shot ARP scan of the local network, with per-device RTT",
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			var ports []int
-			if portsStr != "" {
-				p, err := parsePorts(portsStr)
-				if err != nil {
-					return err
-				}
-				ports = p
+			ports, err := portSet(portsStr)
+			if err != nil {
+				return err
 			}
 			var class core.DeviceClass
 			filtered := false
@@ -235,6 +231,7 @@ func newWatchCmd() *cobra.Command {
 
 func newPortsCmd() *cobra.Command {
 	var asJSON bool
+	var portsStr string
 	c := &cobra.Command{
 		Use:   "ports <ip>",
 		Short: "open ports + RTT for one device",
@@ -244,10 +241,15 @@ func newPortsCmd() *cobra.Command {
 			if ip == nil {
 				return fmt.Errorf("invalid IP %q", args[0])
 			}
-			return runPorts(ip, asJSON)
+			ports, err := portSet(portsStr)
+			if err != nil {
+				return err
+			}
+			return runPorts(ip, asJSON, ports)
 		},
 	}
 	c.Flags().BoolVar(&asJSON, "json", false, "machine-readable JSON output")
+	c.Flags().StringVar(&portsStr, "ports", "", "probe a custom TCP port set, e.g. 22,80,443")
 	return c
 }
 
