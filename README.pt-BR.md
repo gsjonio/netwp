@@ -50,8 +50,8 @@ qualquer plataforma; configuração estático/DHCP no Windows. Suporte a Linux
 via ARP cru (`AF_PACKET`).
 
 **Persistência & ferramentas.** Apelidos de dispositivo que sobrevivem a
-trocas de IP pelo DHCP, exportação JSON (`netwp scan --json`), e
-auto-atualização (`netwp update` / `netwp version`).
+trocas de IP pelo DHCP, exportação JSON e CSV (`netwp scan --json` / `--csv`),
+e auto-atualização (`netwp update` / `netwp version`).
 
 ## Instalação
 
@@ -177,7 +177,7 @@ internal/tui      renderização no terminal: tabela do scan, monitor, dashboard
 | Comando | O que faz |
 | --- | --- |
 | *(nenhum)* / `help` / `-h` / `--help` | Mostra a ajuda |
-| `scan` / `scan --json` / `scan --diff` / `scan --ports=<lista>` / `scan --class=<classe>` / `scan --sort=<coluna>` | Varredura única, com RTT por dispositivo; `--json` pra saída legível por máquina, `--diff` pra imprimir só o que mudou, `--ports=22,80,443` pra sondar um conjunto de portas custom, `--class=media` pra mostrar só dispositivos de uma classe (router/computer/mobile/media/printer/iot), `--sort=rtt` pra ordenar a saída por coluna (ip/rtt/name/class, padrão ip) |
+| `scan` / `scan --json` / `scan --csv` / `scan --diff` / `scan --ports=<lista>` / `scan --class=<classe>` / `scan --sort=<coluna>` | Varredura única, com RTT por dispositivo; `--json` pra saída legível por máquina, `--csv` pra abrir numa planilha (linha de cabeçalho mais uma linha por dispositivo; não combina com `--json` nem com `--diff`), `--diff` pra imprimir só o que mudou, `--ports=22,80,443` pra sondar um conjunto de portas custom, `--class=media` pra mostrar só dispositivos de uma classe (router/computer/mobile/media/printer/iot), `--sort=rtt` pra ordenar a saída por coluna (ip/rtt/name/class, padrão ip) |
 | `monitor` / `monitor --alert-down=<taxa>` / `monitor --interval=<duração>` / `monitor --quiet` | TUI ao vivo: dispositivos entrando/saindo em tempo real (`q` sai); `--alert-down` avisa sobre queda na taxa de download, ex.: `--alert-down=50Mbps`; `--interval=30s` define o intervalo entre varreduras (padrão 10s, mínimo 1s); `--quiet` roda headless (sem interface), uma linha por evento no stdout, pra um serviço ou arquivo de log |
 | `dashboard` | Dashboard completo: WiFi + banda ao vivo + speedtest + dispositivos + um log de operações |
 | `speedtest` / `speedtest --json` | Teste de download/upload; `--json` para saída legível por máquina |
@@ -197,6 +197,7 @@ internal/tui      renderização no terminal: tabela do scan, monitor, dashboard
 
 ```powershell
 netwp scan --json | ConvertFrom-Json | Where-Object reachable
+netwp scan --csv > dispositivos.csv
 netwp alias set 192.168.1.20 "TV da Sala"
 ```
 
